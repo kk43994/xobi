@@ -43,7 +43,7 @@
 ### 2.2 项目（Project 工作流）
 - 路由：
   - `/projects`（列表/搜索/归档）
-  - `/projects/new`（创建向导）
+  - `/factory/detail`（创建向导/详情图工厂；兼容旧入口 `/projects/new` → `/factory/detail`）
   - `/projects/:id/outline`
   - `/projects/:id/detail`
   - `/projects/:id/preview`
@@ -68,13 +68,17 @@
 
 ### 2.4 视觉工厂（单图/批量/Studio/风格批量）
 - 路由：
-  - `/factory/single`（单图替换 + analyze + preview + Studio）
-  - `/factory/batch`（批量替换任务）
-  - `/factory/style-batch`（风格批量任务）
-  - `/factory/platform-specs`（平台规格/比例）
+  - `/factory/single`（主图工厂：单图改图/风格化 + 画布标注）
+  - `/factory/detail`（详情图工厂：详情页生成工作台入口，原型来源 xobicc）
+  - `/factory/detail-bridge`（详情图工厂桥接：从 Excel/批量选择主图 → 一键创建/打开 Project）
+  - `/factory/batch`（批量工厂：基于 Excel 数据集的主图/文案/导出）
 - MVP：
   - 直接复用 B 的能力与参数体系
   - 产物可“保存到资源库”（落到 A 的 Asset），支持被项目工作流引用
+
+### 2.4.1 视频工厂（video-workstation）
+- 路由：`/video`（门户入口页）
+- 说明：视频工厂当前为独立应用（`video-workstation/client` + `video-workstation/server`），门户提供统一入口并新窗口打开完整工作台。
 
 ### 2.5 编辑器（手动编辑）
 - 路由：

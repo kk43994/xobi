@@ -1,0 +1,66 @@
+.workstation {
+  min-height: 100vh;
+}
+
+.workstation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: #141414;
+  border-bottom: 1px solid #303030;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.workstation-sider {
+  background: #1f1f1f;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-nav {
+  flex: 1;
+}
+
+.step-nav .ant-steps-item {
+  cursor: pointer;
+}
+
+.sider-bottom {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #303030;
+}
+
+.workstation-content {
+  padding: 24px;
+  background: #141414;
+  min-height: calc(100vh - 64px);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  text-align: center;
+}
+
+.project-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.project-card {
+  margin-bottom: 8px;
+}
+
+.project-card:hover {
+  border-color: #1677ff;
+}

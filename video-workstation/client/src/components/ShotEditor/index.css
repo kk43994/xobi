@@ -1,0 +1,78 @@
+.shot-editor {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.editor-card {
+  background: #1f1f1f;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.shots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shot-card {
+  background: #141414;
+}
+
+.shot-field {
+
+}
+
+.field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.action-templates {
+  display: flex;
+  gap: 4px;
+}
+
+.mini-tag {
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 6px;
+}
+
+.mini-tag:hover {
+  color: #1677ff;
+  border-color: #1677ff;
+}
+
+.shot-image {
+  background: #1f1f1f;
+  padding: 12px;
+  border-radius: 8px;
+  height: 100%;
+}
+
+.image-preview {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.upload-area {
+  margin-top: 8px;
+  border: 2px dashed #303030;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.upload-area:hover {
+  border-color: #1677ff;
+}

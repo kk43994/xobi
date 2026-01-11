@@ -1,0 +1,32 @@
+# ===== Dependencies =====
+**/node_modules/
+
+# ===== Build outputs =====
+**/dist/
+**/build/
+
+# ===== Runtime / caches =====
+**/__pycache__/
+**/.pytest_cache/
+
+# ===== Logs =====
+*.log
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== Local env =====
+**/.env
+**/.env.*
+!.env.example
+
+# ===== Artifacts (screenshots, temp clones, etc.) =====
+artifacts/
+
+# ===== Local runtime settings =====
+settings.json
+
+# ===== Video workstation runtime outputs =====
+video-workstation/uploads/
+video-workstation/videos/

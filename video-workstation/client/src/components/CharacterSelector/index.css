@@ -1,0 +1,41 @@
+.character-selector {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.editor-card {
+  background: #1f1f1f;
+}
+
+.template-section {
+  margin-bottom: 24px;
+}
+
+.template-tags {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.template-tag {
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.template-tag:hover {
+  color: #1677ff;
+  border-color: #1677ff;
+}
+
+.image-upload-section {
+  background: #141414;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.preview-image {
+  text-align: center;
+}

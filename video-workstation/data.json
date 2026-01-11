@@ -1,0 +1,112 @@
+{
+  "projects": [
+    {
+      "id": "68377ad6-a705-4478-b23d-8666fcb92dcd",
+      "name": "图片搜索",
+      "scene_description": "A cozy home living room with comfortable sofa, warm ambient lighting, bookshelf in the background, and some decorative items. The feeling is casual and inviting.",
+      "character_description": "An energetic young woman with shoulder-length hair, wearing colorful casual wear, expressive face, and dynamic body language. She brings excitement and enthusiasm.",
+      "character_image": "",
+      "language": "en",
+      "orientation": "portrait",
+      "duration": 15,
+      "status": "draft",
+      "created_at": "2026-01-08T12:18:02.595Z",
+      "updated_at": "2026-01-08T12:18:32.430Z"
+    },
+    {
+      "id": "bdd2f368-bded-446b-9eac-789f9b822b16",
+      "name": "safaf",
+      "scene_description": "A modern minimalist studio with clean white walls, soft natural lighting from large windows, a simple wooden desk, and some green plants. The atmosphere is professional yet warm.",
+      "character_description": "A young Asian woman in her 20s with long black hair, wearing casual trendy clothes, friendly smile, confident posture. She has a warm and approachable personality.",
+      "character_image": "",
+      "language": "en",
+      "orientation": "portrait",
+      "duration": 15,
+      "status": "draft",
+      "created_at": "2026-01-08T12:27:30.088Z",
+      "updated_at": "2026-01-08T12:27:43.509Z"
+    },
+    {
+      "id": "b9bade9f-9b54-489f-b5e0-8949e25ed1bc",
+      "name": "daihuo",
+      "scene_description": "",
+      "character_description": "",
+      "character_image": "",
+      "language": "fr",
+      "orientation": "portrait",
+      "duration": 25,
+      "status": "draft",
+      "created_at": "2026-01-08T13:10:24.831Z",
+      "updated_at": "2026-01-08T13:10:24.831Z"
+    }
+  ],
+  "shots": [
+    {
+      "id": "259a913f-695f-4912-804e-24c0dc1ef31c",
+      "project_id": "68377ad6-a705-4478-b23d-8666fcb92dcd",
+      "shot_number": 1,
+      "video_description": "",
+      "voiceover_text": "",
+      "reference_image": "",
+      "status": "pending",
+      "created_at": "2026-01-08T12:18:35.971Z",
+      "updated_at": "2026-01-08T12:18:42.892Z"
+    },
+    {
+      "id": "5208b20e-f43b-4b53-95fc-39dbb210acd5",
+      "project_id": "68377ad6-a705-4478-b23d-8666fcb92dcd",
+      "shot_number": 2,
+      "video_description": "",
+      "voiceover_text": "",
+      "reference_image": "",
+      "status": "pending",
+      "created_at": "2026-01-08T12:18:45.732Z",
+      "updated_at": "2026-01-08T12:18:45.732Z"
+    },
+    {
+      "id": "dc206bdc-a253-4a1a-85b0-17150988abf0",
+      "project_id": "bdd2f368-bded-446b-9eac-789f9b822b16",
+      "shot_number": 1,
+      "video_description": "The host holds up the product, showing it from different angles with enthusiasm",
+      "voiceover_text": "Hey everyone! Check out this amazing product that's going to change your life...",
+      "reference_image": "",
+      "status": "pending",
+      "created_at": "2026-01-08T12:27:47.604Z",
+      "updated_at": "2026-01-08T12:27:47.604Z"
+    },
+    {
+      "id": "d966e432-40e0-4968-8ab5-8d2801d8e4e8",
+      "project_id": "bdd2f368-bded-446b-9eac-789f9b822b16",
+      "shot_number": 2,
+      "video_description": "The host demonstrates how to use the product, explaining the steps clearly",
+      "voiceover_text": "What I absolutely love about this is the incredible quality and attention to detail...",
+      "reference_image": "",
+      "status": "pending",
+      "created_at": "2026-01-08T12:27:47.608Z",
+      "updated_at": "2026-01-08T12:27:47.608Z"
+    },
+    {
+      "id": "8025c9ec-b7af-4616-aca3-13e92f05d5e8",
+      "project_id": "bdd2f368-bded-446b-9eac-789f9b822b16",
+      "shot_number": 3,
+      "video_description": "The host shows a before and after comparison, highlighting the difference",
+      "voiceover_text": "This will save you so much time and make your life so much easier...",
+      "reference_image": "",
+      "status": "pending",
+      "created_at": "2026-01-08T12:27:47.611Z",
+      "updated_at": "2026-01-08T12:27:47.611Z"
+    },
+    {
+      "id": "d87ed18e-d0fe-4bcc-819e-1a607369b6dc",
+      "project_id": "bdd2f368-bded-446b-9eac-789f9b822b16",
+      "shot_number": 4,
+      "video_description": "The host looks at the camera with a smile, making a call to action gesture",
+      "voiceover_text": "Click the link below to get yours now! Limited time offer, don't miss out!",
+      "reference_image": "",
+      "status": "pending",
+      "created_at": "2026-01-08T12:27:47.614Z",
+      "updated_at": "2026-01-08T12:27:47.614Z"
+    }
+  ],
+  "tasks": []
+}

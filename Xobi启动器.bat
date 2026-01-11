@@ -13,6 +13,7 @@ echo - 这个启动器会同时启动：
 echo   1) A 后端（xobixiangqing/backend，端口 5000）
 echo   2) 门户前端（xobixiangqing/frontend，端口 3000）
 echo   3) B 工具服务（tupian-de-tu/backend，端口 8001）
+echo   4) 视频工厂（video-workstation，端口 4000/5173）
 echo.
 
 if not exist "%ROOT%xobixiangqing\启动云雾版.bat" (
