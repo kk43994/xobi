@@ -1,32 +1,79 @@
 # ===== Dependencies =====
 **/node_modules/
+**/.venv/
+**/venv/
+**/.env/
 
 # ===== Build outputs =====
 **/dist/
 **/build/
+**/*.egg-info/
 
 # ===== Runtime / caches =====
 **/__pycache__/
 **/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+*.pyc
+*.pyo
+*.pyd
 
 # ===== Logs =====
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # ===== OS =====
 .DS_Store
 Thumbs.db
+Desktop.ini
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
 # ===== Local env =====
 **/.env
 **/.env.*
-!.env.example
+!**/.env.example
 
-# ===== Artifacts (screenshots, temp clones, etc.) =====
-artifacts/
+# ===== Database =====
+*.db
+*.sqlite
+*.sqlite3
 
-# ===== Local runtime settings =====
-settings.json
+# ===== Uploads & temp files =====
+**/uploads/
+**/temp_uploads/
+**/data/inputs/
+**/data/outputs/
+**/data/temp*/
 
 # ===== Video workstation runtime outputs =====
 video-workstation/uploads/
 video-workstation/videos/
+
+# ===== Local runtime settings =====
+settings.json
+
+# ===== Artifacts (screenshots, temp clones, etc.) =====
+artifacts/
+
+# ===== Large binary files =====
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.mp4
+*.avi
+*.mov
+*.xlsx
+*.xls
+!**/public/**
+!**/assets/**
+!**/ui设计/**

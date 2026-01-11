@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel批量处理 - Xobi Visual Factory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./assets/css/base.css">
+    <style>
+        /* Xobi Dark Theme (match single-antdx) */
+        :root {
+            --bg-system: #000000;
+            --bg-primary: #000000;
+            --bg-secondary: #0e1117;
+            --bg-tertiary: #141824;
+            --bg-elevated: #1b2030;
+            --text-primary: #e8ecf5;
+            --text-secondary: #9aa5b5;
+            --text-tertiary: #556074;
+            --accent-color: #3b82f6;
+            --accent-color-light: #60a5fa;
+            --accent-color-dark: #2563eb;
+            --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            --accent-gradient-hover: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+            --border-color: #1f2937;
+            --border-color-light: #2b3647;
+            --radius-s: 10px;
+            --radius-m: 14px;
+            --radius-l: 18px;
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.45);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+        }
+
+        body.xobi-dark {
+            background: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Tailwind color utility overrides (scoped to this page) */
+        body.xobi-dark .bg-gray-50 { background-color: var(--bg-tertiary) !important; }
+        body.xobi-dark .bg-white { background-color: var(--bg-secondary) !important; }
+        body.xobi-dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12) !important; }
+        body.xobi-dark .bg-gray-100 { background-color: var(--bg-tertiary) !important; }
+        body.xobi-dark .bg-gray-200 { background-color: var(--bg-elevated) !important; }
+        body.xobi-dark .bg-gray-300 { background-color: var(--border-color) !important; }
+
+        body.xobi-dark .hover\:bg-gray-50:hover { background-color: var(--bg-elevated) !important; }
+        body.xobi-dark .hover\:bg-gray-200:hover { background-color: var(--bg-elevated) !important; }
+        body.xobi-dark .hover\:text-gray-900:hover { color: var(--text-primary) !important; }
+        body.xobi-dark .hover\:text-red-800:hover { color: #fecaca !important; }
+
+        body.xobi-dark .border-gray-100,
+        body.xobi-dark .border-gray-200 { border-color: var(--border-color) !important; }
+        body.xobi-dark .border-gray-300 { border-color: var(--border-color-light) !important; }
+
+        body.xobi-dark .text-gray-900,
+        body.xobi-dark .text-gray-800,
+        body.xobi-dark .text-gray-700 { color: var(--text-primary) !important; }
+        body.xobi-dark .text-gray-600,
+        body.xobi-dark .text-gray-500 { color: var(--text-secondary) !important; }
+        body.xobi-dark .text-gray-400 { color: var(--text-tertiary) !important; }
+        body.xobi-dark .text-blue-600 { color: var(--accent-color) !important; }
+        body.xobi-dark .text-blue-800 { color: var(--accent-color-light) !important; }
+        body.xobi-dark .text-purple-800 { color: #d8b4fe !important; }
+        body.xobi-dark .text-red-800 { color: #fca5a5 !important; }
+
+        body.xobi-dark .bg-purple-50 { background-color: rgba(168, 85, 247, 0.12) !important; }
+        body.xobi-dark .bg-blue-600 { background: var(--accent-gradient) !important; }
+        body.xobi-dark .hover\:bg-blue-700:hover { background: var(--accent-gradient-hover) !important; }
+        body.xobi-dark .border-blue-600 { border-color: var(--accent-color) !important; }
+        body.xobi-dark .bg-purple-600 { background: var(--accent-gradient) !important; }
+        body.xobi-dark .hover\:bg-purple-700:hover { background: var(--accent-gradient-hover) !important; }
+
+        body.xobi-dark input,
+        body.xobi-dark select,
+        body.xobi-dark textarea {
+            background: var(--bg-tertiary) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+
+        body.xobi-dark input:focus,
+        body.xobi-dark select:focus,
+        body.xobi-dark textarea:focus {
+            border-color: var(--accent-color) !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+        }
+
+        body.xobi-dark input::placeholder,
+        body.xobi-dark textarea::placeholder {
+            color: var(--text-tertiary) !important;
+        }
+
+        body.xobi-dark input[type="checkbox"] {
+            accent-color: var(--accent-color);
+        }
+
+        body.xobi-dark .shadow-sm {
+            box-shadow: var(--shadow-sm) !important;
+        }
+
+        /* 表格专用样式 */
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-m);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-secondary);
+        }
+
+        .data-table thead {
+            background: var(--bg-tertiary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .data-table tbody tr.selected {
+            background: rgba(59, 130, 246, 0.14);
+        }
+
+        .thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .thumbnail:hover {
+            transform: scale(1.1);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-pending { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+        .status-processing { background: rgba(59, 130, 246, 0.18); color: #93c5fd; }
+        .status-completed { background: rgba(34, 197, 94, 0.16); color: #86efac; }
+        .status-failed { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-m);
+            margin-bottom: 16px;
+            position: sticky;
+            top: 80px;
+            z-index: 40;
+        }
+
+        .view-btn.active {
+            background: var(--accent-gradient) !important;
+            border-color: var(--accent-color) !important;
+            color: #fff !important;
+        }
+
+        .gallery-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-m);
+            padding: 16px;
+        }
+
+        .gallery-grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media (min-width: 768px) {
+            .gallery-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .gallery-grid {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+        }
+
+        .gallery-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+
+        .gallery-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-color-light);
+        }
+
+        .gallery-image {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: var(--bg-elevated);
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .gallery-meta {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .gallery-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.3;
+            min-height: 32px;
+        }
+
+        .gallery-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        @media (min-width: 768px) {
+            .compare-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .compare-image {
+            width: 100%;
+            max-height: 60vh;
+            object-fit: contain;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-md);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="xobi-dark">
+    <!-- 顶部导航 -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-full mx-auto px-6">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-blue-600">📊 Excel批量处理</h1>
+                    <div class="ml-8 flex items-center space-x-4 text-sm">
+                        <span class="text-gray-500" id="stepIndicator">Step 1: 上传Excel</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="index-antdx.html" class="text-gray-600 hover:text-gray-900">返回首页</a>
+                    <a href="settings-antdx.html" class="text-gray-600 hover:text-gray-900">设置</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-full mx-auto px-6 py-6">
+        <!-- Step 1: 文件上传 -->
+        <div id="uploadSection" class="bg-white rounded-lg shadow-sm p-8 mb-6">
+            <h2 class="text-lg font-semibold mb-4">📁 上传Excel文件</h2>
+
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition">
+                <input type="file" id="fileInput" accept=".xlsx,.csv,.xls" class="hidden">
+                <div id="uploadArea" class="cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                    <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M24 8v28m-12-16l12 12 12-12M8 36h32"/>
+                    </svg>
+                    <p class="text-lg text-gray-700 mb-2">点击上传或拖拽文件至此处</p>
+                    <p class="text-sm text-gray-500">支持 .xlsx, .csv, .xls 格式（建议500行以内）</p>
+                </div>
+            </div>
+
+            <div id="uploadProgress" class="hidden mt-4">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <p id="progressText" class="text-sm text-gray-600 mt-2 text-center">上传中...</p>
+            </div>
+
+            <div id="fileInfo" class="hidden mt-4 p-4 bg-blue-50 rounded-lg flex justify-between items-center">
+                <div>
+                    <p class="font-semibold text-gray-900" id="fileName"></p>
+                    <p class="text-sm text-gray-600" id="fileStats"></p>
+                </div>
+                <button onclick="clearFile()" class="text-red-600 hover:text-red-800 font-medium">
+                    清除
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: 数据表格 -->
+        <div id="tableSection" class="hidden">
+            <!-- 统计信息 -->
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-6 text-sm">
+                        <span class="text-gray-700">文件: <strong id="currentFileName"></strong></span>
+                        <span class="text-gray-700">共 <strong id="totalCount">0</strong> 个商品</span>
+                        <span class="text-blue-600">已选 <strong id="selectedCount">0</strong> 个</span>
+                        <span class="text-green-600">已处理 <strong id="processedCount">0</strong> 个</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="showUploadSection()" class="text-sm text-gray-600 hover:text-gray-900">
+                            上传新文件
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <button onclick="selectAll()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    全选
+                </button>
+                <button onclick="selectNone()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    取消全选
+                </button>
+                <div class="h-6 w-px bg-gray-300"></div>
+                <button id="viewTableBtn" onclick="setViewMode('table')" class="view-btn px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    📋 表格
+                </button>
+                <button id="viewGalleryBtn" onclick="setViewMode('gallery')" class="view-btn px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    🧩 画廊
+                </button>
+                <div class="h-6 w-px bg-gray-300"></div>
+                <button onclick="showBatchTitleModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium">
+                    📝 批量改写标题
+                </button>
+                <button onclick="showBatchImageModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium">
+                    🎨 批量修改主图
+                </button>
+                <button onclick="retryFailedImages()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    🔁 重试失败
+                </button>
+                <button onclick="showTaskCenterModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    🗂️ 任务中心
+                </button>
+                <div class="h-6 w-px bg-gray-300"></div>
+                <button onclick="clearNewTitles()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    清除新标题
+                </button>
+                <button onclick="exportExcel()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium">
+                    📤 导出Excel
+                </button>
+
+                <div class="flex-1"></div>
+
+                <!-- 搜索 -->
+                <input type="text" id="searchInput" placeholder="🔍 搜索商品..."
+                       class="px-3 py-2 border border-gray-300 rounded-md text-sm w-64"
+                       onkeyup="filterTable()">
+
+                <select id="statusFilter" class="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        onchange="filterTable()">
+                    <option value="">全部状态</option>
+                    <option value="pending">待处理</option>
+                    <option value="processing">处理中</option>
+                    <option value="completed">已完成</option>
+                    <option value="failed">失败</option>
+                </select>
+            </div>
+
+            <!-- 数据表格 -->
+            <div id="tableView" class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                            </th>
+                            <th style="width: 120px;">商品ID</th>
+                            <th style="width: 80px;">产品图</th>
+                            <th style="width: 300px;">原标题</th>
+                            <th style="width: 300px;">新标题</th>
+                            <th style="width: 100px;">价格</th>
+                            <th style="width: 100px;">状态</th>
+                            <th style="width: 180px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- 数据行将通过JS动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="galleryView" class="hidden gallery-container">
+                <div id="galleryGrid" class="gallery-grid"></div>
+            </div>
+
+            <!-- 分页 -->
+            <div class="bg-white rounded-lg shadow-sm p-4 mt-4 flex justify-between items-center">
+                <div class="text-sm text-gray-600">
+                    显示 <span id="pageStart">1</span>-<span id="pageEnd">20</span> / <span id="pageTotal">0</span>
+                </div>
+                <div id="paginationControls" class="flex items-center space-x-2">
+                    <!-- 分页按钮将通过JS生成 -->
+                </div>
+                <div>
+                    <select id="pageSizeSelect" class="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                            onchange="changePageSize()">
+                        <option value="20">每页 20 条</option>
+                        <option value="50">每页 50 条</option>
+                        <option value="100">每页 100 条</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量改写标题弹窗 -->
+    <div id="batchTitleModal" class="modal">
+        <div class="modal-content p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold">批量改写标题</h3>
+                <button onclick="closeBatchTitleModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p class="text-sm text-blue-800">已选择 <strong id="batchTitleCount">0</strong> 个商品</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">目标语言</label>
+                    <select id="batchLanguage" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="zh">中文</option>
+                        <option value="th">泰语</option>
+                        <option value="en">英语</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">风格</label>
+                    <select id="batchStyle" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="shein">SHEIN 风格</option>
+                        <option value="amazon">Amazon 风格</option>
+                        <option value="simple">简洁清晰</option>
+                        <option value="catchy">吸睛营销</option>
+                        <option value="localized">本地化</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">最大长度</label>
+                    <input type="number" id="batchMaxLength" value="60" min="20" max="200"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">要求/重点（可选）</label>
+                    <textarea id="batchTitleRequirements" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              placeholder="例：保留关键词、不夸张、符合平台风格、不要敏感词..."></textarea>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeBatchTitleModal()"
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md">
+                    取消
+                </button>
+                <button onclick="startBatchTitleRewrite()"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md">
+                    开始批量改写
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量修改主图弹窗 -->
+    <div id="batchImageModal" class="modal">
+        <div class="modal-content p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold">批量修改主图</h3>
+                <button onclick="closeBatchImageModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4 p-3 bg-purple-50 rounded-lg">
+                <p class="text-sm text-purple-800">已选择 <strong id="batchImageCount">0</strong> 个商品</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">🎨 风格选择</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" class="platform-btn" data-platform="shein" onclick="selectPlatform('shein')">
+                            SHEIN
+                        </button>
+                        <button type="button" class="platform-btn" data-platform="amazon" onclick="selectPlatform('amazon')">
+                            Amazon
+                        </button>
+                        <button type="button" class="platform-btn" data-platform="tiktok" onclick="selectPlatform('tiktok')">
+                            TikTok/抖音
+                        </button>
+                        <button type="button" class="platform-btn" data-platform="generic" onclick="selectPlatform('generic')">
+                            通用
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">🌐 目标语言（可选）</label>
+                    <select id="batchImageLanguage" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="same">保持原语言（不翻译）</option>
+                        <option value="zh">中文</option>
+                        <option value="th">泰语</option>
+                        <option value="en">英语</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">📐 图片比例</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button type="button" class="ratio-btn" data-ratio="1:1" onclick="selectRatio('1:1')">
+                            1:1
+                        </button>
+                        <button type="button" class="ratio-btn" data-ratio="3:4" onclick="selectRatio('3:4')">
+                            3:4
+                        </button>
+                        <button type="button" class="ratio-btn" data-ratio="4:3" onclick="selectRatio('4:3')">
+                            4:3
+                        </button>
+                        <button type="button" class="ratio-btn" data-ratio="16:9" onclick="selectRatio('16:9')">
+                            16:9
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">🔧 可选项</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="optReplaceBackground" class="mr-2">
+                            <span class="text-sm">更换背景/场景</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="optChangeAngle" class="mr-2">
+                            <span class="text-sm">换产品角度（轻微）</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="optChangeLighting" class="mr-2">
+                            <span class="text-sm">调整光影/色调</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="optAddProps" class="mr-2">
+                            <span class="text-sm">可加少量风格化道具</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">要求/重点（可选）</label>
+                    <textarea id="batchImageRequirements" rows="4"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              placeholder="例：保持产品真实质感；背景更干净；风格更像 SHEIN；不要新增任何文字/Logo..."></textarea>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeBatchImageModal()"
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md">
+                    取消
+                </button>
+                <button onclick="startBatchImageGeneration()"
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md">
+                    开始批量生成
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 进度弹窗 -->
+    <div id="progressModal" class="modal">
+        <div class="modal-content p-6">
+            <h3 class="text-xl font-semibold mb-4">批量处理进度</h3>
+
+            <div class="mb-4">
+                <div class="progress-bar mb-2">
+                    <div id="batchProgressFill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <p class="text-sm text-gray-600 text-center">
+                    <span id="batchProgressText">0% (0/0)</span>
+                </p>
+            </div>
+
+            <div id="progressList" class="max-h-60 overflow-y-auto space-y-2">
+                <!-- 进度列表将通过JS生成 -->
+            </div>
+
+            <div class="mt-6 flex justify-center space-x-3">
+                <button id="pauseBtn" onclick="pauseBatchProcess()"
+                        class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md">
+                    暂停
+                </button>
+                <button id="resumeBtn" onclick="resumeBatchProcess()"
+                        class="hidden px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md">
+                    继续
+                </button>
+                <button onclick="cancelBatchProcess()"
+                        class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务中心 -->
+    <div id="taskCenterModal" class="modal">
+        <div class="modal-content p-6" style="max-width: 980px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">任务中心</h3>
+                <button onclick="closeTaskCenterModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-sm text-gray-500">最近任务（风格仿写批量）</div>
+                <button onclick="refreshTaskCenter()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    🔄 刷新
+                </button>
+            </div>
+
+            <div id="taskCenterList" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- 对比预览 -->
+    <div id="compareModal" class="modal">
+        <div class="modal-content p-6" style="max-width: 980px;">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="text-xl font-semibold">对比预览</h3>
+                    <p id="compareMeta" class="text-sm text-gray-500"></p>
+                </div>
+                <button onclick="closeCompareModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="compare-grid">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm text-gray-500">原图</span>
+                        <button onclick="openCompareOriginal()" class="text-sm text-blue-600 hover:text-blue-800">新窗口</button>
+                    </div>
+                    <img id="compareOriginalImg" class="compare-image" alt="原图">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm text-gray-500">新图</span>
+                        <button onclick="openCompareNew()" class="text-sm text-blue-600 hover:text-blue-800">新窗口</button>
+                    </div>
+                    <img id="compareNewImg" class="compare-image" alt="新图">
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center">
+                <button onclick="comparePrev()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    ← 上一个
+                </button>
+                <div id="compareCounter" class="text-sm text-gray-500">0/0</div>
+                <button onclick="compareNext()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">
+                    下一个 →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast通知 -->
+    <div id="toast" class="hidden fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <p id="toastMessage"></p>
+    </div>
+
+    <style>
+        .platform-btn, .ratio-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .platform-btn:hover, .ratio-btn:hover {
+            border-color: var(--accent-color);
+            background: var(--bg-elevated);
+        }
+
+        .platform-btn.active, .ratio-btn.active {
+            border-color: var(--accent-color);
+            background: var(--accent-gradient);
+            color: #ffffff;
+        }
+    </style>
+
+    <!-- 配置/请求封装（用于云雾 API 头注入） -->
+    <script src="./assets/js/config-manager.js"></script>
+    <script src="./assets/js/main.js?v=7"></script>
+    <script src="./assets/js/api.js?v=7"></script>
+
+    <!-- 平台规格配置 -->
+    <script src="./assets/js/platform-specs.js"></script>
+    <!-- 主逻辑 -->
+    <script src="./assets/js/batch-import-v2.js?v=9"></script>
+</body>
+</html>
