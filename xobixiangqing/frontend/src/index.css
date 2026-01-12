@@ -1,0 +1,221 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* 主色 - 紫色系 */
+  --banana-yellow: #8B5CF6;
+  --banana-yellow-light: #A78BFA;
+  --banana-yellow-dark: #7C3AED;
+  --banana-yellow-pale: #F5F3FF;
+
+  /* 中性色 - 黑白灰 */
+  --black: #1A1A1A;
+  --black-80: #4A4A4A;
+  --black-60: #757575;
+  --black-10: #F5F5F5;
+  --white: #FFFFFF;
+
+  /* 功能色 */
+  --success: #52C41A;
+  --warning: #FAAD14;
+  --error: #FF4D4F;
+  --info: #1890FF;
+
+  /* 过渡 */
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* 移动端优化 */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  background: #f5f7fb;
+}
+
+:root[data-theme='dark'] body {
+  background: #0b0d10;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--black-10);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--banana-yellow);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--banana-yellow-dark);
+}
+
+/* 移动端触摸优化 */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 移动端按钮优化 - 仅针对主要交互按钮 */
+@media (max-width: 640px) {
+  .btn-touch-target,
+  button:not(.no-min-touch-target):not([class*="w-"]):not([class*="h-"]),
+  a:not(.no-min-touch-target):not([class*="w-"]):not([class*="h-"]) {
+    min-height: 44px; /* iOS推荐的最小触摸目标 */
+    min-width: 44px;
+  }
+}
+
+/* 渐变文本动画 */
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Markdown 内容样式 - 仅保留基础容器样式，具体样式由 Markdown.tsx 组件内的 Tailwind 类处理 */
+.markdown-content {
+  line-height: 1.6;
+}
+
+/* ========== Ant Design 样式覆盖 ========== */
+
+/* Card 统一样式 */
+.ant-card {
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: box-shadow var(--transition-base), transform var(--transition-base) !important;
+}
+
+.ant-card:hover {
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Table 行hover效果 */
+:root[data-theme='light'] .ant-table-tbody > tr.ant-table-row:hover > td {
+  background: var(--banana-yellow-pale) !important;
+}
+
+:root[data-theme='dark'] .ant-table-tbody > tr.ant-table-row:hover > td {
+  background: rgba(139, 92, 246, 0.16) !important;
+}
+
+/* Table 头部样式（按主题适配，避免 darkAlgorithm 被覆盖） */
+:root[data-theme='light'] .ant-table-thead > tr > th {
+  background: #fafafa !important;
+  font-weight: 600 !important;
+  color: var(--black) !important;
+}
+
+:root[data-theme='dark'] .ant-table-thead > tr > th {
+  background: rgba(255, 255, 255, 0.04) !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Tag 样式优化 */
+.ant-tag {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+}
+
+/* Button 主色按钮渐变 */
+.ant-btn-primary:not(:disabled) {
+  background: linear-gradient(135deg, var(--banana-yellow) 0%, var(--banana-yellow-dark) 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3) !important;
+}
+
+.ant-btn-primary:not(:disabled):hover {
+  background: linear-gradient(135deg, var(--banana-yellow-light) 0%, var(--banana-yellow) 100%) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.4) !important;
+}
+
+/* Progress 条颜色 */
+.ant-progress-bg {
+  background: linear-gradient(90deg, var(--banana-yellow) 0%, #6366F1 100%) !important;
+}
+
+/* Menu 选中项样式 */
+.ant-menu-dark .ant-menu-item-selected {
+  background: linear-gradient(90deg, var(--banana-yellow) 0%, var(--banana-yellow-dark) 100%) !important;
+  border-radius: 8px !important;
+}
+
+/* Drawer 样式 */
+.ant-drawer-header {
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+/* Modal 样式 */
+.ant-modal-content {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+/* Input 聚焦效果 */
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: var(--banana-yellow) !important;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Breadcrumb 样式 */
+.ant-breadcrumb {
+  font-size: 13px !important;
+}
+
+/* 空状态优化 */
+.ant-empty-description {
+  color: var(--black-60) !important;
+}
+
+/* Skeleton 动画优化 */
+.ant-skeleton-content .ant-skeleton-title,
+.ant-skeleton-content .ant-skeleton-paragraph > li {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%) !important;
+  background-size: 200% 100% !important;
+  animation: skeleton-loading 1.5s infinite !important;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+

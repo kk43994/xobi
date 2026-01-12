@@ -36,6 +36,9 @@ Desktop.ini
 *.swo
 *~
 
+# ===== Local AI tooling =====
+.claude/
+
 # ===== Local env =====
 **/.env
 **/.env.*
@@ -56,12 +59,16 @@ Desktop.ini
 # ===== Video workstation runtime outputs =====
 video-workstation/uploads/
 video-workstation/videos/
+video-workstation/data.json
 
 # ===== Local runtime settings =====
 settings.json
 
 # ===== Artifacts (screenshots, temp clones, etc.) =====
 artifacts/
+
+# ===== Local scratch =====
+自己版本/
 
 # ===== Large binary files =====
 *.png

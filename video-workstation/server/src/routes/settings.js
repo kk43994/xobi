@@ -9,6 +9,15 @@ const __dirname = path.dirname(__filename);
 const router = express.Router();
 const settingsPath = path.join(__dirname, '../../../settings.json');
 
+function normalizeYunwuBaseUrl(baseUrl) {
+  const raw = String(baseUrl || '').trim();
+  if (!raw) return 'https://yunwu.ai';
+  const trimmed = raw.replace(/\/+$/, '');
+  // 云雾视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
+  if (trimmed.endsWith('/v1')) return trimmed.slice(0, -3);
+  return trimmed;
+}
+
 // 默认设置
 const defaultSettings = {
   // 云雾API设置 (视频生成)
@@ -97,6 +106,7 @@ router.put('/', (req, res) => {
       yunwu: {
         ...currentSettings.yunwu,
         ...newSettings.yunwu,
+        baseUrl: normalizeYunwuBaseUrl(newSettings.yunwu?.baseUrl || currentSettings.yunwu.baseUrl),
         apiKey: newSettings.yunwu?.apiKey?.includes('***')
           ? currentSettings.yunwu.apiKey
           : (newSettings.yunwu?.apiKey || currentSettings.yunwu.apiKey)
@@ -138,7 +148,8 @@ router.post('/test', async (req, res) => {
   try {
     if (type === 'yunwu') {
       // 测试云雾视频API
-      const response = await fetch(`${settings.yunwu.baseUrl}/v1/models`, {
+      const baseUrl = normalizeYunwuBaseUrl(settings.yunwu.baseUrl);
+      const response = await fetch(`${baseUrl}/v1/models`, {
         headers: { 'Authorization': `Bearer ${settings.yunwu.apiKey}` }
       });
       if (response.ok) {

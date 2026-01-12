@@ -1,0 +1,42 @@
+[project]
+name = "xobi"
+version = "0.1.0"
+description = "xobi - AI-powered e-commerce image generator"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
+    "flask-sqlalchemy>=3.1.1",
+    "google-genai>=1.52.0",
+    "openai>=1.0.0",
+    "pydantic>=2.9.0",
+    "pillow>=12.0.0",
+    "python-dotenv>=1.0.1",
+    "werkzeug>=3.0.1",
+    "tenacity>=9.0.0",
+    "alembic>=1.13.0",
+    "flask-migrate>=4.0.0",
+    "openpyxl>=3.1.2",
+    "xlrd>=2.0.1",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "pytest-mock>=3.12.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+    "flake8>=6.1.0",
+    "black>=23.0.0",
+]
+
+[tool.uv]
+index-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

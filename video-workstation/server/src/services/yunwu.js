@@ -1,13 +1,23 @@
 import fetch from 'node-fetch';
-
-const YUNWU_API_BASE = 'https://yunwu.ai';
+import { getSettings } from '../routes/settings.js';
 
 /**
  * 云雾API服务封装
  */
+function normalizeYunwuBaseUrl(baseUrl) {
+  const raw = String(baseUrl || '').trim();
+  if (!raw) return 'https://yunwu.ai';
+  const trimmed = raw.replace(/\/+$/, '');
+  // 云雾视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
+  if (trimmed.endsWith('/v1')) return trimmed.slice(0, -3);
+  return trimmed;
+}
+
 export class YunwuService {
-  constructor(apiKey) {
+  constructor(apiKey, { baseUrl = 'https://yunwu.ai', videoModel = 'sora-2-pro' } = {}) {
     this.apiKey = apiKey;
+    this.baseUrl = normalizeYunwuBaseUrl(baseUrl);
+    this.videoModel = videoModel;
   }
 
   /**
@@ -28,14 +38,14 @@ export class YunwuService {
       watermark = false
     } = options;
 
-    const response = await fetch(`${YUNWU_API_BASE}/v1/video/create`, {
+    const response = await fetch(`${this.baseUrl}/v1/video/create`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'sora-2-pro',
+        model: this.videoModel,
         prompt,
         images,
         orientation,
@@ -59,7 +69,7 @@ export class YunwuService {
    * @param {string} taskId 任务ID
    */
   async getTaskStatus(taskId) {
-    const response = await fetch(`${YUNWU_API_BASE}/v1/video/status/${taskId}`, {
+    const response = await fetch(`${this.baseUrl}/v1/video/status/${taskId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`
@@ -91,12 +101,15 @@ export class YunwuService {
 let instance = null;
 
 export function getYunwuService() {
-  if (!instance) {
-    const apiKey = process.env.YUNWU_API_KEY;
-    if (!apiKey) {
-      throw new Error('请设置 YUNWU_API_KEY 环境变量');
-    }
-    instance = new YunwuService(apiKey);
+  const settings = getSettings();
+  const apiKey = settings?.yunwu?.apiKey || process.env.YUNWU_API_KEY;
+  if (!apiKey) {
+    throw new Error('请设置 YUNWU_API_KEY 环境变量');
+  }
+  const baseUrl = settings?.yunwu?.baseUrl || 'https://yunwu.ai';
+  const videoModel = settings?.yunwu?.videoModel || 'sora-2-pro';
+  if (!instance || instance.apiKey !== apiKey || instance.baseUrl !== baseUrl || instance.videoModel !== videoModel) {
+    instance = new YunwuService(apiKey, { baseUrl, videoModel });
   }
   return instance;
 }

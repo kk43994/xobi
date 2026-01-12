@@ -222,7 +222,7 @@ router.post('/download/:taskId', async (req, res) => {
     res.json({
       success: true,
       local_path: `/videos/${filename}`,
-      fullUrl: `http://localhost:${process.env.PORT || 3001}/videos/${filename}`
+      fullUrl: `http://localhost:${process.env.PORT || 4000}/videos/${filename}`
     });
   } catch (error) {
     console.error('下载视频失败:', error);

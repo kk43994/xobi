@@ -45,7 +45,7 @@ router.post('/', upload.single('image'), (req, res) => {
     success: true,
     filename: req.file.filename,
     url: imageUrl,
-    fullUrl: `http://localhost:${process.env.PORT || 3001}${imageUrl}`
+    fullUrl: `http://localhost:${process.env.PORT || 4000}${imageUrl}`
   });
 });
 
@@ -58,7 +58,7 @@ router.post('/multiple', upload.array('images', 10), (req, res) => {
   const files = req.files.map(file => ({
     filename: file.filename,
     url: `/uploads/${file.filename}`,
-    fullUrl: `http://localhost:${process.env.PORT || 3001}/uploads/${file.filename}`
+    fullUrl: `http://localhost:${process.env.PORT || 4000}/uploads/${file.filename}`
   }));
 
   res.json({
