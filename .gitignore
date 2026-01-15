@@ -70,6 +70,9 @@ artifacts/
 # ===== Local scratch =====
 自己版本/
 
+# ===== Claude Code temp files =====
+tmpclaude-*-cwd
+
 # ===== Large binary files =====
 *.png
 *.jpg

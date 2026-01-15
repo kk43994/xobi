@@ -1,13 +1,17 @@
 """AI Controller - Canvas/主图工厂专用的轻量 AI 接口
 
 目标：
-- 给“无限画布/AI 设计助手”提供最小可用的 chat + 生图能力
+- 给"无限画布/AI 设计助手"提供最小可用的 chat + 生图能力
 - 统一复用 A 的 Settings（不在前端暴露 API Key）
 - 生成图片落库为 Asset（可进入资源库复用）
 
 Endpoints:
 - POST /api/ai/chat
 - POST /api/ai/generate-image
+- POST /api/ai/remove-background
+- POST /api/ai/expand-image
+- POST /api/ai/mockup
+- POST /api/ai/edit-image
 """
 
 from __future__ import annotations
@@ -18,7 +22,7 @@ import uuid
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, current_app, request
 from PIL import Image  # type: ignore
@@ -125,15 +129,24 @@ def generate_image():
 
         enhanced_prompt = prompt
         ref_images: List[Image.Image] = []
+        logger.info("Reference images received: %s (type: %s)", reference_images, type(reference_images))
         if reference_images:
             enhanced_prompt = f"请基于提供的参考图片，生成电商产品图。产品描述：{prompt}"
-            for idx, b64 in enumerate(reference_images[:6]):
+            for idx, ref_data in enumerate(reference_images[:6]):
                 try:
-                    img = _decode_base64_image(str(b64))
+                    ref_str = str(ref_data).strip()
+                    logger.info("Processing reference image %s: %s (first 100 chars)", idx + 1, ref_str[:100] if len(ref_str) > 100 else ref_str)
+                    if not ref_str:
+                        logger.warning("Reference image %s is empty, skipping", idx + 1)
+                        continue
+                    # 支持 URL 格式（如 /api/assets/xxx/download）和 base64 格式
+                    img = _load_image_from_source(ref_str)
                     img.load()
                     ref_images.append(img)
-                except Exception as decode_error:
-                    logger.warning("Failed to decode reference image %s: %s", idx + 1, decode_error)
+                    logger.info("Successfully loaded reference image %s, size: %s", idx + 1, img.size)
+                except Exception as load_error:
+                    logger.warning("Failed to load reference image %s: %s", idx + 1, load_error, exc_info=True)
+        logger.info("Total reference images loaded: %s", len(ref_images))
 
         # Create a lightweight Job record so the portal can track "单图生成" in Jobs center.
         job = Job(system="A", job_type="SINGLE_GENERATE", status="running")
@@ -260,3 +273,165 @@ def generate_image():
                 db.session.rollback()
         logger.error("generate_image failed: %s", e, exc_info=True)
         return error_response("IMAGE_GENERATION_ERROR", f"图片生成失败: {str(e)}", 500)
+
+
+def _save_image_as_asset(
+    image: Image.Image,
+    job_id: Optional[str],
+    source: str,
+    meta: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Save PIL Image as Asset and return asset info."""
+    upload_root = Path(current_app.config["UPLOAD_FOLDER"]).resolve()
+    filename = f"{source}_{uuid.uuid4().hex}.png"
+    asset = Asset(system="A", kind="image", name=filename, storage="local", job_id=job_id)
+    asset.set_meta(meta or {"source": source})
+    db.session.add(asset)
+    db.session.flush()
+    asset_dir = (upload_root / "assets" / asset.id).resolve()
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    file_path = (asset_dir / filename).resolve()
+    image.save(str(file_path), format="PNG")
+    asset.file_path = file_path.relative_to(upload_root).as_posix()
+    asset.content_type = "image/png"
+    try:
+        asset.size_bytes = int(file_path.stat().st_size)
+    except Exception:
+        asset.size_bytes = None
+    width, height = image.size
+    return {"asset_id": asset.id, "image_url": f"/api/assets/{asset.id}/download", "width": width, "height": height}
+
+
+def _load_image_from_source(image_data: str) -> Image.Image:
+    """Load image from base64 or asset URL."""
+    logger.info("_load_image_from_source called with: %s (first 80 chars)", image_data[:80] if len(image_data) > 80 else image_data)
+    if image_data.startswith("/api/assets/"):
+        asset_id = image_data.split("/")[3]
+        logger.info("Loading from asset: %s", asset_id)
+        asset = Asset.query.get(asset_id)
+        if not asset or not asset.file_path:
+            logger.error("Asset not found or no file_path: asset=%s", asset)
+            raise ValueError("Asset not found")
+        upload_root = Path(current_app.config["UPLOAD_FOLDER"]).resolve()
+        file_path = upload_root / asset.file_path
+        logger.info("Loading image from file: %s", file_path)
+        return Image.open(str(file_path))
+    logger.info("Falling back to base64 decode")
+    return _decode_base64_image(image_data)
+
+
+@ai_bp.route("/remove-background", methods=["POST"], strict_slashes=False)
+def remove_background():
+    """POST /api/ai/remove-background - 移除背景"""
+    try:
+        payload = request.get_json(silent=True) or {}
+        image_data = str(payload.get("image") or "").strip()
+        if not image_data:
+            return bad_request("Image is required")
+        source_image = _load_image_from_source(image_data)
+        source_image.load()
+        ai_service = get_ai_service()
+        if not getattr(ai_service, "image_provider", None):
+            return error_response("IMAGE_PROVIDER_NOT_CONFIGURED", "图片处理服务未配置", 500)
+        prompt = "Remove the background completely. Keep only the main subject with transparent background. Output a clean cutout."
+        result = ai_service.image_provider.generate_image(prompt=prompt, ref_images=[source_image], aspect_ratio="1:1", resolution="1K")
+        if result is None:
+            return error_response("REMOVE_BG_FAILED", "移除背景失败", 500)
+        asset_info = _save_image_as_asset(result, None, "remove_bg", {"source": "remove_background"})
+        db.session.commit()
+        return success_response(asset_info)
+    except Exception as e:
+        db.session.rollback()
+        logger.error("remove_background failed: %s", e, exc_info=True)
+        return error_response("REMOVE_BG_ERROR", f"移除背景失败: {str(e)}", 500)
+
+
+@ai_bp.route("/expand-image", methods=["POST"], strict_slashes=False)
+def expand_image():
+    """POST /api/ai/expand-image - 图片扩展/Outpainting"""
+    try:
+        payload = request.get_json(silent=True) or {}
+        image_data = str(payload.get("image") or "").strip()
+        if not image_data:
+            return bad_request("Image is required")
+        direction = str(payload.get("direction") or "all").strip()
+        user_prompt = str(payload.get("prompt") or "").strip()
+        source_image = _load_image_from_source(image_data)
+        source_image.load()
+        ai_service = get_ai_service()
+        if not getattr(ai_service, "image_provider", None):
+            return error_response("IMAGE_PROVIDER_NOT_CONFIGURED", "图片处理服务未配置", 500)
+        prompt = f"Expand this image outward ({direction}). Seamlessly extend the scene maintaining consistent style and lighting."
+        if user_prompt:
+            prompt += f" Context: {user_prompt}"
+        result = ai_service.image_provider.generate_image(prompt=prompt, ref_images=[source_image], aspect_ratio="1:1", resolution="1K")
+        if result is None:
+            return error_response("EXPAND_FAILED", "图片扩展失败", 500)
+        asset_info = _save_image_as_asset(result, None, "expand", {"source": "expand_image", "direction": direction})
+        db.session.commit()
+        return success_response(asset_info)
+    except Exception as e:
+        db.session.rollback()
+        logger.error("expand_image failed: %s", e, exc_info=True)
+        return error_response("EXPAND_ERROR", f"图片扩展失败: {str(e)}", 500)
+
+
+@ai_bp.route("/mockup", methods=["POST"], strict_slashes=False)
+def mockup():
+    """POST /api/ai/mockup - Mockup场景合成"""
+    try:
+        payload = request.get_json(silent=True) or {}
+        image_data = str(payload.get("image") or "").strip()
+        if not image_data:
+            return bad_request("Image is required")
+        scene = str(payload.get("scene") or "").strip()
+        style = str(payload.get("style") or "professional").strip()
+        source_image = _load_image_from_source(image_data)
+        source_image.load()
+        ai_service = get_ai_service()
+        if not getattr(ai_service, "image_provider", None):
+            return error_response("IMAGE_PROVIDER_NOT_CONFIGURED", "图片处理服务未配置", 500)
+        styles = {"minimal": "clean white background, soft shadows", "lifestyle": "natural lifestyle setting, warm lighting", "professional": "studio lighting, commercial quality"}
+        style_desc = styles.get(style, styles["professional"])
+        prompt = f"Create a professional e-commerce product mockup. Style: {style_desc}."
+        if scene:
+            prompt = f"Place this product in: {scene}. {prompt}"
+        result = ai_service.image_provider.generate_image(prompt=prompt, ref_images=[source_image], aspect_ratio="1:1", resolution="1K")
+        if result is None:
+            return error_response("MOCKUP_FAILED", "Mockup生成失败", 500)
+        asset_info = _save_image_as_asset(result, None, "mockup", {"source": "mockup", "scene": scene, "style": style})
+        db.session.commit()
+        return success_response(asset_info)
+    except Exception as e:
+        db.session.rollback()
+        logger.error("mockup failed: %s", e, exc_info=True)
+        return error_response("MOCKUP_ERROR", f"Mockup生成失败: {str(e)}", 500)
+
+
+@ai_bp.route("/edit-image", methods=["POST"], strict_slashes=False)
+def edit_image():
+    """POST /api/ai/edit-image - AI局部编辑"""
+    try:
+        payload = request.get_json(silent=True) or {}
+        image_data = str(payload.get("image") or "").strip()
+        edit_prompt = str(payload.get("prompt") or "").strip()
+        if not image_data:
+            return bad_request("Image is required")
+        if not edit_prompt:
+            return bad_request("Edit prompt is required")
+        source_image = _load_image_from_source(image_data)
+        source_image.load()
+        ai_service = get_ai_service()
+        if not getattr(ai_service, "image_provider", None):
+            return error_response("IMAGE_PROVIDER_NOT_CONFIGURED", "图片处理服务未配置", 500)
+        prompt = f"Edit this image: {edit_prompt}. Maintain the overall quality and style."
+        result = ai_service.image_provider.generate_image(prompt=prompt, ref_images=[source_image], aspect_ratio="1:1", resolution="1K")
+        if result is None:
+            return error_response("EDIT_FAILED", "图片编辑失败", 500)
+        asset_info = _save_image_as_asset(result, None, "edit", {"source": "edit_image", "prompt": edit_prompt})
+        db.session.commit()
+        return success_response(asset_info)
+    except Exception as e:
+        db.session.rollback()
+        logger.error("edit_image failed: %s", e, exc_info=True)
+        return error_response("EDIT_ERROR", f"图片编辑失败: {str(e)}", 500)

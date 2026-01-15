@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Sparkles, Layers, FileText, ChevronDown, Upload, X } from 'lucide-react';
 import { useAgentBridgeSlots } from '@/layout/agentBridge';
+import { uploadAsset, getSettings } from '@/api/endpoints';
 
 export function MainFactoryLandingPage() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export function MainFactoryLandingPage() {
 
   // 配置选项状态
   const [imageType, setImageType] = useState('主图Banner');
-  const [model, setModel] = useState('Flux Pro');
+  const [model, setModel] = useState('');  // 初始为空，从API加载
   const [imageCount, setImageCount] = useState(4);
   const [platform, setPlatform] = useState('Shopee');
   const [language, setLanguage] = useState('简体中文');
@@ -24,6 +25,24 @@ export function MainFactoryLandingPage() {
 
   // 下拉菜单状态
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  // 从API加载模型设置
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await getSettings();
+        if (res.data?.image_model) {
+          setModel(res.data.image_model);
+        } else {
+          setModel('gpt-image-1');  // 默认值
+        }
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+        setModel('gpt-image-1');  // 加载失败时使用默认值
+      }
+    };
+    loadSettings();
+  }, []);
 
   useAgentBridgeSlots({
     title: '主图工厂',
@@ -98,23 +117,47 @@ export function MainFactoryLandingPage() {
     e.stopPropagation();
   };
 
-  const handleSubmit = () => {
-    if (!prompt.trim()) return;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // 保存配置到 localStorage
-    const config = {
-      prompt: prompt.trim(),
-      imageType,
-      model,
-      imageCount,
-      platform,
-      language,
-      aspectRatio,
-      referenceImages: referenceImages.map((img) => img.src),
-    };
-    localStorage.setItem('canvas_initial_config', JSON.stringify(config));
+  const handleSubmit = async () => {
+    if (!prompt.trim() || isSubmitting) return;
 
-    navigate('/factory/canvas');
+    setIsSubmitting(true);
+    try {
+      // 先上传参考图到后端，避免 localStorage 大小限制
+      const uploadedUrls: string[] = [];
+      for (const img of referenceImages) {
+        try {
+          const res = await uploadAsset(img.file, { kind: 'image', system: 'A' });
+          const url = (res.data as any)?.unified?.url;
+          if (url) {
+            uploadedUrls.push(url);
+          }
+        } catch (err) {
+          console.error('Upload reference image failed:', err);
+          // 如果上传失败，跳过这张图
+        }
+      }
+
+      // 保存配置到 localStorage（使用上传后的 URL 而不是 base64）
+      const config = {
+        prompt: prompt.trim(),
+        imageType,
+        model,
+        imageCount,
+        platform,
+        language,
+        aspectRatio,
+        referenceImages: uploadedUrls,
+      };
+      localStorage.setItem('canvas_initial_config', JSON.stringify(config));
+
+      navigate('/factory/canvas');
+    } catch (err) {
+      console.error('Submit failed:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -223,28 +266,9 @@ export function MainFactoryLandingPage() {
                   )}
                 </div>
 
-                {/* 模型 pill */}
-                <div className="relative" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={() => setActiveDropdown(activeDropdown === 'model' ? null : 'model')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 hover:border-purple-vibrant/50 text-white/70 hover:text-white text-xs transition-all"
-                  >
-                    <span>{model}</span>
-                    <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'model' ? 'rotate-180' : ''}`} />
-                  </button>
-                  {activeDropdown === 'model' && (
-                    <div className="absolute top-full left-0 mt-1 py-1 bg-dark-secondary border border-white/10 rounded-lg shadow-xl z-50 min-w-[140px]">
-                      {['Flux Pro', 'DALL-E 3', 'Midjourney', 'Stable Diffusion'].map((opt) => (
-                        <button
-                          key={opt}
-                          onClick={() => { setModel(opt); setActiveDropdown(null); }}
-                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${model === opt ? 'text-purple-vibrant' : 'text-white/70'}`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                {/* 模型 pill - 只读显示当前配置的模型 */}
+                <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 text-white/70 text-xs">
+                  <span>{model || '加载中...'}</span>
                 </div>
 
                 {/* 比例 pill */}
@@ -308,14 +332,18 @@ export function MainFactoryLandingPage() {
               {/* 发送按钮 */}
               <button
                 onClick={handleSubmit}
-                disabled={!prompt.trim()}
+                disabled={!prompt.trim() || isSubmitting}
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${
-                  prompt.trim()
+                  prompt.trim() && !isSubmitting
                     ? 'bg-gradient-cta text-white hover:shadow-glow'
                     : 'bg-dark-tertiary text-text-tertiary cursor-not-allowed'
                 }`}
               >
-                <Send size={18} />
+                {isSubmitting ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Send size={18} />
+                )}
               </button>
             </div>
 

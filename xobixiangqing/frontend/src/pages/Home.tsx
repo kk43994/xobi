@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, FileText, FileEdit, ImagePlus, Paperclip, Palette, Lightbulb, ShoppingBag, Repeat2 } from 'lucide-react';
+import { Sparkles, FileText, FileEdit, ImagePlus, Paperclip, Palette, Lightbulb, ShoppingBag, Repeat2, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import { BulbOutlined } from '@ant-design/icons';
 import { Button, Textarea, Card, useToast, MaterialGeneratorModal, ProductReplaceModal, ReferenceFileList, ReferenceFileSelector, FilePreviewModal, ImagePreviewList } from '@/components/shared';
 import { TemplateSelector, getTemplateFile } from '@/components/shared/TemplateSelector';
@@ -35,6 +35,7 @@ export const Home: React.FC = () => {
   const [ecomPageAspectRatio, setEcomPageAspectRatio] = useState('3:4');
   const [isPreparingEcomPrompt, setIsPreparingEcomPrompt] = useState(false);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -647,95 +648,78 @@ export const Home: React.FC = () => {
           </Button>
         </div>
 
-        {/* Hero 标题区 */}
-        <div className="text-center mb-10 md:mb-16 space-y-4 md:space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-dark-secondary/60 backdrop-blur-sm rounded-full border border-white/10 shadow-sm mb-4">
-            <span className="text-2xl animate-pulse"><Sparkles size={20} color="#8B5CF6" /></span>
-            <span className="text-sm font-medium text-text-secondary">基于 nano banana pro 的原生 AI 电商图片生成器</span>
-          </div>
-
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight">
-            <span className="bg-gradient-cta bg-clip-text text-transparent" style={{
-              backgroundSize: '200% auto',
-              animation: 'gradient 3s ease infinite',
-            }}>
-              xobi · 电商图片助手
+        {/* Hero 标题区 - 简化版 */}
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold mb-3">
+            <span className="bg-gradient-cta bg-clip-text text-transparent">
+              创建详情页项目
             </span>
           </h1>
-
-          <p className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto font-light">
-            上传商品图，批量生成平台级详情页多张单图
+          <p className="text-base md:text-lg text-text-secondary">
+            上传商品图或输入文本，AI 自动生成电商详情页
           </p>
-
-          {/* 特性标签 */}
-          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 pt-4">
-            {[
-              { icon: <ShoppingBag size={14} className="text-purple-apple" />, label: '上传商品图生成详情页' },
-              { icon: <Palette size={14} className="text-purple-vibrant" />, label: '多平台风格模板' },
-              { icon: <FileEdit size={14} className="text-indigo-vibrant" />, label: '自然语言修改' },
-              { icon: <Paperclip size={14} className="text-green-500" />, label: '批量导出图片 ZIP' },
-            ].map((feature, idx) => (
-              <span
-                key={idx}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-dark-secondary/70 backdrop-blur-sm rounded-full text-xs md:text-sm text-text-secondary border border-white/10 shadow-sm hover:shadow-glow transition-all hover:scale-105 cursor-default"
-              >
-                {feature.icon}
-                {feature.label}
-              </span>
-            ))}
-          </div>
         </div>
 
         {/* 创建卡片 */}
         <Card className="p-4 md:p-10 bg-dark-secondary/90 backdrop-blur-xl shadow-2xl border border-white/10 hover:shadow-glow transition-all duration-300">
-          {/* 选项卡 */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6 md:mb-8">
-            {(Object.keys(tabConfig) as CreationType[]).map((type) => {
-              const config = tabConfig[type];
-              return (
-                <button
-                  key={type}
-                  onClick={() => setActiveTab(type)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-all text-sm md:text-base touch-manipulation ${activeTab === type
-                    ? 'bg-gradient-cta text-white shadow-glow'
-                    : 'bg-dark-tertiary border border-white/10 text-text-secondary hover:bg-dark-elevated active:bg-dark-hover'
+          {/* 步骤1：选择创建方式 - 2x2卡片网格 */}
+          <div className="mb-6 md:mb-8">
+            <h2 className="text-lg font-semibold mb-4 text-white">选择创建方式</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              {(Object.keys(tabConfig) as CreationType[]).map((type) => {
+                const config = tabConfig[type];
+                const isActive = activeTab === type;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setActiveTab(type)}
+                    className={`relative p-4 md:p-5 rounded-xl border-2 transition-all duration-300 text-left ${
+                      isActive
+                        ? 'border-purple-vibrant bg-purple-vibrant/10 shadow-glow transform scale-[1.02]'
+                        : 'border-white/10 bg-dark-tertiary/50 hover:border-purple-vibrant/50 hover:bg-dark-elevated'
                     }`}
-                >
-                  <span className="scale-90 md:scale-100">{config.icon}</span>
-                  <span className="truncate">{config.label}</span>
-                </button>
-              );
-            })}
+                  >
+                    {/* 图标 */}
+                    <div
+                      className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-all ${
+                        isActive
+                          ? 'bg-gradient-cta text-white'
+                          : 'bg-dark-elevated text-purple-apple'
+                      }`}
+                    >
+                      {config.icon}
+                    </div>
+
+                    {/* 标题 */}
+                    <h3 className={`text-base md:text-lg font-bold mb-2 ${isActive ? 'text-purple-vibrant' : 'text-white'}`}>
+                      {config.label}
+                    </h3>
+
+                    {/* 描述 - 永远可见 */}
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      {config.description}
+                    </p>
+
+                    {/* 选中标识 */}
+                    {isActive && (
+                      <div className="absolute top-3 right-3">
+                        <div className="w-6 h-6 rounded-full bg-purple-vibrant flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* 描述 */}
-          <div className="relative">
-            <p className="text-sm md:text-base mb-4 md:mb-6 leading-relaxed">
-              <span className="inline-flex items-center gap-2 text-text-secondary">
-                <Lightbulb size={16} className="text-purple-apple flex-shrink-0" />
-                <span className="font-semibold">
-                  {tabConfig[activeTab].description}
-                </span>
-              </span>
-            </p>
-          </div>
-
-          {/* 电商：商品图上传入口 */}
+          {/* 步骤2：电商模式 - 大型商品图上传区 */}
           {activeTab === 'ecom' && (
-            <div className="mb-4 md:mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-semibold text-white">商品图片</div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon={<ImagePlus size={16} className="md:w-[18px] md:h-[18px]" />}
-                  onClick={() => imageInputRef.current?.click()}
-                  disabled={isUploadingFile}
-                  className="text-xs md:text-sm"
-                >
-                  上传商品图
-                </Button>
-              </div>
+            <div className="mb-6 md:mb-8">
+              <h2 className="text-lg font-semibold mb-4 text-white">上传商品图片</h2>
               <div
                 role="button"
                 tabIndex={0}
@@ -765,20 +749,66 @@ export const Home: React.FC = () => {
                     show({ message: '请拖拽图片文件', type: 'error' });
                   }
                 }}
-                className={`w-full rounded-lg border-2 border-dashed p-4 md:p-5 transition-colors cursor-pointer ${isDraggingImage
-                  ? 'border-purple-vibrant bg-purple-vibrant/10'
-                  : 'border-white/20 hover:border-purple-vibrant/50 hover:bg-white/5'
-                  }`}
+                className={`relative h-64 rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center group ${
+                  isDraggingImage
+                    ? 'border-purple-vibrant bg-purple-vibrant/10 scale-[1.01]'
+                    : uploadedMaterials.length === 0
+                    ? 'border-white/20 hover:border-purple-vibrant/50 bg-dark-tertiary/30 hover:bg-dark-elevated/50'
+                    : 'border-white/10 bg-dark-tertiary/20'
+                }`}
               >
-                <div className="flex items-center gap-3 text-sm text-text-secondary">
-                  <div className="p-2 rounded-lg bg-dark-tertiary border border-white/10">
-                    <ImagePlus size={18} className="text-purple-apple" />
+                {uploadedMaterials.length === 0 ? (
+                  <>
+                    <ImagePlus
+                      size={48}
+                      className={`mb-4 transition-all duration-300 ${
+                        isDraggingImage
+                          ? 'text-purple-vibrant scale-110'
+                          : 'text-purple-apple group-hover:scale-110'
+                      }`}
+                    />
+                    <p className="text-lg font-medium mb-2 text-white">点击上传或拖拽商品图片</p>
+                    <p className="text-sm text-text-secondary">支持 JPG、PNG、WEBP，最多5张</p>
+                    <p className="text-xs text-text-tertiary mt-2">也可以在下方输入框粘贴图片（Ctrl+V）</p>
+                  </>
+                ) : (
+                  /* 图片网格预览 - 直接在上传区内 */
+                  <div className="grid grid-cols-3 gap-4 p-6 w-full">
+                    {uploadedMaterials.map((material, idx) => (
+                      <div key={material.url} className="relative group">
+                        <img
+                          src={material.url}
+                          alt={material.original_filename || `商品图${idx + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border border-white/10"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveImage(material.url);
+                          }}
+                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                        >
+                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                    {/* 添加更多按钮 */}
+                    {uploadedMaterials.length < 5 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          imageInputRef.current?.click();
+                        }}
+                        className="h-32 border-2 border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center hover:border-purple-vibrant/50 hover:bg-white/5 transition-all"
+                      >
+                        <ImagePlus size={24} className="text-purple-apple mb-1" />
+                        <span className="text-xs text-text-secondary">添加更多</span>
+                      </button>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-white">点击上传 / 拖拽上传</div>
-                    <div className="text-xs text-text-tertiary mt-1">也支持在下方输入框直接粘贴图片（不会写入输入框）</div>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* 隐藏的图片输入 */}
@@ -786,54 +816,121 @@ export const Home: React.FC = () => {
                 ref={imageInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleImageSelect}
                 className="hidden"
               />
             </div>
           )}
 
-          {/* 输入区 - 带按钮 */}
-          <div className="relative mb-2 group">
-            <div className="absolute -inset-0.5 bg-gradient-cta rounded-lg opacity-0 group-hover:opacity-20 blur transition-opacity duration-300"></div>
-            <Textarea
-              ref={textareaRef}
-              placeholder={tabConfig[activeTab].placeholder}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onPaste={handlePaste}
-              rows={activeTab === 'idea' ? 4 : 8}
-              className="relative pr-20 md:pr-28 pb-12 md:pb-14 text-sm md:text-base border-2 border-white/10 focus:border-purple-vibrant transition-colors duration-200" // 为右下角按钮留空间
-            />
+          {/* 步骤3：补充信息输入（电商模式：紧凑设计） */}
+          {activeTab === 'ecom' && (
+            <div className="mb-6 md:mb-8">
+              <h2 className="text-lg font-semibold mb-4 text-white">补充产品信息（可选）</h2>
+              <div className="relative group">
+                <Textarea
+                  ref={textareaRef}
+                  placeholder="补充产品信息（可选）：名称、卖点、材质、规格..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  onPaste={handlePaste}
+                  rows={3}
+                  className="relative pr-20 md:pr-28 text-sm md:text-base border-2 border-white/10 focus:border-purple-vibrant transition-colors duration-200"
+                />
 
-            {/* 左下角：参考文件按钮（回形针图标） */}
-            <button
-              type="button"
-              onClick={handlePaperclipClick}
-              className="absolute left-2 md:left-3 bottom-2 md:bottom-3 z-10 p-1.5 md:p-2 text-text-tertiary hover:text-white hover:bg-white/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
-              title="选择参考文件"
-            >
-              <Paperclip size={18} className="md:w-5 md:h-5" />
-            </button>
+                {/* 左下角：参考文件按钮（回形针图标） */}
+                <button
+                  type="button"
+                  onClick={handlePaperclipClick}
+                  className="absolute left-2 md:left-3 bottom-2 md:bottom-3 z-10 p-1.5 md:p-2 text-text-tertiary hover:text-white hover:bg-white/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
+                  title="选择参考文件"
+                >
+                  <Paperclip size={18} className="md:w-5 md:h-5" />
+                </button>
+              </div>
 
-            {/* 右下角：开始生成按钮 */}
-            <div className="absolute right-2 md:right-3 bottom-2 md:bottom-3 z-10">
-              <Button
-                size="sm"
-                onClick={handleSubmit}
-                loading={isGlobalLoading || isPreparingEcomPrompt}
-                disabled={
-                  isPreparingEcomPrompt ||
-                  (activeTab === 'ecom' ? uploadedMaterials.length === 0 : !content.trim()) ||
-                  referenceFiles.some(f => f.parse_status === 'pending' || f.parse_status === 'parsing')
-                }
-                className="shadow-sm text-xs md:text-sm px-3 md:px-4"
-              >
-                {referenceFiles.some(f => f.parse_status === 'pending' || f.parse_status === 'parsing')
-                  ? '解析中...'
-                  : '下一步'}
-              </Button>
+              {/* 电商模式：风格描述直接显示在这里 */}
+              <div className="mt-4">
+                <label className="text-sm font-semibold text-white mb-2 block">风格偏好（可选）</label>
+                <Textarea
+                  placeholder="描述您想要的详情页风格，例如：淘宝促销风格，橙白配色，模块化卖点标签..."
+                  value={templateStyle}
+                  onChange={(e) => setTemplateStyle(e.target.value)}
+                  rows={2}
+                  className="text-sm border-2 border-white/10 focus:border-purple-vibrant transition-colors duration-200"
+                />
+
+                {/* 预设风格快捷按钮 */}
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-text-secondary mb-2">快速选择预设平台风格：</p>
+                  <div className="flex flex-wrap gap-2">
+                    {ECOM_PRESET_STYLES.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setTemplateStyle(preset.description)}
+                        className="px-3 py-1.5 text-xs font-medium rounded-full border border-white/20 text-text-secondary hover:border-purple-vibrant/50 hover:bg-purple-vibrant/10 hover:text-white transition-all duration-200"
+                      >
+                        {preset.name}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-text-tertiary mt-2 flex items-center gap-1">
+                    <BulbOutlined />
+                    <span>点击平台名称快速填充对应风格描述，也可以自己编写</span>
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* 步骤3：其他模式 - 完整文本输入区 */}
+          {activeTab !== 'ecom' && (
+            <div className="mb-6 md:mb-8">
+              <h2 className="text-lg font-semibold mb-4 text-white">输入内容</h2>
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-cta rounded-lg opacity-0 group-hover:opacity-20 blur transition-opacity duration-300"></div>
+                <Textarea
+                  ref={textareaRef}
+                  placeholder={tabConfig[activeTab].placeholder}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  onPaste={handlePaste}
+                  rows={8}
+                  className="relative pr-20 md:pr-28 pb-12 md:pb-14 text-sm md:text-base border-2 border-white/10 focus:border-purple-vibrant transition-colors duration-200"
+                />
+
+                {/* 左下角：参考文件按钮（回形针图标） */}
+                <button
+                  type="button"
+                  onClick={handlePaperclipClick}
+                  className="absolute left-2 md:left-3 bottom-2 md:bottom-3 z-10 p-1.5 md:p-2 text-text-tertiary hover:text-white hover:bg-white/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
+                  title="选择参考文件"
+                >
+                  <Paperclip size={18} className="md:w-5 md:h-5" />
+                </button>
+
+                {/* 右下角：开始生成按钮 */}
+                <div className="absolute right-2 md:right-3 bottom-2 md:bottom-3 z-10">
+                  <Button
+                    size="sm"
+                    onClick={handleSubmit}
+                    loading={isGlobalLoading || isPreparingEcomPrompt}
+                    disabled={
+                      isPreparingEcomPrompt ||
+                      !content.trim() ||
+                      referenceFiles.some(f => f.parse_status === 'pending' || f.parse_status === 'parsing')
+                    }
+                    className="shadow-sm text-xs md:text-sm px-3 md:px-4"
+                  >
+                    {referenceFiles.some(f => f.parse_status === 'pending' || f.parse_status === 'parsing')
+                      ? '解析中...'
+                      : '下一步'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 隐藏的文件输入 */}
           <input
@@ -845,17 +942,7 @@ export const Home: React.FC = () => {
             className="hidden"
           />
 
-          {/* 图片预览列表 */}
-          <ImagePreviewList
-            images={uploadedMaterials.map((m) => ({
-              url: m.url,
-              alt: m.original_filename || m.name || m.filename || 'image',
-            }))}
-            content={content}
-            onRemoveImage={handleRemoveImage}
-            className="mb-4"
-          />
-
+          {/* 参考文件列表 */}
           <ReferenceFileList
             files={referenceFiles}
             onFileClick={setPreviewFileId}
@@ -865,137 +952,137 @@ export const Home: React.FC = () => {
             className="mb-4"
           />
 
-          {/* 模板选择 */}
-          <div className="mb-6 md:mb-8 pt-4 border-t border-white/10">
-            {activeTab === 'ecom' && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-semibold text-white">详情页默认比例</div>
-                  <div className="text-xs text-text-tertiary">主图默认 1:1</div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {['3:4', '4:5', '1:1', '9:16', '16:9'].map((ratio) => (
-                    <button
-                      key={ratio}
-                      type="button"
-                      onClick={() => setEcomPageAspectRatio(ratio)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-full border-2 transition-all duration-200 ${ecomPageAspectRatio === ratio
-                        ? 'border-purple-vibrant bg-purple-vibrant/20 text-white'
-                        : 'border-white/20 text-text-secondary hover:border-purple-vibrant/50 hover:bg-white/5'
-                        }`}
-                    >
-                      {ratio}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-text-tertiary mt-2">主图默认 1:1；详情页默认使用上面选择的比例（后续可在每页单独修改）。</p>
-              </div>
-            )}
-            <div className="flex items-center justify-between mb-3 md:mb-4">
+          {/* 步骤4：高级选项（可折叠，默认收起） - 仅包含详情页比例和模板 */}
+          <div className="mb-6 md:mb-8">
+            <button
+              type="button"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+              className="w-full flex items-center justify-between p-4 rounded-lg bg-dark-tertiary/30 border border-white/10 hover:bg-dark-elevated/50 transition-all group"
+            >
               <div className="flex items-center gap-2">
-                <Palette size={18} className="text-purple-apple flex-shrink-0" />
-                <h3 className="text-base md:text-lg font-semibold text-white">
-                  选择风格模板
-                </h3>
+                <Palette size={18} className="text-purple-apple" />
+                <span className="text-base font-semibold text-white">高级设置</span>
+                <span className="text-xs text-text-tertiary">（详情页比例、模板上传等）</span>
               </div>
-              {/* 无模板模式开关 */}
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <span className="text-sm text-text-secondary group-hover:text-white transition-colors">
-                  使用无模板模式
-                </span>
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={useTemplateStyle}
-                    onChange={(e) => {
-                      setUseTemplateStyle(e.target.checked);
-                      // 切换到无模板模式时，清空模板选择
-                      if (e.target.checked) {
-                        setSelectedTemplate(null);
-                        setSelectedTemplateId(null);
-                        setSelectedPresetTemplateId(null);
-                      }
-                      // 不再清空风格描述，允许用户保留已输入的内容
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-dark-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-vibrant/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-vibrant"></div>
-                </div>
-              </label>
-            </div>
+              {showAdvancedOptions ? (
+                <ChevronUp size={20} className="text-text-secondary group-hover:text-white transition-colors" />
+              ) : (
+                <ChevronDown size={20} className="text-text-secondary group-hover:text-white transition-colors" />
+              )}
+            </button>
 
-            {/* 根据模式显示不同的内容 */}
-            {useTemplateStyle ? (
-              <div className="space-y-3">
-                <Textarea
-                  placeholder="描述您想要的详情页风格，例如：淘宝促销风格，橙白配色，模块化卖点标签..."
-                  value={templateStyle}
-                  onChange={(e) => setTemplateStyle(e.target.value)}
-                  rows={3}
-                  className="text-sm border-2 border-white/10 focus:border-purple-vibrant transition-colors duration-200"
-                />
-
-                {/* 预设风格按钮 */}
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-text-secondary">
-                    快速选择预设风格：
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {ECOM_PRESET_STYLES.map((preset) => (
-                      <div key={preset.id} className="relative">
+            {showAdvancedOptions && (
+              <div className="mt-4 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                {/* 详情页比例（仅电商模式） */}
+                {activeTab === 'ecom' && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-semibold text-white">详情页图片比例</label>
+                      <span className="text-xs text-text-tertiary">主图固定 1:1</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {['3:4', '4:5', '1:1', '9:16', '16:9'].map((ratio) => (
                         <button
+                          key={ratio}
                           type="button"
-                          onClick={() => setTemplateStyle(preset.description)}
-                          onMouseEnter={() => setHoveredPresetId(preset.id)}
-                          onMouseLeave={() => setHoveredPresetId(null)}
-                          className="px-3 py-1.5 text-xs font-medium rounded-full border-2 border-white/20 text-text-secondary hover:border-purple-vibrant/50 hover:bg-white/5 transition-all duration-200 hover:shadow-sm"
+                          onClick={() => setEcomPageAspectRatio(ratio)}
+                          className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${
+                            ecomPageAspectRatio === ratio
+                              ? 'border-purple-vibrant bg-purple-vibrant/20 text-white'
+                              : 'border-white/20 text-text-secondary hover:border-purple-vibrant/50 hover:bg-white/5'
+                          }`}
                         >
-                          {preset.name}
+                          {ratio}
                         </button>
-
-                        {/* 悬停时显示预览图片 */}
-                        {hoveredPresetId === preset.id && preset.previewImage && (
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                            <div className="bg-dark-secondary rounded-lg shadow-2xl border-2 border-purple-vibrant p-2.5 w-72">
-                              <img
-                                src={preset.previewImage}
-                                alt={preset.name}
-                                className="w-full h-40 object-cover rounded"
-                                onError={(e) => {
-                                  // 如果图片加载失败，隐藏预览
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                              <p className="text-xs text-text-secondary mt-2 px-1 line-clamp-3">
-                                {preset.description}
-                              </p>
-                            </div>
-                            {/* 小三角形指示器 */}
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                              <div className="w-3 h-3 bg-dark-secondary border-r-2 border-b-2 border-purple-vibrant transform rotate-45"></div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    <p className="text-xs text-text-tertiary mt-2">
+                      选择详情页其余图片的比例（第一张主图始终为 1:1 方形）
+                    </p>
                   </div>
-                </div>
+                )}
 
-                <p className="text-xs text-text-tertiary flex items-center gap-1">
-                  <BulbOutlined />
-                  <span>提示：点击预设风格快速填充，或自定义描述风格、配色、布局等要求</span>
-                </p>
+                {/* 使用风格模板（而非风格描述） */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-semibold text-white">参考模板图片</label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <span className="text-xs text-text-secondary group-hover:text-white transition-colors">
+                        启用模板参考
+                      </span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={!useTemplateStyle}
+                          onChange={(e) => {
+                            setUseTemplateStyle(!e.target.checked);
+                            if (e.target.checked) {
+                              // 启用模板参考时保留当前选择
+                            } else {
+                              // 禁用模板参考时清空选择
+                              setSelectedTemplate(null);
+                              setSelectedTemplateId(null);
+                              setSelectedPresetTemplateId(null);
+                            }
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-dark-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-vibrant/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-vibrant"></div>
+                      </div>
+                    </label>
+                  </div>
+
+                  {!useTemplateStyle && (
+                    <div className="p-4 bg-dark-tertiary/30 rounded-lg border border-white/10">
+                      <TemplateSelector
+                        onSelect={handleTemplateSelect}
+                        selectedTemplateId={selectedTemplateId}
+                        selectedPresetTemplateId={selectedPresetTemplateId}
+                        showUpload={true}
+                        projectId={currentProjectId}
+                      />
+                      <p className="text-xs text-text-tertiary mt-3">
+                        上传参考图片后，AI 会模仿其版式和风格（注意：这会覆盖上面的"风格偏好"描述）
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <TemplateSelector
-                onSelect={handleTemplateSelect}
-                selectedTemplateId={selectedTemplateId}
-                selectedPresetTemplateId={selectedPresetTemplateId}
-                showUpload={true} // 在主页上传的模板保存到用户模板库
-                projectId={currentProjectId}
-              />
             )}
           </div>
+
+          {/* 大按钮：开始生成（电商模式） */}
+          {activeTab === 'ecom' && (
+            <div className="sticky bottom-0 bg-dark-secondary/95 backdrop-blur-sm border-t border-white/10 p-4 -mx-4 md:-mx-10 -mb-4 md:-mb-10">
+              <div className="max-w-5xl mx-auto">
+                <Button
+                  onClick={handleSubmit}
+                  loading={isGlobalLoading || isPreparingEcomPrompt}
+                  disabled={
+                    isPreparingEcomPrompt ||
+                    uploadedMaterials.length === 0 ||
+                    referenceFiles.some(f => f.parse_status === 'pending' || f.parse_status === 'parsing')
+                  }
+                  className="w-full h-14 text-lg font-semibold rounded-xl bg-gradient-cta hover:shadow-glow hover:scale-[1.01] transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  {isGlobalLoading || isPreparingEcomPrompt ? (
+                    '正在处理...'
+                  ) : referenceFiles.some(f => f.parse_status === 'pending' || f.parse_status === 'parsing') ? (
+                    '解析中...'
+                  ) : uploadedMaterials.length === 0 ? (
+                    '请先上传商品图片'
+                  ) : (
+                    <>
+                      开始生成
+                      <ArrowRight size={20} />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* 移除老的模板选择区域（已合并到高级选项） */}
 
         </Card>
       </main>

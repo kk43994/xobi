@@ -696,7 +696,35 @@ const debouncedUpdatePage = debounce(
       const { pageGeneratingTasks } = get();
       const newTasks = { ...pageGeneratingTasks };
       delete newTasks[pageId];
-      set({ pageGeneratingTasks: newTasks, error: normalizeErrorMessage(error.message || '生成图片失败') });
+
+      // 提取更详细的错误信息
+      let errorMsg = '生成图片失败';
+      if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        // 如果error是对象，尝试提取message属性或转为JSON
+        const err = error.response.data.error;
+        if (typeof err === 'string') {
+          errorMsg = err;
+        } else if (err?.message) {
+          errorMsg = err.message;
+        } else {
+          try {
+            errorMsg = JSON.stringify(err);
+          } catch {
+            errorMsg = String(err);
+          }
+        }
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+
+      // 针对400错误给出提示
+      if (error.response?.status === 400) {
+        errorMsg = `参数错误：${errorMsg}。请检查页面的大纲和文案是否完整`;
+      }
+
+      set({ pageGeneratingTasks: newTasks, error: normalizeErrorMessage(errorMsg) });
       throw error;
     }
   },

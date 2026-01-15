@@ -77,17 +77,22 @@ class OpenAIImageProvider(ImageProvider):
         try:
             # Build message content
             content = []
-            
+
             # Add reference images first (if any)
             if ref_images:
-                for ref_img in ref_images:
+                logger.info(f"Adding {len(ref_images)} reference images to request")
+                for idx, ref_img in enumerate(ref_images):
+                    logger.info(f"Encoding reference image {idx+1}: size={ref_img.size}, mode={ref_img.mode}")
                     base64_image = self._encode_image_to_base64(ref_img)
+                    logger.info(f"Reference image {idx+1} encoded, base64 length={len(base64_image)}")
                     content.append({
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:image/jpeg;base64,{base64_image}"
                         }
                     })
+            else:
+                logger.info("No reference images provided")
             
             # Add text prompt
             content.append({"type": "text", "text": prompt})

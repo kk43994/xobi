@@ -1,8 +1,36 @@
 import express from 'express';
 import fetch from 'node-fetch';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { getSettings } from './settings.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, '../../../uploads');
+
 const router = express.Router();
+
+/**
+ * 将本地图片URL转换为base64 data URL
+ */
+async function imageUrlToBase64(imageUrl) {
+  // 检查是否是本地上传的图片
+  if (imageUrl.includes('/uploads/')) {
+    const filename = imageUrl.split('/uploads/').pop();
+    const filePath = path.join(uploadsDir, filename);
+
+    if (fs.existsSync(filePath)) {
+      const imageBuffer = fs.readFileSync(filePath);
+      const ext = path.extname(filename).toLowerCase().slice(1);
+      const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+      const base64 = imageBuffer.toString('base64');
+      return `data:${mimeType};base64,${base64}`;
+    }
+  }
+  // 如果不是本地图片或文件不存在，返回原URL
+  return imageUrl;
+}
 
 /**
  * 分析产品图片，生成描述
@@ -36,6 +64,9 @@ router.post('/analyze-image', async (req, res) => {
 
 Be concise and professional.`;
 
+    // 将本地图片URL转换为base64，以便云端AI服务可以访问
+    const processedImageUrl = await imageUrlToBase64(imageUrl);
+
     const response = await fetch(`${settings.multimodal.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -49,7 +80,7 @@ Be concise and professional.`;
             role: 'user',
             content: [
               { type: 'text', text: prompt },
-              { type: 'image_url', image_url: { url: imageUrl } }
+              { type: 'image_url', image_url: { url: processedImageUrl } }
             ]
           }
         ],

@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Dropdown, Space, Tag, Typography, message, notification } from 'antd';
+import { Button, Dropdown, Space, Tag, Typography, message, notification, Collapse } from 'antd';
 import type { MenuProps } from 'antd';
 import { BgColorsOutlined, BorderOutlined, EditOutlined, ExpandOutlined } from '@ant-design/icons';
 import { useWorkbenchToolbarSlots } from '@/layout/workbenchToolbar';
@@ -33,7 +33,14 @@ import {
   Upload,
   Palette,
   MoreHorizontal,
+  Undo2,
+  Redo2,
+  ChevronDown,
 } from 'lucide-react';
+import { HelpMenu } from '@/components/UserOnboarding';
+import { QuickTooltip, FeatureTooltip } from '@/components/HoverTooltip';
+import { KeyboardShortcutsPanel } from '@/components/KeyboardShortcutsPanel';
+import { InpaintingTool } from '@/components/InpaintingTool';
 
 // ==================== 工具函数 ====================
 
@@ -64,22 +71,127 @@ function generateImageId(): string {
   return `img-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/**
+ * 生成图片缩略图
+ */
+async function generateThumbnail(imageSrc: string, maxSize: number = 200): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ratio = Math.min(maxSize / img.width, maxSize / img.height);
+      canvas.width = Math.max(1, Math.round(img.width * ratio));
+      canvas.height = Math.max(1, Math.round(img.height * ratio));
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('无法创建canvas上下文'));
+        return;
+      }
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      try {
+        const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(thumbnail);
+      } catch (error) {
+        // 如果生成缩略图失败，返回原图
+        resolve(imageSrc);
+      }
+    };
+
+    img.onerror = () => {
+      // 如果加载失败，返回原图
+      resolve(imageSrc);
+    };
+
+    img.src = imageSrc;
+  });
+}
+
 // ==================== 类型定义 ====================
 
 interface CanvasImage {
   id: string;
   src: string;
+  thumbnail?: string; // 缩略图URL
   x: number;
   y: number;
   width: number;
   height: number;
   rotation: number;
   selected: boolean;
+  zIndex?: number; // 图层顺序
 }
 
 interface Message {
   role: 'user' | 'ai';
   content: string;
+  images?: Array<{
+    id: string;
+    url: string;
+    width: number;
+    height: number;
+  }>;
+}
+
+// ==================== 历史管理器 ====================
+
+interface CanvasState {
+  images: CanvasImage[];
+  timestamp: number;
+}
+
+class HistoryManager {
+  private history: CanvasState[] = [];
+  private currentIndex: number = -1;
+  private maxHistory: number = 50;
+
+  pushState(state: CanvasState) {
+    // 删除当前索引之后的所有状态（如果有）
+    this.history = this.history.slice(0, this.currentIndex + 1);
+    // 添加新状态（深拷贝）
+    this.history.push(JSON.parse(JSON.stringify(state)));
+    this.currentIndex++;
+    // 限制历史记录数量
+    if (this.history.length > this.maxHistory) {
+      this.history.shift();
+      this.currentIndex--;
+    }
+  }
+
+  undo(): CanvasState | null {
+    if (this.currentIndex > 0) {
+      this.currentIndex--;
+      return JSON.parse(JSON.stringify(this.history[this.currentIndex]));
+    }
+    return null;
+  }
+
+  redo(): CanvasState | null {
+    if (this.currentIndex < this.history.length - 1) {
+      this.currentIndex++;
+      return JSON.parse(JSON.stringify(this.history[this.currentIndex]));
+    }
+    return null;
+  }
+
+  canUndo(): boolean {
+    return this.currentIndex > 0;
+  }
+
+  canRedo(): boolean {
+    return this.currentIndex < this.history.length - 1;
+  }
+
+  clear() {
+    this.history = [];
+    this.currentIndex = -1;
+  }
 }
 
 function parseAssetIdFromUrl(url: string): string | null {
@@ -311,6 +423,137 @@ async function generateImage(
   return data.data;
 }
 
+// 移除背景 API
+async function removeBackground(imageSrc: string): Promise<{
+  asset_id: string;
+  image_url: string;
+  width: number;
+  height: number;
+}> {
+  const config = await getApiConfig();
+  if (!config?.apiKeyConfigured) {
+    throw new Error('请先在设置中配置 API Key');
+  }
+
+  const response = await fetch('/api/ai/remove-background', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image: imageSrc }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData?.error?.message || '移除背景失败');
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data?.error?.message || '移除背景失败');
+  }
+  return data.data;
+}
+
+// 图片扩展 API
+async function expandImage(
+  imageSrc: string,
+  direction: string = 'all',
+  prompt?: string
+): Promise<{
+  asset_id: string;
+  image_url: string;
+  width: number;
+  height: number;
+}> {
+  const config = await getApiConfig();
+  if (!config?.apiKeyConfigured) {
+    throw new Error('请先在设置中配置 API Key');
+  }
+
+  const response = await fetch('/api/ai/expand-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image: imageSrc, direction, prompt }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData?.error?.message || '图片扩展失败');
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data?.error?.message || '图片扩展失败');
+  }
+  return data.data;
+}
+
+// Mockup 场景合成 API
+async function generateMockup(
+  imageSrc: string,
+  scene?: string,
+  style: string = 'professional'
+): Promise<{
+  asset_id: string;
+  image_url: string;
+  width: number;
+  height: number;
+}> {
+  const config = await getApiConfig();
+  if (!config?.apiKeyConfigured) {
+    throw new Error('请先在设置中配置 API Key');
+  }
+
+  const response = await fetch('/api/ai/mockup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image: imageSrc, scene, style }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData?.error?.message || 'Mockup生成失败');
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data?.error?.message || 'Mockup生成失败');
+  }
+  return data.data;
+}
+
+// AI 图片编辑 API
+async function editImage(
+  imageSrc: string,
+  editPrompt: string
+): Promise<{
+  asset_id: string;
+  image_url: string;
+  width: number;
+  height: number;
+}> {
+  const config = await getApiConfig();
+  if (!config?.apiKeyConfigured) {
+    throw new Error('请先在设置中配置 API Key');
+  }
+
+  const response = await fetch('/api/ai/edit-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image: imageSrc, prompt: editPrompt }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData?.error?.message || '图片编辑失败');
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data?.error?.message || '图片编辑失败');
+  }
+  return data.data;
+}
+
 // ==================== 左侧工具栏 ====================
 
 function Toolbar({ activeTool, onToolChange }: {
@@ -333,7 +576,10 @@ function Toolbar({ activeTool, onToolChange }: {
   ];
 
   return (
-    <div className="w-14 bg-[#0a0a0a] border-r border-white/5 flex flex-col items-center py-3 flex-shrink-0">
+    <div
+      className="w-14 bg-[#0a0a0a] border-r border-white/5 flex flex-col items-center py-3 flex-shrink-0"
+      data-tour="toolbar"
+    >
       {/* 主工具 */}
       <div className="flex flex-col gap-1">
         {tools.map((tool) => {
@@ -349,6 +595,7 @@ function Toolbar({ activeTool, onToolChange }: {
                   : 'text-white/50 hover:text-white hover:bg-white/5'
               }`}
               title={tool.label}
+              data-tour={tool.id === 'image' ? 'add-image-button' : undefined}
             >
               <Icon size={20} />
             </button>
@@ -393,6 +640,7 @@ function ImageFloatingToolbar({
   canvasOffset: { x: number; y: number };
 }) {
   const tools = [
+    { id: 'send-to-ai', icon: Sparkles, label: '发送到AI' },
     { id: 'zoom', icon: ZoomIn, label: '放大' },
     { id: 'remove-bg', icon: Eraser, label: '移除背景' },
     { id: 'mockup', icon: Palette, label: 'Mockup' },
@@ -424,9 +672,12 @@ function ImageFloatingToolbar({
             className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all ${
               tool.id === 'delete'
                 ? 'text-red-400 hover:bg-red-500/10'
+                : tool.id === 'send-to-ai'
+                ? 'text-purple-vibrant hover:bg-purple-vibrant/10'
                 : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
             title={tool.label}
+            data-tour={tool.id === 'send-to-ai' ? 'send-to-ai-button' : undefined}
           >
             <Icon size={14} />
             <span className="hidden sm:inline">{tool.label}</span>
@@ -451,12 +702,18 @@ function InfiniteCanvas({
   selectedImageId,
   onSelectImage,
   activeTool,
+  onAddImageToCanvas,
+  onSendImageToChat,
+  onOpenInpainting,
 }: {
   images: CanvasImage[];
   onImagesChange: (images: CanvasImage[]) => void;
   selectedImageId: string | null;
   onSelectImage: (id: string | null) => void;
   activeTool: string;
+  onAddImageToCanvas: (src: string, width: number, height: number) => void;
+  onSendImageToChat?: (image: CanvasImage) => void;
+  onOpenInpainting?: (image: CanvasImage) => void;
 }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -466,6 +723,52 @@ function InfiniteCanvas({
   const [draggedImage, setDraggedImage] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizing, setResizing] = useState<{ imageId: string; corner: string; startX: number; startY: number; startWidth: number; startHeight: number; startImgX: number; startImgY: number } | null>(null);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
+
+  // 框选状态
+  const [selectionBox, setSelectionBox] = useState<{
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+  } | null>(null);
+  const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
+
+  // 空格键临时拖动画布
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  // 拖拽上传状态
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+
+  // 监听空格键
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !isSpacePressed) {
+        // 防止在输入框中触发
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+          return;
+        }
+        e.preventDefault();
+        setIsSpacePressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setIsSpacePressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isSpacePressed]);
 
   // 处理滚轮缩放
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -476,17 +779,28 @@ function InfiniteCanvas({
 
   // 处理鼠标按下
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && activeTool === 'move')) {
-      // 中键或移动工具：开始平移
+    if (e.button === 1 || (e.button === 0 && (activeTool === 'move' || isSpacePressed))) {
+      // 中键、移动工具或空格键：开始平移
       setIsPanning(true);
       setPanStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
     } else if (e.button === 0 && activeTool === 'select') {
-      // 左键选择工具：取消选择
+      // 左键选择工具：开始框选（如果点击的是空白区域）
       if ((e.target as HTMLElement).classList.contains('canvas-bg')) {
-        onSelectImage(null);
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect) {
+          const startX = (e.clientX - rect.left - offset.x) / scale;
+          const startY = (e.clientY - rect.top - offset.y) / scale;
+          setSelectionBox({ startX, startY, endX: startX, endY: startY });
+        }
+
+        // 如果没按 Shift/Ctrl，清空之前的选择
+        if (!e.shiftKey && !e.ctrlKey) {
+          setSelectedImageIds(new Set());
+          onSelectImage(null);
+        }
       }
     }
-  }, [activeTool, offset, onSelectImage]);
+  }, [activeTool, offset, scale, onSelectImage, isSpacePressed]);
 
   // 处理鼠标移动
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -495,6 +809,14 @@ function InfiniteCanvas({
         x: e.clientX - panStart.x,
         y: e.clientY - panStart.y,
       });
+    } else if (selectionBox) {
+      // 框选中
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        const endX = (e.clientX - rect.left - offset.x) / scale;
+        const endY = (e.clientY - rect.top - offset.y) / scale;
+        setSelectionBox({ ...selectionBox, endX, endY });
+      }
     } else if (resizing) {
       // 处理图片缩放
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -556,14 +878,138 @@ function InfiniteCanvas({
         );
       }
     }
-  }, [isPanning, panStart, draggedImage, dragOffset, offset, scale, images, onImagesChange, resizing]);
+  }, [isPanning, panStart, draggedImage, dragOffset, offset, scale, images, onImagesChange, resizing, selectionBox]);
 
   // 处理鼠标松开
   const handleMouseUp = useCallback(() => {
+    if (selectionBox) {
+      // 检查哪些图片在框选区域内
+      const { startX, startY, endX, endY } = selectionBox;
+      const minX = Math.min(startX, endX);
+      const maxX = Math.max(startX, endX);
+      const minY = Math.min(startY, endY);
+      const maxY = Math.max(startY, endY);
+
+      const newSelected = new Set<string>();
+      images.forEach(img => {
+        const imgCenterX = img.x + img.width / 2;
+        const imgCenterY = img.y + img.height / 2;
+        if (imgCenterX >= minX && imgCenterX <= maxX &&
+            imgCenterY >= minY && imgCenterY <= maxY) {
+          newSelected.add(img.id);
+        }
+      });
+
+      setSelectedImageIds(newSelected);
+      setSelectionBox(null);
+
+      if (newSelected.size > 0) {
+        message.info(`已选中 ${newSelected.size} 张图片`, 0.5);
+      }
+    }
+
     setIsPanning(false);
     setDraggedImage(null);
     setResizing(null);
+  }, [selectionBox, images]);
+
+  // 处理文件拖拽上传
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // 检查是否有文件
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDraggingFile(true);
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        setDragPosition({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        });
+      }
+    }
   }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // 只在离开画布容器时隐藏提示
+    if (e.currentTarget === e.target) {
+      setIsDraggingFile(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+      message.warning('请拖拽图片文件');
+      return;
+    }
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    // 计算放置位置（画布坐标）
+    const dropX = (e.clientX - rect.left - offset.x) / scale;
+    const dropY = (e.clientY - rect.top - offset.y) / scale;
+
+    message.loading({ content: `正在上传 ${imageFiles.length} 张图片...`, key: 'upload', duration: 0 });
+
+    let uploadedCount = 0;
+    imageFiles.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const { width: finalWidth, height: finalHeight } = calculateImageSize(img.width, img.height);
+
+          // 多张图片时，稍微错开位置
+          const offsetX = index * 20;
+          const offsetY = index * 20;
+
+          onAddImageToCanvas(
+            event.target?.result as string,
+            finalWidth,
+            finalHeight
+          );
+
+          // 更新位置到拖放位置
+          setTimeout(() => {
+            onImagesChange((prevImages) => {
+              const newImages = [...prevImages];
+              const lastImage = newImages[newImages.length - 1];
+              if (lastImage) {
+                lastImage.x = dropX + offsetX;
+                lastImage.y = dropY + offsetY;
+              }
+              return newImages;
+            });
+          }, 0);
+
+          uploadedCount++;
+          if (uploadedCount === imageFiles.length) {
+            message.success({ content: `成功添加 ${imageFiles.length} 张图片`, key: 'upload', duration: 2 });
+          }
+        };
+        img.onerror = () => {
+          message.error('图片加载失败');
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = () => {
+        message.error('文件读取失败');
+      };
+      reader.readAsDataURL(file);
+    });
+  }, [offset, scale, onAddImageToCanvas, onImagesChange]);
 
   // 开始拖动图片
   const startDragImage = useCallback((e: React.MouseEvent, img: CanvasImage) => {
@@ -602,61 +1048,20 @@ function InfiniteCanvas({
     }
   }, [activeTool, offset, scale]);
 
-  // 处理文件拖放
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    const clientX = e.clientX;
-    const clientY = e.clientY;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
-    if (!files.length) return;
-
-    const appended: CanvasImage[] = [];
-    for (let i = 0; i < files.length; i += 1) {
-      const file = files[i];
-      const objectUrl = URL.createObjectURL(file);
-      try {
-        const imgEl = await loadHtmlImage(objectUrl);
-
-        let src: string | null = null;
-        try {
-          const up = await uploadAsset(file, { kind: 'image', system: 'A' });
-          const unifiedUrl = (up.data as any)?.unified?.url;
-          if (unifiedUrl) src = String(unifiedUrl);
-        } catch (err: any) {
-          message.warning(err?.message || '上传资源库失败，先以本地方式添加到画布');
-        }
-
-        if (!src) src = await fileToDataUrl(file);
-
-        const { width, height } = calculateImageSize(imgEl.width, imgEl.height);
-        const x = (clientX - rect.left - offset.x) / scale - width / 2 + i * 18;
-        const y = (clientY - rect.top - offset.y) / scale - height / 2 + i * 18;
-        appended.push({
-          id: generateImageId(),
-          src,
-          x,
-          y,
-          width,
-          height,
-          rotation: 0,
-          selected: false,
-        });
-      } finally {
-        URL.revokeObjectURL(objectUrl);
-      }
-    }
-
-    if (appended.length) onImagesChange([...images, ...appended]);
-  }, [images, offset, scale, onImagesChange]);
-
   // 处理工具栏操作
-  const handleImageAction = useCallback((action: string) => {
-    if (!selectedImageId) return;
+  const handleImageAction = useCallback(async (action: string) => {
+    if (!selectedImageId || processingAction) return;
+
+    const selectedImg = images.find((img) => img.id === selectedImageId);
+    if (!selectedImg) return;
 
     switch (action) {
+      case 'send-to-ai':
+        if (onSendImageToChat) {
+          onSendImageToChat(selectedImg);
+          message.success('已添加图片到对话');
+        }
+        break;
       case 'delete':
         onImagesChange(images.filter((img) => img.id !== selectedImageId));
         onSelectImage(null);
@@ -671,18 +1076,68 @@ function InfiniteCanvas({
         );
         break;
       case 'download': {
-        const img = images.find((x) => x.id === selectedImageId);
-        if (!img?.src) return;
-        blobFromSrc(img.src)
+        if (!selectedImg.src) return;
+        blobFromSrc(selectedImg.src)
           .then((blob) => downloadBlob(blob, `xobi_image_${Date.now()}.png`))
           .catch((e: any) => message.error(e?.message || '下载失败'));
         break;
       }
-      // 其他操作可以后续实现
+      case 'remove-bg': {
+        if (!selectedImg.src) return;
+        setProcessingAction('remove-bg');
+        message.loading({ content: '正在移除背景...', key: 'remove-bg', duration: 0 });
+        try {
+          const result = await removeBackground(selectedImg.src);
+          message.success({ content: '背景已移除，新图片已添加到画布', key: 'remove-bg' });
+          onAddImageToCanvas(result.image_url, result.width, result.height);
+        } catch (e: any) {
+          message.error({ content: e?.message || '移除背景失败', key: 'remove-bg' });
+        } finally {
+          setProcessingAction(null);
+        }
+        break;
+      }
+      case 'expand': {
+        if (!selectedImg.src) return;
+        setProcessingAction('expand');
+        message.loading({ content: '正在扩展图片...', key: 'expand', duration: 0 });
+        try {
+          const result = await expandImage(selectedImg.src, 'all');
+          message.success({ content: '图片已扩展，新图片已添加到画布', key: 'expand' });
+          onAddImageToCanvas(result.image_url, result.width, result.height);
+        } catch (e: any) {
+          message.error({ content: e?.message || '图片扩展失败', key: 'expand' });
+        } finally {
+          setProcessingAction(null);
+        }
+        break;
+      }
+      case 'mockup': {
+        if (!selectedImg.src) return;
+        setProcessingAction('mockup');
+        message.loading({ content: '正在生成 Mockup...', key: 'mockup', duration: 0 });
+        try {
+          const result = await generateMockup(selectedImg.src, undefined, 'professional');
+          message.success({ content: 'Mockup 已生成，新图片已添加到画布', key: 'mockup' });
+          onAddImageToCanvas(result.image_url, result.width, result.height);
+        } catch (e: any) {
+          message.error({ content: e?.message || 'Mockup 生成失败', key: 'mockup' });
+        } finally {
+          setProcessingAction(null);
+        }
+        break;
+      }
+      case 'ai-edit': {
+        // 打开Inpainting工具
+        if (onOpenInpainting) {
+          onOpenInpainting(selectedImg);
+        }
+        break;
+      }
       default:
         console.log(`Action: ${action} on image: ${selectedImageId}`);
     }
-  }, [selectedImageId, images, onImagesChange, onSelectImage]);
+  }, [selectedImageId, images, onImagesChange, onSelectImage, onAddImageToCanvas, processingAction, onSendImageToChat, onOpenInpainting]);
 
   const selectedImage = images.find((img) => img.id === selectedImageId);
 
@@ -696,8 +1151,9 @@ function InfiniteCanvas({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onDrop={handleDrop}
-      onDragOver={(e) => e.preventDefault()}
-      style={{ cursor: isPanning ? 'grabbing' : activeTool === 'move' ? 'grab' : 'default' }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      style={{ cursor: isPanning ? 'grabbing' : (isSpacePressed || activeTool === 'move') ? 'grab' : 'default' }}
     >
       {/* 网格背景 */}
       <div
@@ -724,7 +1180,7 @@ function InfiniteCanvas({
           <div
             key={img.id}
             className={`absolute cursor-move transition-shadow ${
-              img.id === selectedImageId
+              img.id === selectedImageId || selectedImageIds.has(img.id)
                 ? 'ring-2 ring-purple-vibrant ring-offset-2 ring-offset-black'
                 : ''
             }`}
@@ -772,6 +1228,61 @@ function InfiniteCanvas({
           </div>
         ))}
       </div>
+
+      {/* 框选框 */}
+      {selectionBox && (
+        <div
+          className="absolute border-2 border-purple-vibrant bg-purple-vibrant/10 pointer-events-none"
+          style={{
+            left: offset.x + Math.min(selectionBox.startX, selectionBox.endX) * scale,
+            top: offset.y + Math.min(selectionBox.startY, selectionBox.endY) * scale,
+            width: Math.abs(selectionBox.endX - selectionBox.startX) * scale,
+            height: Math.abs(selectionBox.endY - selectionBox.startY) * scale,
+          }}
+        />
+      )}
+
+      {/* 多选工具栏 */}
+      {selectedImageIds.size > 1 && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-[#1a1a1a]/95 backdrop-blur-sm border border-white/10 rounded-xl shadow-lg z-50">
+          <span className="text-white text-sm">
+            已选中 {selectedImageIds.size} 张图片
+          </span>
+          <div className="w-px h-4 bg-white/10" />
+          <Button
+            size="small"
+            danger
+            icon={<Trash2 size={14} />}
+            onClick={() => {
+              onImagesChange(images.filter(img => !selectedImageIds.has(img.id)));
+              setSelectedImageIds(new Set());
+              message.success(`已删除 ${selectedImageIds.size} 张图片`);
+            }}
+          >
+            删除选中
+          </Button>
+          <Button
+            size="small"
+            onClick={() => {
+              setSelectedImageIds(new Set());
+              message.info('已取消选择');
+            }}
+          >
+            取消选择
+          </Button>
+        </div>
+      )}
+
+      {/* 拖拽上传提示 */}
+      {isDraggingFile && (
+        <div className="absolute inset-0 bg-purple-vibrant/10 border-4 border-dashed border-purple-vibrant pointer-events-none flex items-center justify-center z-50">
+          <div className="bg-[#1a1a1a]/95 backdrop-blur-sm border border-white/10 rounded-2xl px-8 py-6 text-center">
+            <Upload size={48} className="text-purple-vibrant mx-auto mb-3" />
+            <div className="text-white text-xl font-semibold mb-2">释放以添加图片</div>
+            <div className="text-white/60 text-sm">支持拖拽多张图片同时上传</div>
+          </div>
+        </div>
+      )}
 
       {/* 选中图片的浮动工具栏 */}
       {selectedImage && (
@@ -833,11 +1344,19 @@ function AIChatSidebar({
   onToggle,
   initialConfig,
   onAddImageToCanvas,
+  canvasImages,
+  selectedImageId,
+  pendingImageToAttach,
+  onImageAttached,
 }: {
   isOpen: boolean;
   onToggle: () => void;
   initialConfig: any | null;
   onAddImageToCanvas: (src: string, width: number, height: number) => void;
+  canvasImages: CanvasImage[];
+  selectedImageId: string | null;
+  pendingImageToAttach?: CanvasImage | null;
+  onImageAttached?: () => void;
 }) {
   const navigate = useNavigate();
   const openPanel = usePortalUiStore((s) => s.openPanel);
@@ -847,6 +1366,31 @@ function AIChatSidebar({
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [attachedImages, setAttachedImages] = useState<CanvasImage[]>([]);
+
+  // 添加图片到对话
+  const handleAttachImage = useCallback((image: CanvasImage) => {
+    setAttachedImages(prev => {
+      if (prev.find(img => img.id === image.id)) {
+        return prev; // 已存在，不重复添加
+      }
+      return [...prev, image];
+    });
+    message.success('已添加图片到对话');
+  }, []);
+
+  // 移除附加的图片
+  const handleRemoveAttachedImage = useCallback((imageId: string) => {
+    setAttachedImages(prev => prev.filter(img => img.id !== imageId));
+  }, []);
+
+  // 处理来自画布的待附加图片
+  useEffect(() => {
+    if (pendingImageToAttach && isOpen) {
+      handleAttachImage(pendingImageToAttach);
+      onImageAttached?.();
+    }
+  }, [pendingImageToAttach, isOpen, handleAttachImage, onImageAttached]);
 
   // 快捷操作按钮
   const quickActions = [
@@ -908,11 +1452,23 @@ function AIChatSidebar({
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading || isGeneratingImage) return;
+    if (!input.trim() && attachedImages.length === 0) return;
+    if (isLoading || isGeneratingImage) return;
 
     const userMessage = input.trim();
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+    const messageImages = attachedImages.length > 0 ? attachedImages.map(img => ({
+      id: img.id,
+      url: img.src,
+      width: img.width,
+      height: img.height,
+    })) : undefined;
+    setMessages((prev) => [...prev, {
+      role: 'user',
+      content: userMessage || '请分析这些图片',
+      images: messageImages
+    }]);
+    setAttachedImages([]); // 清空附加图片
 
     // 检查是否是图片生成请求
     if (isImageGenerationRequest(userMessage)) {
@@ -1103,6 +1659,7 @@ function AIChatSidebar({
         className="fixed right-4 w-12 h-12 rounded-full bg-gradient-cta text-white flex items-center justify-center shadow-glow hover:scale-110 transition-transform z-50"
         style={{ top: 'calc(var(--xobi-toolbar-safe-top) + 12px)' }}
         title="打开 AI 设计师"
+        data-tour="ai-chat-toggle"
       >
         <Sparkles size={20} />
       </button>
@@ -1136,6 +1693,53 @@ function AIChatSidebar({
         </div>
       </div>
 
+      {/* 画布上下文面板 */}
+      <Collapse
+        ghost
+        defaultActiveKey={['canvas-context']}
+        expandIcon={({ isActive }) => <ChevronDown size={14} className={`transition-transform ${isActive ? 'rotate-180' : ''}`} />}
+        data-tour="canvas-context-panel"
+        items={[{
+          key: 'canvas-context',
+          label: (
+            <div className="flex items-center justify-between text-sm text-white/70">
+              <span>画布上下文</span>
+              <span className="text-xs text-white/50">{canvasImages.length} 张图片</span>
+            </div>
+          ),
+          children: (
+            <div className="px-3 pb-3 max-h-32 overflow-y-auto">
+              {canvasImages.length === 0 ? (
+                <p className="text-xs text-white/40 text-center py-4">画布为空</p>
+              ) : (
+                <div className="grid grid-cols-4 gap-2">
+                  {canvasImages.map(img => (
+                    <button
+                      key={img.id}
+                      onClick={() => handleAttachImage(img)}
+                      className="relative group aspect-square rounded overflow-hidden border border-white/10 hover:border-purple-vibrant transition-all"
+                      title="点击添加到对话"
+                    >
+                      <img
+                        src={img.thumbnail || img.src}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                      {img.id === selectedImageId && (
+                        <div className="absolute top-1 right-1 w-3 h-3 bg-purple-vibrant rounded-full" />
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                        <Sparkles size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ),
+        }]}
+      />
+
       {/* 消息列表 */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
@@ -1145,14 +1749,32 @@ function AIChatSidebar({
                 <Sparkles size={12} className="text-white" />
               </div>
             )}
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
-                msg.role === 'user'
-                  ? 'bg-purple-vibrant text-white'
-                  : 'bg-transparent text-white/90'
-              }`}
-            >
-              {msg.content}
+            <div className="max-w-[80%] space-y-2">
+              {/* 图片附件（用户消息中的图片） */}
+              {msg.images && msg.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {msg.images.map((image, imgIdx) => (
+                    <div key={imgIdx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/20">
+                      <img
+                        src={image.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 消息内容 */}
+              <div
+                className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
+                  msg.role === 'user'
+                    ? 'bg-purple-vibrant text-white'
+                    : 'bg-transparent text-white/90'
+                }`}
+              >
+                {msg.content}
+              </div>
             </div>
           </div>
         ))}
@@ -1195,21 +1817,42 @@ function AIChatSidebar({
 
       {/* 输入区域 */}
       <div className="p-4 border-t border-white/5">
+        {/* 附加的图片预览 */}
+        {attachedImages.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {attachedImages.map(img => (
+              <div key={img.id} className="relative group">
+                <img
+                  src={img.src}
+                  alt=""
+                  className="w-12 h-12 object-cover rounded border border-white/20"
+                />
+                <button
+                  onClick={() => handleRemoveAttachedImage(img.id)}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                >
+                  <X size={10} className="text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="relative">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="描述你的需求..."
+            placeholder={attachedImages.length > 0 ? "说说你的想法..." : "描述你的需求..."}
             rows={2}
             disabled={isLoading || isGeneratingImage}
             className="w-full bg-[#1a1a1a] text-white placeholder:text-white/30 rounded-xl px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-purple-vibrant/50 text-sm border border-white/5"
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isLoading || isGeneratingImage}
+            disabled={(!input.trim() && attachedImages.length === 0) || isLoading || isGeneratingImage}
             className={`absolute right-3 bottom-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-              input.trim() && !isLoading && !isGeneratingImage
+              (input.trim() || attachedImages.length > 0) && !isLoading && !isGeneratingImage
                 ? 'bg-purple-vibrant text-white hover:bg-purple-vibrant/80'
                 : 'bg-white/5 text-white/20'
             }`}
@@ -1244,6 +1887,15 @@ export function MainFactoryCanvasPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [initialConfig, setInitialConfig] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
+
+  // Inpainting工具状态
+  const [showInpaintingTool, setShowInpaintingTool] = useState(false);
+  const [inpaintingImage, setInpaintingImage] = useState<CanvasImage | null>(null);
+
+  // 历史管理器（撤销/重做）
+  const [historyManager] = useState(() => new HistoryManager());
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   const textSecondary = theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined;
 
@@ -1339,6 +1991,35 @@ export function MainFactoryCanvasPage() {
     }
   }, [openAssets, selectedImage?.src]);
 
+  // 记录历史状态
+  const recordHistory = useCallback(() => {
+    historyManager.pushState({ images, timestamp: Date.now() });
+    setCanUndo(historyManager.canUndo());
+    setCanRedo(historyManager.canRedo());
+  }, [images, historyManager]);
+
+  // 撤销
+  const handleUndo = useCallback(() => {
+    const prevState = historyManager.undo();
+    if (prevState) {
+      setImages(prevState.images);
+      setSelectedImageId(null);
+      setCanUndo(historyManager.canUndo());
+      setCanRedo(historyManager.canRedo());
+    }
+  }, [historyManager]);
+
+  // 重做
+  const handleRedo = useCallback(() => {
+    const nextState = historyManager.redo();
+    if (nextState) {
+      setImages(nextState.images);
+      setSelectedImageId(null);
+      setCanUndo(historyManager.canUndo());
+      setCanRedo(historyManager.canRedo());
+    }
+  }, [historyManager]);
+
   const exportMenuItems: MenuProps['items'] = [
     { key: 'download_canvas', label: '导出画布（PNG）' },
     { key: 'save_canvas', label: '保存画布到资源库（PNG）' },
@@ -1350,9 +2031,33 @@ export function MainFactoryCanvasPage() {
   useWorkbenchToolbarSlots({
     center: (
       <Space size={6} wrap>
+        {/* 撤销/重做按钮 */}
+        <Space size={4} data-tour="undo-redo-buttons">
+          <Button
+            size="small"
+            icon={<Undo2 size={14} />}
+            onClick={handleUndo}
+            disabled={!canUndo}
+            title="撤销 (Ctrl+Z)"
+          >
+            撤销
+          </Button>
+          <Button
+            size="small"
+            icon={<Redo2 size={14} />}
+            onClick={handleRedo}
+            disabled={!canRedo}
+            title="重做 (Ctrl+Y)"
+          >
+            重做
+          </Button>
+        </Space>
+
+        <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+
         <Tag color="purple">无限画布</Tag>
         <Typography.Text type="secondary" style={{ color: textSecondary, fontSize: 12 }}>
-          拖拽图片到画布，或用右侧 AI 生成
+          {images.length} 张图片
         </Typography.Text>
       </Space>
     ),
@@ -1382,7 +2087,7 @@ export function MainFactoryCanvasPage() {
         </Button>
       </Space>
     ),
-  }, [selectedImageId, exporting, chatOpen]);
+  }, [selectedImageId, exporting, chatOpen, canUndo, canRedo, handleUndo, handleRedo, images.length]);
 
   // 读取首页配置
   useEffect(() => {
@@ -1429,9 +2134,14 @@ export function MainFactoryCanvasPage() {
         if (!src) src = await fileToDataUrl(file);
 
         const { width, height } = calculateImageSize(imgEl.width, imgEl.height);
+
+        // 生成缩略图
+        const thumbnail = await generateThumbnail(src, 200);
+
         const newImage: CanvasImage = {
           id: generateImageId(),
           src,
+          thumbnail,
           x: 100,
           y: 100,
           width,
@@ -1467,14 +2177,88 @@ export function MainFactoryCanvasPage() {
     }
   }, [activeTool, exportCanvas]);
 
+  // 监听图片变化，自动记录历史（防抖）
+  useEffect(() => {
+    if (images.length > 0) {
+      const timer = setTimeout(() => {
+        recordHistory();
+      }, 500); // 500ms 防抖
+      return () => clearTimeout(timer);
+    }
+  }, [images, recordHistory]);
+
+  // 初始化时记录初始状态
+  useEffect(() => {
+    if (historyManager.canUndo() === false && images.length === 0) {
+      historyManager.pushState({ images: [], timestamp: Date.now() });
+    }
+  }, [historyManager, images.length]);
+
+  // 全局键盘快捷键
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 防止在输入框中触发
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Ctrl+Z: 撤销
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+        message.success('已撤销', 0.5);
+      }
+
+      // Ctrl+Y 或 Ctrl+Shift+Z: 重做
+      else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+        message.success('已重做', 0.5);
+      }
+
+      // Ctrl+A: 全选
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        setImages(prev => prev.map(img => ({ ...img, selected: true })));
+        message.info('已全选', 0.5);
+      }
+
+      // Delete: 删除选中项
+      else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedImageId) {
+          e.preventDefault();
+          setImages(prev => prev.filter(img => img.id !== selectedImageId));
+          setSelectedImageId(null);
+          message.success('已删除', 0.5);
+        }
+      }
+
+      // Ctrl+D: 取消选择
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        setImages(prev => prev.map(img => ({ ...img, selected: false })));
+        setSelectedImageId(null);
+        message.info('已取消选择', 0.5);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images, selectedImageId, handleUndo, handleRedo]);
+
   // AI 生成图片添加到画布的回调
-  const handleAddImageToCanvas = useCallback((src: string, width: number, height: number) => {
+  const handleAddImageToCanvas = useCallback(async (src: string, width: number, height: number) => {
     const { width: finalWidth, height: finalHeight } = calculateImageSize(width, height);
+
+    // 生成缩略图
+    const thumbnail = await generateThumbnail(src, 200);
 
     setImages((prev) => {
       const newImage: CanvasImage = {
         id: generateImageId(),
         src,
+        thumbnail,
         x: 100 + prev.length * 50,
         y: 100 + prev.length * 50,
         width: finalWidth,
@@ -1495,6 +2279,19 @@ export function MainFactoryCanvasPage() {
     }, 0);
   }, []);
 
+  // 发送图片到聊天的回调 - 使用 ref 来存储待附加的图片
+  const [pendingImageToAttach, setPendingImageToAttach] = useState<CanvasImage | null>(null);
+  const handleSendImageToChat = useCallback((image: CanvasImage) => {
+    setChatOpen(true); // 自动打开聊天栏
+    setPendingImageToAttach(image);
+  }, []);
+
+  // 打开 Inpainting 工具的回调
+  const handleOpenInpainting = useCallback((image: CanvasImage) => {
+    setInpaintingImage(image);
+    setShowInpaintingTool(true);
+  }, []);
+
   return (
     <div
       className="h-full bg-black flex flex-col"
@@ -1512,6 +2309,9 @@ export function MainFactoryCanvasPage() {
           selectedImageId={selectedImageId}
           onSelectImage={setSelectedImageId}
           activeTool={activeTool}
+          onAddImageToCanvas={handleAddImageToCanvas}
+          onSendImageToChat={handleSendImageToChat}
+          onOpenInpainting={handleOpenInpainting}
         />
 
         {/* 右侧 AI 对话栏 */}
@@ -1520,6 +2320,10 @@ export function MainFactoryCanvasPage() {
           onToggle={() => setChatOpen(!chatOpen)}
           initialConfig={initialConfig}
           onAddImageToCanvas={handleAddImageToCanvas}
+          canvasImages={images}
+          selectedImageId={selectedImageId}
+          pendingImageToAttach={pendingImageToAttach}
+          onImageAttached={() => setPendingImageToAttach(null)}
         />
       </div>
 
@@ -1532,6 +2336,31 @@ export function MainFactoryCanvasPage() {
         className="hidden"
         onChange={handleFileChange}
       />
+
+      {/* 帮助菜单（右下角浮动按钮） */}
+      <HelpMenu />
+
+      {/* 快捷键面板（按?键打开） */}
+      <KeyboardShortcutsPanel />
+
+      {/* Inpainting工具 */}
+      {showInpaintingTool && inpaintingImage && (
+        <InpaintingTool
+          image={inpaintingImage}
+          onClose={() => {
+            setShowInpaintingTool(false);
+            setInpaintingImage(null);
+          }}
+          onComplete={(newImageSrc) => {
+            // 更新选中图片的src
+            setImages(images.map(img =>
+              img.id === inpaintingImage.id
+                ? { ...img, src: newImageSrc }
+                : img
+            ));
+          }}
+        />
+      )}
     </div>
   );
 }

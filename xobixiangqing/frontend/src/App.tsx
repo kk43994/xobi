@@ -24,7 +24,7 @@ import { EditorPage } from './pages/EditorPage';
 import { BatchFactoryPage } from './pages/BatchFactoryPage';
 import { VideoFactoryPage } from './pages/VideoFactoryPage';
 import { useProjectStore } from './store/useProjectStore';
-import { useToast, GithubLink } from './components/shared';
+import { useToast } from './components/shared';
 
 function App() {
   const { currentProject, syncProject, error, setError } = useProjectStore();
@@ -105,7 +105,6 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ToastContainer />
-      <GithubLink />
     </BrowserRouter>
   );
 }
