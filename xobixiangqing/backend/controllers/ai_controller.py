@@ -54,7 +54,13 @@ def _decode_base64_image(base64_str: str) -> Image.Image:
 def chat():
     """
     POST /api/ai/chat
-    Body JSON: { "message": "..." }
+    Body JSON:
+      - message: string (required)
+      - images: string[] (optional, image URLs or base64 data URLs)
+
+    Returns:
+      - response: string (AI回复文本)
+      - generated_images: [{ image_url, width, height }] (optional, 如果AI生成了图片)
     """
     try:
         payload = request.get_json(silent=True) or {}
@@ -65,23 +71,102 @@ def chat():
         if not message:
             return bad_request("Message is required")
 
-        logger.info("AI Chat request: %s", message[:120])
+        image_urls = payload.get("images") or []
+        if not isinstance(image_urls, list):
+            image_urls = []
+
+        logger.info("AI Chat request: %s (with %d images)", message[:120], len(image_urls))
 
         ai_service = get_ai_service()
 
+        # 准备系统提示
         system_prompt = (
             "你是一个专业的AI设计助手。请遵循以下规则：\n"
             "1. 回复简洁明了，不超过3句话\n"
             "2. 直接给出解决方案或下一步建议\n"
             "3. 使用中文回复\n"
-            "4. 避免废话和过度解释"
+            "4. 避免废话和过度解释\n"
+            "5. 如果用户要求生成图片，你可以生成图片并返回"
         )
         full_prompt = f"{system_prompt}\n\n用户: {message}"
 
-        response_text = ai_service.text_provider.generate_text(full_prompt)
-        response_text = (response_text or "").strip() or "抱歉，我暂时无法回答这个问题。请稍后再试。"
+        # 如果有图片，尝试加载为PIL Image对象
+        ref_images = []
+        if image_urls:
+            for img_url in image_urls[:6]:  # 最多处理6张图片
+                try:
+                    img = _load_image_from_source(img_url)
+                    ref_images.append(img)
+                except Exception as e:
+                    logger.warning(f"Failed to load image {img_url}: {e}")
 
-        return success_response({"response": response_text})
+        # 检测是否需要生成图片（简单的关键词检测）
+        should_generate_image = any(keyword in message for keyword in [
+            "生成图片", "生成一张", "画一张", "创作图片", "做一张图", "生成三视图",
+            "生成", "画", "创作", "制作图片", "generate image"
+        ])
+
+        generated_images = []
+
+        if should_generate_image and ai_service.image_provider:
+            # 使用图片生成功能
+            try:
+                # 构建生成提示（如果有参考图，则基于参考图生成）
+                if ref_images:
+                    gen_prompt = f"基于提供的参考图片，{message}"
+                else:
+                    gen_prompt = message
+
+                # 生成图片
+                result_img = ai_service.image_provider.generate_image(
+                    prompt=gen_prompt,
+                    ref_images=ref_images if ref_images else None,
+                    aspect_ratio="1:1",
+                    resolution="2K",
+                )
+
+                # 保存生成的图片
+                asset_id = str(uuid.uuid4())
+                filename = f"{asset_id}.png"
+                file_path = get_upload_path() / filename
+
+                result_img.save(str(file_path), format="PNG")
+                width, height = result_img.size
+
+                # 创建Asset记录
+                asset = Asset(
+                    system="A",
+                    kind="image",
+                    name=filename,
+                    storage="local",
+                )
+                db.session.add(asset)
+                db.session.commit()
+
+                generated_images.append({
+                    "image_url": f"/api/assets/{asset.id}/download",
+                    "width": width,
+                    "height": height,
+                })
+
+                response_text = f"已为你生成图片！{message}"
+
+            except Exception as e:
+                logger.error(f"Image generation failed: {e}", exc_info=True)
+                response_text = f"图片生成失败: {str(e)}"
+
+        else:
+            # 普通对话（可能带图片输入）
+            # 注意：如果使用支持多模态的文本模型（如Gemini），可以传递图片
+            # 但目前的text_provider.generate_text只接受文本，需要扩展
+            response_text = ai_service.text_provider.generate_text(full_prompt)
+            response_text = (response_text or "").strip() or "抱歉，我暂时无法回答这个问题。请稍后再试。"
+
+        result = {"response": response_text}
+        if generated_images:
+            result["generated_images"] = generated_images
+
+        return success_response(result)
 
     except Exception as e:
         logger.error("AI Chat error: %s", e, exc_info=True)

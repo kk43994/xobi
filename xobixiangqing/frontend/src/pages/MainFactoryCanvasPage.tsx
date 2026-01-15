@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Dropdown, Space, Tag, Typography, message, notification, Collapse } from 'antd';
 import type { MenuProps } from 'antd';
-import { BgColorsOutlined, BorderOutlined, EditOutlined, ExpandOutlined } from '@ant-design/icons';
+import { BgColorsOutlined, BorderOutlined, EditOutlined, ExpandOutlined, PictureOutlined } from '@ant-design/icons';
 import { useWorkbenchToolbarSlots } from '@/layout/workbenchToolbar';
 import { usePortalUiStore } from '@/store/usePortalUiStore';
 import { uploadAsset } from '@/api/endpoints';
@@ -343,7 +343,10 @@ async function getApiConfig() {
   return null;
 }
 
-async function callAI(message: string): Promise<string> {
+async function callAI(message: string, images?: { url: string }[]): Promise<{
+  response: string;
+  generated_images?: { image_url: string; width: number; height: number }[];
+}> {
   const config = await getApiConfig();
   if (!config?.apiKeyConfigured) {
     throw new Error('请先在设置中配置 API Key');
@@ -352,7 +355,10 @@ async function callAI(message: string): Promise<string> {
   const response = await fetch('/api/ai/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({
+      message,
+      images: images?.map(img => img.url), // 传递图片URL
+    }),
   });
 
   if (!response.ok) {
@@ -361,7 +367,11 @@ async function callAI(message: string): Promise<string> {
   }
 
   const data = await response.json();
-  return data.data?.response || '抱歉，我无法回答这个问题。';
+
+  return {
+    response: data.data?.response || '抱歉，我无法回答这个问题。',
+    generated_images: data.data?.generated_images, // 如果API返回了生成的图片
+  };
 }
 
 // 图片生成 API
@@ -1395,6 +1405,7 @@ function AIChatSidebar({
   // 快捷操作按钮
   const quickActions = [
     { id: 'generate', label: '生成图片', icon: <BgColorsOutlined /> },
+    { id: 'generate-from-canvas', label: '基于画布生成', icon: <PictureOutlined />, disabled: canvasImages.length === 0 },
     { id: 'edit', label: '编辑选中', icon: <EditOutlined /> },
     { id: 'remove-bg', label: '移除背景', icon: <BorderOutlined /> },
     { id: 'expand', label: '扩展画面', icon: <ExpandOutlined /> },
@@ -1463,30 +1474,45 @@ function AIChatSidebar({
       width: img.width,
       height: img.height,
     })) : undefined;
+
+    // 收集附加图片的URL作为参考图
+    const attachedImageUrls = attachedImages.map(img => img.src);
+
     setMessages((prev) => [...prev, {
       role: 'user',
-      content: userMessage || '请分析这些图片',
+      content: userMessage || '请基于这些图片生成',
       images: messageImages
     }]);
     setAttachedImages([]); // 清空附加图片
 
-    // 检查是否是图片生成请求
-    if (isImageGenerationRequest(userMessage)) {
+    // 智能判断：如果有附加图片或者是明确的生图请求，则生成图片
+    const shouldGenerateImage = attachedImageUrls.length > 0 || isImageGenerationRequest(userMessage);
+
+    if (shouldGenerateImage) {
       const imageCount = initialConfig?.imageCount || 1;
       const referenceImages = initialConfig?.referenceImages || [];
 
+      // 合并所有参考图：初始配置的参考图 + 用户附加的图片
+      const allReferenceImages = [...referenceImages, ...attachedImageUrls];
+
       setIsGeneratingImage(true);
-      setMessages((prev) => [...prev, { role: 'ai', content: `正在生成${imageCount}张图片，请稍候...` }]);
+      setMessages((prev) => [...prev, {
+        role: 'ai',
+        content: `正在生成${imageCount}张图片${allReferenceImages.length > 0 ? `（参考${allReferenceImages.length}张图片）` : ''}，请稍候...`
+      }]);
 
       try {
-        const prompt = extractPromptFromMessage(userMessage);
+        // 如果有附加图片但没有明确的prompt，使用默认prompt
+        const prompt = userMessage
+          ? extractPromptFromMessage(userMessage)
+          : (allReferenceImages.length > 0 ? '基于参考图生成相似风格的产品图' : '一张精美的电商产品图');
         const aspectRatio = extractAspectRatio(userMessage);
         const options = {
           imageType: initialConfig?.imageType,
           model: initialConfig?.model,
           platform: initialConfig?.platform,
           language: initialConfig?.language,
-          referenceImages: referenceImages,
+          referenceImages: allReferenceImages,
           count: imageCount,
         };
 
@@ -1536,11 +1562,26 @@ function AIChatSidebar({
         setIsGeneratingImage(false);
       }
     } else {
-      // 普通对话
+      // 普通对话（传递附加的图片给AI）
       setIsLoading(true);
       try {
-        const response = await callAI(userMessage);
-        setMessages((prev) => [...prev, { role: 'ai', content: response }]);
+        const aiResponse = await callAI(userMessage, messageImages);
+        setMessages((prev) => [...prev, { role: 'ai', content: aiResponse.response }]);
+
+        // 如果AI返回了生成的图片，自动添加到画布
+        if (aiResponse.generated_images && aiResponse.generated_images.length > 0) {
+          aiResponse.generated_images.forEach((img, index) => {
+            setTimeout(() => {
+              onAddImageToCanvas(img.image_url, img.width, img.height);
+            }, index * 100);
+          });
+
+          // 添加提示消息
+          setMessages((prev) => [
+            ...prev,
+            { role: 'ai', content: `已将生成的${aiResponse.generated_images!.length}张图片添加到画布` },
+          ]);
+        }
       } catch (error: any) {
         setMessages((prev) => [
           ...prev,
@@ -1631,6 +1672,78 @@ function AIChatSidebar({
           setIsGeneratingImage(false);
         }
         break;
+
+      case 'generate-from-canvas':
+        // 基于画布上的所有图片生成新图
+        if (canvasImages.length === 0) {
+          message.warning('画布上还没有图片，请先添加图片');
+          return;
+        }
+
+        const canvasImageUrls = canvasImages.map(img => img.src);
+        const canvasPrompt = initialConfig?.prompt || '基于参考图生成相似风格的产品图';
+        const canvasAspectRatio = initialConfig?.aspectRatio || '1:1';
+        const canvasImageCount = initialConfig?.imageCount || 1;
+        const canvasOptions = {
+          imageType: initialConfig?.imageType,
+          model: initialConfig?.model,
+          platform: initialConfig?.platform,
+          language: initialConfig?.language,
+          referenceImages: canvasImageUrls,
+          count: canvasImageCount,
+        };
+
+        setMessages((prev) => [
+          ...prev,
+          { role: 'user', content: `基于画布上的${canvasImages.length}张图片生成新图` },
+          { role: 'ai', content: `正在基于${canvasImages.length}张参考图生成${canvasImageCount}张新图片，请稍候...` }
+        ]);
+        setIsGeneratingImage(true);
+
+        try {
+          const canvasResult = await generateImage(canvasPrompt, canvasAspectRatio, canvasOptions);
+          const canvasJobId = String(canvasResult.job_id || '').trim() || null;
+          const canvasGeneratedCount = canvasResult.images?.length || 1;
+
+          setMessages((prev) => {
+            const newMessages = prev.slice(0, -1);
+            const suffix = canvasJobId ? `\n任务：${canvasJobId.slice(0, 8)}…（可在任务中心查看）` : '';
+            return [...newMessages, { role: 'ai', content: `成功生成${canvasGeneratedCount}张图片！已添加到画布，并写入资源库。${suffix}` }];
+          });
+
+          if (canvasJobId) {
+            notification.success({
+              message: '主图生成任务已创建',
+              description: `job_id：${canvasJobId}`,
+              duration: 4,
+              btn: (
+                <Space>
+                  <Button size="small" onClick={() => openPanel('jobs')}>打开任务中心</Button>
+                  <Button size="small" type="primary" onClick={() => navigate(`/jobs?jobId=${encodeURIComponent(canvasJobId)}`)}>查看详情</Button>
+                </Space>
+              ),
+            });
+          }
+
+          if (canvasResult.images && canvasResult.images.length > 0) {
+            canvasResult.images.forEach((img, index) => {
+              setTimeout(() => {
+                onAddImageToCanvas(img.image_url, img.width, img.height);
+              }, index * 100);
+            });
+          } else {
+            onAddImageToCanvas(canvasResult.image_url, canvasResult.width, canvasResult.height);
+          }
+        } catch (error: any) {
+          setMessages((prev) => {
+            const newMessages = prev.slice(0, -1);
+            return [...newMessages, { role: 'ai', content: `图片生成失败：${error.message}` }];
+          });
+        } finally {
+          setIsGeneratingImage(false);
+        }
+        break;
+
       case 'edit':
         setInput('请帮我编辑当前选中的图片');
         break;
@@ -1802,7 +1915,12 @@ function AIChatSidebar({
                 <button
                   key={action.id}
                   onClick={() => handleQuickAction(action.id)}
-                  className="flex items-center gap-2 p-3 bg-[#1a1a1a] hover:bg-[#222] border border-white/5 hover:border-purple-vibrant/30 rounded-xl transition-all text-left"
+                  disabled={action.disabled}
+                  className={`flex items-center gap-2 p-3 bg-[#1a1a1a] border border-white/5 rounded-xl transition-all text-left ${
+                    action.disabled
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:bg-[#222] hover:border-purple-vibrant/30'
+                  }`}
                 >
                   <span className="text-lg">{action.icon}</span>
                   <span className="text-sm text-white/80">{action.label}</span>
