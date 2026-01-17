@@ -66,8 +66,8 @@ const settingsSections: SectionConfig[] = [
         key: 'api_base_url',
         label: 'API Base URL',
         type: 'text',
-        placeholder: 'https://api.example.com',
-        description: '设置大模型提供商 API 的基础 URL（OpenAI 格式通常需要以 /v1 结尾，如 https://yunwu.ai/v1）',
+        placeholder: 'https://api.kk666.online/v1',
+        description: '设置大模型提供商 API 的基础 URL（OpenAI 格式通常需要以 /v1 结尾，如 https://api.kk666.online/v1）',
       },
       {
         key: 'api_key',
@@ -495,7 +495,16 @@ export const Settings: React.FC = () => {
                   <>
                     <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <p className="text-sm text-gray-700">
-                        API 密匙获取可前往{' '}
+                        API 密匙获取：
+                        <a
+                          href="https://api.kk666.online"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 underline font-medium ml-2"
+                        >
+                          酷可 (推荐)
+                        </a>
+                        <span className="mx-2 text-gray-400">|</span>
                         <a
                           href="https://aihubmix.com/?aff=17EC"
                           target="_blank"
@@ -504,7 +513,6 @@ export const Settings: React.FC = () => {
                         >
                           AIHubmix
                         </a>
-                        , 减小迁移成本
                       </p>
                     </div>
                     <div className="mt-3">

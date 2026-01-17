@@ -122,6 +122,7 @@ def upload_asset():
       - file: File
       - kind?: image|excel|zip|file
       - system?: A|B (default A)
+      - project_id?: optional project ID to associate the asset with
     """
     try:
         if "file" not in request.files:
@@ -137,7 +138,10 @@ def upload_asset():
         if system not in ("A", "B"):
             system = "A"
 
-        asset = Asset(system=system, kind=kind, name=original_name, storage="local")
+        # 可选：关联到项目
+        project_id = (request.form.get("project_id") or "").strip() or None
+
+        asset = Asset(system=system, kind=kind, name=original_name, storage="local", project_id=project_id)
         db.session.add(asset)
         db.session.flush()  # allocate id
 

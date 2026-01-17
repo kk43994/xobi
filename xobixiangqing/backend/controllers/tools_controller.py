@@ -196,7 +196,7 @@ def video_workstation_sync_settings():
         # Effective (global + module override). For video-workstation we only care about:
         # - YunWu video generation
         # - Multimodal (OpenAI-compatible) for image analysis/script generation
-        yunwu_base = _pick_str(module_s, global_s, "yunwu_api_base", "https://yunwu.ai")
+        yunwu_base = _pick_str(module_s, global_s, "yunwu_api_base", "https://api.kk666.online")
         yunwu_model = _pick_str(module_s, global_s, "yunwu_video_model", "sora-2-pro")
         yunwu_key = _pick_secret(module_s, global_s, "yunwu_api_key")
 
@@ -204,17 +204,17 @@ def video_workstation_sync_settings():
         ai_key = _pick_secret(module_s, global_s, "api_key")
         text_model = _pick_str(module_s, global_s, "text_model", "gpt-4o")
 
-        # 兼容：用户只配置了“主AI Key”，未单独填“云雾视频 Key”时，默认复用主AI Key。
+        # 兼容：用户只配置了"主AI Key"，未单独填"酷可视频 Key"时，默认复用主AI Key。
         if not yunwu_key:
             yunwu_key = ai_key
 
-        # 云雾视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾。
+        # 酷可视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾。
         yunwu_base = (yunwu_base or "").strip().rstrip("/")
         if yunwu_base.endswith("/v1"):
             yunwu_base = yunwu_base[:-3]
-        yunwu_base = yunwu_base or "https://yunwu.ai"
+        yunwu_base = yunwu_base or "https://api.kk666.online"
 
-        multimodal_base = _pick_str(module_s, global_s, "video_multimodal_api_base", ai_base or "https://yunwu.ai/v1")
+        multimodal_base = _pick_str(module_s, global_s, "video_multimodal_api_base", ai_base or "https://api.kk666.online/v1")
         multimodal_model = _pick_str(module_s, global_s, "video_multimodal_model", text_model or "gpt-4o")
         multimodal_enabled = _pick_bool(module_s, global_s, "video_multimodal_enabled", True)
         multimodal_key = _pick_secret(module_s, global_s, "video_multimodal_api_key") or ai_key

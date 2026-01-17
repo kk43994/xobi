@@ -1480,7 +1480,7 @@ async function startBatchImageGeneration() {
     }
 
     try {
-        // 使用 Api 包装器（自动注入云雾配置头）
+        // 使用 Api 包装器（自动注入酷可配置头）
         const createResult = await Api.post('/api/style/batch/create-from-items', {
             items,
             style_preset: stylePreset,

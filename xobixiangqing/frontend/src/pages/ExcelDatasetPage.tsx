@@ -17,19 +17,45 @@ import {
   Typography,
   Tooltip,
   message,
+  Card,
+  Progress,
 } from 'antd';
+import {
+  CheckOutlined,
+  CloseOutlined,
+  ClockCircleOutlined,
+  LoadingOutlined,
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  CopyOutlined,
+  DownloadOutlined,
+  PictureOutlined,
+  FileTextOutlined,
+  TagOutlined,
+  HistoryOutlined,
+  SettingOutlined,
+  GlobalOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  SyncOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Dataset, DatasetItem, UnifiedJob, UnifiedJobStatus } from '@/types';
 import { createDatasetStyleBatchJob, createDatasetTitleRewriteJob, exportDatasetExcel, getDataset, listDatasetItems, listJobs, syncJobUnified } from '@/api/endpoints';
+import { apiClient } from '@/api/client';
 import { usePortalUiStore } from '@/store/usePortalUiStore';
 import { useWorkbenchToolbarSlots } from '@/layout/workbenchToolbar';
 import { useAgentBridgeSlots, type AgentApplyPayload } from '@/layout/agentBridge';
 
 const statusTag: Record<DatasetItem['status'], { color: string; label: string }> = {
-  pending: { color: 'default', label: 'pending' },
-  processing: { color: 'processing', label: 'processing' },
-  done: { color: 'success', label: 'done' },
-  failed: { color: 'error', label: 'failed' },
+  pending: { color: 'default', label: '待处理' },
+  processing: { color: 'processing', label: '处理中' },
+  done: { color: 'success', label: '已完成' },
+  failed: { color: 'error', label: '失败' },
 };
 
 const jobStatusMeta: Record<UnifiedJobStatus, { color: string; label: string }> = {
@@ -49,6 +75,47 @@ const stylePresets = [
   { value: 'temu', label: 'Temu' },
 ];
 
+// 从标题中提取商品类别（提取主要名词）
+function detectCategory(title: string): string {
+  if (!title) return '未分类';
+
+  // 移除常见的修饰词和数字
+  const cleanTitle = title
+    .replace(/\[.*?\]/g, '') // 移除方括号内容
+    .replace(/【.*?】/g, '') // 移除中文方括号内容
+    .replace(/\d+/g, '') // 移除数字
+    .replace(/[ML|ml|cm|mm|kg|g|个|只|件|套|张]/g, '') // 移除单位
+    .trim();
+
+  // 提取关键词（取前2-3个有意义的词）
+  const words = cleanTitle.split(/[\s\/\-_,，、]+/).filter((w) => w.length > 1);
+
+  if (words.length === 0) return '未分类';
+
+  // 返回前1-2个词作为类别
+  return words.slice(0, 2).join(' ').substring(0, 20); // 限制长度
+}
+
+// AI 分类提示词模板
+const CATEGORY_ANALYSIS_PROMPT = `你是一个商品分类专家。请分析以下商品标题，将它们按照商品类型进行分类。
+
+分类规则：
+1. 提取商品的核心类别（如：杯子、碗、盘子、架子、瓶子、锅、壶等）
+2. 相同类型的商品归为一类
+3. 类别名称要简洁明确，2-4个字
+4. 如果是组合商品，按主要商品分类
+5. 支持中文、英文、泰语等多语言标题
+
+请以 JSON 格式返回结果，格式如下：
+{
+  "商品ID1": "类别名称",
+  "商品ID2": "类别名称",
+  ...
+}
+
+商品列表：
+`;
+
 export function ExcelDatasetPage() {
   const { datasetId } = useParams();
   const navigate = useNavigate();
@@ -65,6 +132,10 @@ export function ExcelDatasetPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('card'); // 默认卡片视图
+  const [groupBy, setGroupBy] = useState<'none' | 'category' | 'status'>('none'); // 分组方式
+  const [categories, setCategories] = useState<Record<string, string>>({}); // 商品类别缓存 {itemId: category}
+  const [isAnalyzingCategories, setIsAnalyzingCategories] = useState(false);
   const [detailSourceUrl, setDetailSourceUrl] = useState<string>('');
   const [actionOpen, setActionOpen] = useState(false);
   const [actionSubmitting, setActionSubmitting] = useState(false);
@@ -269,6 +340,57 @@ export function ExcelDatasetPage() {
     onApply: applyAgent,
   }, [datasetId, dataset?.name, dataset?.template_key, selectedRowKeys.length, activeItem?.id, activeItem?.row_index, activeItem?.title, activeItem?.new_title, activeItem?.variant_image]);
 
+  // 分组计算逻辑
+  const groupedItems = useMemo(() => {
+    if (groupBy === 'none') {
+      return [{ key: 'all', label: '全部', items }];
+    }
+
+    if (groupBy === 'category') {
+      const groups: Record<string, DatasetItem[]> = {};
+      items.forEach((item) => {
+        const category = categories[item.id] || detectCategory(item.title || '') || '未分类';
+        if (!groups[category]) {
+          groups[category] = [];
+        }
+        groups[category].push(item);
+      });
+
+      return Object.entries(groups)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([category, items]) => ({
+          key: category,
+          label: category,
+          items,
+        }));
+    }
+
+    if (groupBy === 'status') {
+      const groups: Record<string, DatasetItem[]> = {
+        pending: [],
+        processing: [],
+        done: [],
+        failed: [],
+      };
+      items.forEach((item) => {
+        const status = item.status || 'pending';
+        if (groups[status]) {
+          groups[status].push(item);
+        }
+      });
+
+      return Object.entries(groups)
+        .filter(([_, items]) => items.length > 0)
+        .map(([status, items]) => ({
+          key: status,
+          label: statusTag[status as DatasetItem['status']]?.label || status,
+          items,
+        }));
+    }
+
+    return [{ key: 'all', label: '全部', items }];
+  }, [items, groupBy, categories]);
+
   useWorkbenchToolbarSlots({
     center: (
       <Space size={6} wrap>
@@ -293,6 +415,22 @@ export function ExcelDatasetPage() {
     ),
     right: (
       <Space size={6}>
+        <Button.Group size="small">
+          <Button
+            type={viewMode === 'card' ? 'primary' : 'default'}
+            onClick={() => setViewMode('card')}
+            icon={<AppstoreOutlined />}
+          >
+            卡片
+          </Button>
+          <Button
+            type={viewMode === 'table' ? 'primary' : 'default'}
+            onClick={() => setViewMode('table')}
+            icon={<UnorderedListOutlined />}
+          >
+            表格
+          </Button>
+        </Button.Group>
         <Button size="small" onClick={() => navigate('/excel')}>
           数据集列表
         </Button>
@@ -304,7 +442,7 @@ export function ExcelDatasetPage() {
         </Button>
       </Space>
     ),
-  }, [datasetId, items.length, selectedRowKeys.length, total, inspectorOpen]);
+  }, [datasetId, items.length, selectedRowKeys.length, total, inspectorOpen, viewMode]);
 
   const handleCreateStyleBatch = async () => {
     if (!datasetId) return;
@@ -387,6 +525,62 @@ export function ExcelDatasetPage() {
       message.error(e?.message || '导出失败');
     } finally {
       setExportSubmitting(false);
+    }
+  };
+
+  // AI 智能分类
+  const handleAiCategorize = async () => {
+    if (!items.length) {
+      message.warning('暂无商品数据');
+      return;
+    }
+
+    setIsAnalyzingCategories(true);
+    try {
+      // 构建商品列表
+      const productList = items
+        .map((item) => `${item.id}: ${item.title || '无标题'}`)
+        .join('\n');
+
+      const fullPrompt = CATEGORY_ANALYSIS_PROMPT + '\n' + productList;
+
+      // 调用多模态模型
+      const response = await apiClient.post('/api/ai/chat', {
+        messages: [
+          {
+            role: 'user',
+            content: fullPrompt,
+          },
+        ],
+      });
+
+      const aiResponse = response.data?.response || '';
+
+      // 尝试解析 JSON 响应
+      let categoryMap: Record<string, string> = {};
+      try {
+        // 提取 JSON 部分（可能包含在代码块中）
+        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          categoryMap = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('未找到有效的 JSON 响应');
+        }
+      } catch (parseError) {
+        console.error('解析 AI 响应失败:', parseError);
+        message.error('AI 分类结果解析失败，请重试');
+        return;
+      }
+
+      // 更新分类缓存
+      setCategories(categoryMap);
+      setGroupBy('category'); // 自动切换到按类别分组
+      message.success(`AI 分类完成，共识别 ${Object.keys(categoryMap).length} 个商品`);
+    } catch (e: any) {
+      console.error('AI 分类失败:', e);
+      message.error(e?.response?.data?.error?.message || e?.message || 'AI 分类失败');
+    } finally {
+      setIsAnalyzingCategories(false);
     }
   };
 
@@ -492,7 +686,7 @@ export function ExcelDatasetPage() {
           </Space>
 
           <Typography.Text type="secondary" style={{ color: textSecondary }}>
-            输出会写入资源库（Assets），并回写到本表的 `new_title/new_images`；STYLE_BATCH 可用“同步”拉取最新结果。
+            💡 提示：AI生成的新标题和新图片会自动保存，并更新到你的表格中。批量改图任务完成后，点击"同步"按钮可以获取最新结果。
           </Typography.Text>
 
           <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
@@ -511,12 +705,32 @@ export function ExcelDatasetPage() {
                 value={status}
                 onChange={(v) => setStatus(v)}
                 options={[
-                  { value: 'pending', label: 'pending' },
-                  { value: 'processing', label: 'processing' },
-                  { value: 'done', label: 'done' },
-                  { value: 'failed', label: 'failed' },
+                  { value: 'pending', label: '待处理' },
+                  { value: 'processing', label: '处理中' },
+                  { value: 'done', label: '已完成' },
+                  { value: 'failed', label: '失败' },
                 ]}
               />
+              <Select
+                placeholder="分组方式"
+                style={{ width: 180 }}
+                value={groupBy}
+                onChange={setGroupBy}
+                options={[
+                  { value: 'none', label: '不分组' },
+                  { value: 'category', label: '按商品类别' },
+                  { value: 'status', label: '按状态' },
+                ]}
+              />
+              <Button
+                size="small"
+                icon={<SyncOutlined spin={isAnalyzingCategories} />}
+                onClick={handleAiCategorize}
+                loading={isAnalyzingCategories}
+                disabled={!items.length || isAnalyzingCategories}
+              >
+                AI智能分组
+              </Button>
               <Typography.Text type="secondary" style={{ color: textSecondary }}>
                 已选 {selectedRowKeys.length} 行
               </Typography.Text>
@@ -532,18 +746,407 @@ export function ExcelDatasetPage() {
             </Button>
           </Space>
 
-          <Table
-            rowKey={(r) => r.id}
-            loading={loading}
-            rowSelection={rowSelection}
-            columns={itemsColumns}
-            dataSource={items}
-            pagination={{ pageSize: 20, showSizeChanger: true }}
-            locale={{ emptyText: '暂无数据（请先导入 Excel）' }}
-            onRow={(record) => ({
-              onClick: () => setActiveItemId(record.id),
-            })}
-          />
+          {viewMode === 'table' ? (
+            <Table
+              rowKey={(r) => r.id}
+              loading={loading}
+              rowSelection={rowSelection}
+              columns={itemsColumns}
+              dataSource={items}
+              pagination={{ pageSize: 20, showSizeChanger: true }}
+              locale={{ emptyText: '暂无数据（请先导入 Excel）' }}
+              onRow={(record) => ({
+                onClick: () => setActiveItemId(record.id),
+              })}
+            />
+          ) : (
+            <div>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <LoadingOutlined style={{ fontSize: 24, color: '#8b5cf6' }} />
+                  <Typography.Text type="secondary" style={{ marginLeft: 12 }}>
+                    加载中...
+                  </Typography.Text>
+                </div>
+              ) : items.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <FileTextOutlined style={{ fontSize: 48, color: theme === 'dark' ? 'rgba(255,255,255,0.25)' : '#d1d5db', marginBottom: 16 }} />
+                  <Typography.Text type="secondary">暂无数据（请先导入 Excel）</Typography.Text>
+                </div>
+              ) : (
+                groupedItems.map((group) => (
+                  <div key={group.key} style={{ marginBottom: groupBy !== 'none' ? 24 : 0 }}>
+                    {groupBy !== 'none' && (
+                      <div
+                        style={{
+                          marginBottom: 16,
+                          padding: '12px 16px',
+                          background: theme === 'dark' ? 'rgba(139,92,246,0.1)' : 'rgba(139,92,246,0.05)',
+                          border: theme === 'dark' ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(139,92,246,0.2)',
+                          borderRadius: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <Space>
+                          <TagOutlined style={{ color: '#8b5cf6', fontSize: 16 }} />
+                          <Typography.Text strong style={{ fontSize: 15, color: '#8b5cf6' }}>
+                            {group.label}
+                          </Typography.Text>
+                          <Tag color="purple">{group.items.length} 个商品</Tag>
+                        </Space>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {group.items.map((item) => {
+                  const isSelected = selectedRowKeys.includes(item.id);
+                  const isActive = activeItemId === item.id;
+                  const statusMeta = statusTag[item.status];
+                  const StatusIcon =
+                    item.status === 'done'
+                      ? CheckCircleOutlined
+                      : item.status === 'processing'
+                        ? LoadingOutlined
+                        : item.status === 'failed'
+                          ? ExclamationCircleOutlined
+                          : ClockCircleOutlined;
+
+                  return (
+                    <Card
+                      key={item.id}
+                      onClick={() => setActiveItemId(item.id)}
+                      className={`transition-all duration-200 cursor-pointer ${
+                        isActive ? 'ring-2 ring-purple-500' : ''
+                      }`}
+                      style={{
+                        borderColor: isActive
+                          ? '#8b5cf6'
+                          : theme === 'dark'
+                            ? 'rgba(255,255,255,0.1)'
+                            : '#e5e7eb',
+                        backgroundColor: isActive
+                          ? theme === 'dark'
+                            ? 'rgba(139,92,246,0.1)'
+                            : 'rgba(139,92,246,0.05)'
+                          : theme === 'dark'
+                            ? '#1a1a1a'
+                            : '#ffffff',
+                        boxShadow: isActive
+                          ? '0 8px 16px rgba(139, 92, 246, 0.2)'
+                          : theme === 'dark'
+                            ? '0 2px 8px rgba(0,0,0,0.3)'
+                            : '0 2px 8px rgba(0,0,0,0.1)',
+                      }}
+                      hoverable
+                    >
+                      {/* 顶部信息栏 */}
+                      <div className="flex items-center justify-between mb-3">
+                        <Space size={8}>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newKeys = isSelected
+                                ? selectedRowKeys.filter((k) => k !== item.id)
+                                : [...selectedRowKeys, item.id];
+                              setSelectedRowKeys(newKeys);
+                            }}
+                          >
+                            <div
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-purple-500 border-purple-500'
+                                  : theme === 'dark'
+                                    ? 'border-white/30 hover:border-purple-500'
+                                    : 'border-gray-300 hover:border-purple-500'
+                              }`}
+                            >
+                              {isSelected && <CheckOutlined style={{ fontSize: 10, color: '#fff' }} />}
+                            </div>
+                          </div>
+                          <Typography.Text
+                            strong
+                            style={{
+                              color: '#8b5cf6',
+                              fontSize: 13,
+                            }}
+                          >
+                            #{item.row_index}
+                          </Typography.Text>
+                          <Typography.Text
+                            type="secondary"
+                            style={{
+                              fontSize: 11,
+                              color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined,
+                            }}
+                          >
+                            {item.skuid}
+                          </Typography.Text>
+                        </Space>
+                        <Tag color={statusMeta.color} icon={<StatusIcon />}>
+                          {statusMeta.label}
+                        </Tag>
+                      </div>
+
+                      {/* 图片区域 */}
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        {/* 原图 */}
+                        <div>
+                          <Typography.Text
+                            type="secondary"
+                            style={{
+                              fontSize: 11,
+                              display: 'block',
+                              marginBottom: 6,
+                              color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined,
+                            }}
+                          >
+                            <PictureOutlined style={{ marginRight: 4 }} />
+                            原图
+                          </Typography.Text>
+                          {item.variant_image ? (
+                            <Image
+                              src={item.variant_image}
+                              width="100%"
+                              height={150}
+                              style={{
+                                borderRadius: 8,
+                                objectFit: 'cover',
+                                border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e5e7eb',
+                              }}
+                              preview={{
+                                mask: <EyeOutlined />,
+                              }}
+                            />
+                          ) : (
+                            <div
+                              className={`w-full h-[150px] rounded-lg flex flex-col items-center justify-center ${
+                                theme === 'dark' ? 'bg-white/5' : 'bg-gray-100'
+                              }`}
+                              style={{
+                                border: theme === 'dark' ? '1px dashed rgba(255,255,255,0.1)' : '1px dashed #d1d5db',
+                              }}
+                            >
+                              <PictureOutlined style={{ fontSize: 24, color: theme === 'dark' ? 'rgba(255,255,255,0.25)' : '#9ca3af' }} />
+                              <Typography.Text type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
+                                无图
+                              </Typography.Text>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 新图 */}
+                        <div>
+                          <Typography.Text
+                            type="secondary"
+                            style={{
+                              fontSize: 11,
+                              display: 'block',
+                              marginBottom: 6,
+                              color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined,
+                            }}
+                          >
+                            <PictureOutlined style={{ marginRight: 4 }} />
+                            新图
+                            {item.new_images && item.new_images.length > 0 && (
+                              <Tag color="purple" style={{ marginLeft: 4, fontSize: 10, padding: '0 4px', lineHeight: '16px' }}>
+                                {item.new_images.length}张
+                              </Tag>
+                            )}
+                          </Typography.Text>
+                          {item.new_images?.[0] ? (
+                            <div className="relative">
+                              <Image
+                                src={item.new_images[0]}
+                                width="100%"
+                                height={150}
+                                style={{
+                                  borderRadius: 8,
+                                  objectFit: 'cover',
+                                  border: theme === 'dark' ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(139,92,246,0.2)',
+                                }}
+                                preview={{
+                                  mask: <EyeOutlined />,
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              className={`w-full h-[150px] rounded-lg flex flex-col items-center justify-center ${
+                                theme === 'dark' ? 'bg-white/5' : 'bg-gray-100'
+                              }`}
+                              style={{
+                                border: theme === 'dark' ? '1px dashed rgba(255,255,255,0.1)' : '1px dashed #d1d5db',
+                              }}
+                            >
+                              <ClockCircleOutlined style={{ fontSize: 24, color: theme === 'dark' ? 'rgba(255,255,255,0.25)' : '#9ca3af' }} />
+                              <Typography.Text type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
+                                待生成
+                              </Typography.Text>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <Divider style={{ margin: '12px 0' }} />
+
+                      {/* 标题信息 */}
+                      <div className="space-y-3">
+                        {/* 原标题 */}
+                        <div>
+                          <Typography.Text
+                            type="secondary"
+                            style={{
+                              fontSize: 11,
+                              display: 'block',
+                              marginBottom: 4,
+                              color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined,
+                            }}
+                          >
+                            <FileTextOutlined style={{ marginRight: 4 }} />
+                            原标题
+                          </Typography.Text>
+                          <Typography.Paragraph
+                            ellipsis={{ rows: 3, expandable: true, symbol: '展开' }}
+                            style={{
+                              fontSize: 12,
+                              marginBottom: 0,
+                              color: theme === 'dark' ? 'rgba(255,255,255,0.85)' : '#374151',
+                            }}
+                          >
+                            {item.title || '—'}
+                          </Typography.Paragraph>
+                        </div>
+
+                        {/* 新标题 */}
+                        <div
+                          style={{
+                            padding: 8,
+                            borderRadius: 6,
+                            backgroundColor: item.new_title
+                              ? theme === 'dark' ? 'rgba(139,92,246,0.08)' : 'rgba(139,92,246,0.05)'
+                              : theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                            border: item.new_title
+                              ? theme === 'dark' ? '1px solid rgba(139,92,246,0.2)' : '1px solid rgba(139,92,246,0.15)'
+                              : theme === 'dark' ? '1px dashed rgba(255,255,255,0.1)' : '1px dashed #d1d5db',
+                          }}
+                        >
+                          <Typography.Text
+                            type="secondary"
+                            style={{
+                              fontSize: 11,
+                              display: 'block',
+                              marginBottom: 4,
+                              color: item.new_title ? '#8b5cf6' : theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined,
+                            }}
+                          >
+                            <FileTextOutlined style={{ marginRight: 4 }} />
+                            新标题
+                          </Typography.Text>
+                          {item.new_title ? (
+                            <Typography.Paragraph
+                              ellipsis={{ rows: 3, expandable: true, symbol: '展开' }}
+                              style={{
+                                fontSize: 12,
+                                marginBottom: 0,
+                                color: theme === 'dark' ? '#a78bfa' : '#8b5cf6',
+                                fontWeight: 500,
+                              }}
+                            >
+                              {item.new_title}
+                            </Typography.Paragraph>
+                          ) : (
+                            <Typography.Text
+                              type="secondary"
+                              style={{
+                                fontSize: 12,
+                                color: theme === 'dark' ? 'rgba(255,255,255,0.25)' : '#9ca3af',
+                              }}
+                            >
+                              待生成
+                            </Typography.Text>
+                          )}
+                        </div>
+
+                        {/* 错误信息 */}
+                        {item.error_message && (
+                          <div
+                            style={{
+                              padding: 8,
+                              borderRadius: 6,
+                              backgroundColor: theme === 'dark' ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                              border: theme === 'dark' ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca',
+                            }}
+                          >
+                            <Typography.Text
+                              type="danger"
+                              style={{
+                                fontSize: 11,
+                                display: 'block',
+                              }}
+                              ellipsis={{ rows: 2, tooltip: item.error_message }}
+                            >
+                              <ExclamationCircleOutlined style={{ marginRight: 4 }} />
+                              {item.error_message}
+                            </Typography.Text>
+                          </div>
+                        )}
+                      </div>
+
+                      <Divider style={{ margin: '12px 0' }} />
+
+                      {/* 操作按钮 */}
+                      <Space size={4} wrap style={{ width: '100%' }}>
+                        <Button
+                          size="small"
+                          icon={<EyeOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveItemId(item.id);
+                          }}
+                        >
+                          查看
+                        </Button>
+                        <Button
+                          size="small"
+                          icon={<EditOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: 打开编辑标题对话框
+                          }}
+                        >
+                          改标题
+                        </Button>
+                        <Button
+                          size="small"
+                          icon={<PictureOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: 打开改图对话框
+                          }}
+                        >
+                          改图
+                        </Button>
+                        <Button
+                          size="small"
+                          icon={<ReloadOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: 重新生成
+                          }}
+                        >
+                          重新生成
+                        </Button>
+                      </Space>
+                    </Card>
+                  );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </Space>
       </div>
 
@@ -920,16 +1523,26 @@ export function ExcelDatasetPage() {
             />
           </Form.Item>
 
-          <Form.Item name="image_columns" label="追加 image1..imageN 列（可选）" valuePropName="checked">
+          <Form.Item
+            name="image_columns"
+            label="把每张图片分开放到不同列"
+            valuePropName="checked"
+            tooltip="开启后，每张图片会单独占一列（image1、image2、image3...），方便某些电商平台批量上传图片"
+          >
             <Switch />
           </Form.Item>
 
-          <Form.Item name="max_images" label="最大图片列数（N）" rules={[{ required: true }]}>
+          <Form.Item
+            name="max_images"
+            label="最多分几列"
+            rules={[{ required: true }]}
+            tooltip="最多把图片分成几列（比如填9，就是最多分成9列）"
+          >
             <Input type="number" min={1} max={20} />
           </Form.Item>
 
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            v1 默认按原表的「产品名称/产品图片/SKU图片」列导出；若行内已有 `new_title/new_images` 会优先使用。
+            💡 说明：导出的Excel会包含商品的标题和图片。如果你已经用AI改过标题或生成了新图片，导出时会自动使用新的版本；如果还没改，就用原来的。
           </Typography.Paragraph>
         </Form>
       </Modal>

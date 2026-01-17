@@ -21,7 +21,7 @@ class TestResponse(BaseModel):
 @router.post("/test-connection", response_model=TestResponse)
 async def test_api_connection(request: TestRequest):
     """
-    测试云雾 API 连接
+    测试酷可 API 连接
 
     此接口会发送一个简单的请求到 Gemini Flash 模型，验证：
     1. API Key 是否有效
@@ -47,7 +47,7 @@ async def test_api_connection(request: TestRequest):
             "max_tokens": 10
         }
 
-        print(f"[Test] 测试连接到云雾 API: {url}")
+        print(f"[Test] 测试连接到酷可 API: {url}")
         print(f"[Test] 使用模型: {payload['model']}")
         print(f"[Test] 请求体: {payload}")
 
@@ -84,7 +84,7 @@ async def test_api_connection(request: TestRequest):
             elif response.status_code == 503:
                 return TestResponse(
                     success=False,
-                    message="云雾 API 服务暂时不可用（503），请稍后重试"
+                    message="酷可 API 服务暂时不可用（503），请稍后重试"
                 )
             else:
                 return TestResponse(
@@ -100,7 +100,7 @@ async def test_api_connection(request: TestRequest):
     except httpx.ConnectError:
         return TestResponse(
             success=False,
-            message="无法连接到云雾 API 服务器，请检查 Base URL 配置"
+            message="无法连接到酷可 API 服务器，请检查 Base URL 配置"
         )
     except Exception as e:
         print(f"[Test] 连接测试失败: {str(e)}")

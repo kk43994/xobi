@@ -1,12 +1,12 @@
 /**
- * Config Manager - 云雾 API 配置管理
+ * Config Manager - 酷可 API 配置管理
  * 负责 localStorage 的配置持久化和读写
  */
 
 const CONFIG_KEY = 'xobi_api_config';
 
 const DEFAULT_CONFIG = {
-    yunwu_base_url: 'https://yunwu.ai',
+    yunwu_base_url: 'https://api.kk666.online',
     yunwu_api_key: '',
     gemini_flash_model: 'gemini-3-flash-preview',
     gemini_image_model: 'gemini-3-pro-image-preview'
@@ -74,9 +74,9 @@ const ConfigManager = {
             return '请输入 API Key';
         }
 
-        // 云雾 API key 通常以 yw- 或 sk- 开头
+        // 酷可 API key 通常以 yw- 或 sk- 开头
         if (!key.startsWith('yw-') && !key.startsWith('sk-')) {
-            return '格式提示：云雾 API Key 通常以 yw- 或 sk- 开头';
+            return '格式提示：酷可 API Key 通常以 yw- 或 sk- 开头';
         }
 
         if (key.length < 20) {

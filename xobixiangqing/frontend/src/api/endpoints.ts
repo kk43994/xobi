@@ -1071,12 +1071,13 @@ export const listAssets = async (
 
 export const uploadAsset = async (
   file: File,
-  opts?: { kind?: string; system?: 'A' | 'B' }
+  opts?: { kind?: string; system?: 'A' | 'B'; projectId?: string }
 ): Promise<ApiResponse<{ asset: any; unified: UnifiedAsset }>> => {
   const formData = new FormData();
   formData.append('file', file);
   if (opts?.kind) formData.append('kind', opts.kind);
   if (opts?.system) formData.append('system', opts.system);
+  if (opts?.projectId) formData.append('project_id', opts.projectId);
   const response = await apiClient.post<ApiResponse<{ asset: any; unified: UnifiedAsset }>>('/api/assets/upload', formData);
   return response.data;
 };

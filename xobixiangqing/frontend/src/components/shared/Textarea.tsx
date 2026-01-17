@@ -4,27 +4,39 @@ import { cn } from '@/utils';
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
+  variant?: 'light' | 'dark';
 }
 
 const TextareaComponent = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({
   label,
   error,
   className,
+  variant = 'dark',
   ...props
 }, ref) => {
+  const baseStyles = 'w-full min-h-[120px] px-4 py-3 rounded-lg transition-all resize-y';
+
+  const variantStyles = {
+    light: 'border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-banana-500 focus:border-transparent',
+    dark: 'border border-white/10 bg-dark-secondary text-white placeholder:text-text-tertiary focus:ring-2 focus:ring-purple-vibrant focus:border-purple-vibrant',
+  };
+
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className={cn(
+          "block text-sm font-medium mb-2",
+          variant === 'dark' ? 'text-white' : 'text-gray-700'
+        )}>
           {label}
         </label>
       )}
       <textarea
         ref={ref}
         className={cn(
-          'w-full min-h-[120px] px-4 py-3 rounded-lg border border-gray-200 dark:border-white/20 bg-white dark:bg-dark-secondary dark:text-white',
-          'focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent',
-          'placeholder:text-gray-400 transition-all resize-y',
+          baseStyles,
+          variantStyles[variant],
+          'focus:outline-none',
           error && 'border-red-500 focus:ring-red-500',
           className
         )}

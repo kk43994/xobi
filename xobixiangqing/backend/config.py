@@ -57,7 +57,7 @@ class Config:
     GOOGLE_API_BASE = os.getenv('GOOGLE_API_BASE', '')
     
     # AI Provider 格式配置: "gemini" (Google GenAI SDK), "openai" (OpenAI SDK), "vertex" (Vertex AI)
-    # 默认使用 openai 格式，适配云雾等第三方中转服务
+    # 默认使用 openai 格式，适配酷可等第三方中转服务
     AI_PROVIDER_FORMAT = os.getenv('AI_PROVIDER_FORMAT', 'openai')
 
     # Vertex AI 专用配置（当 AI_PROVIDER_FORMAT=vertex 时使用）
@@ -70,8 +70,8 @@ class Config:
     
     # OpenAI 格式专用配置（当 AI_PROVIDER_FORMAT=openai 时使用）
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')  # 当 AI_PROVIDER_FORMAT=openai 时必须设置
-    # 默认使用云雾 API 地址
-    OPENAI_API_BASE = os.getenv('OPENAI_API_BASE', 'https://yunwu.ai/v1')
+    # 默认使用酷可 API 地址
+    OPENAI_API_BASE = os.getenv('OPENAI_API_BASE', 'https://api.kk666.online/v1')
     OPENAI_TIMEOUT = float(os.getenv('OPENAI_TIMEOUT', '300.0'))  # 增加到 5 分钟（生成清洁背景图需要很长时间）
     OPENAI_MAX_RETRIES = int(os.getenv('OPENAI_MAX_RETRIES', '2'))  # 减少重试次数，避免过多重试导致累积超时
 

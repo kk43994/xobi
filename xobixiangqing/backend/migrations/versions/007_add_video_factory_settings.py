@@ -19,10 +19,10 @@ depends_on = None
 def upgrade():
     # 添加视频工厂相关字段
     op.add_column('settings', sa.Column('yunwu_api_key', sa.String(500), nullable=True))
-    op.add_column('settings', sa.Column('yunwu_api_base', sa.String(255), nullable=True, server_default='https://yunwu.ai'))
+    op.add_column('settings', sa.Column('yunwu_api_base', sa.String(255), nullable=True, server_default='https://api.kk666.online'))
     op.add_column('settings', sa.Column('yunwu_video_model', sa.String(100), nullable=True, server_default='sora-2-pro'))
     op.add_column('settings', sa.Column('video_multimodal_api_key', sa.String(500), nullable=True))
-    op.add_column('settings', sa.Column('video_multimodal_api_base', sa.String(255), nullable=True, server_default='https://yunwu.ai/v1'))
+    op.add_column('settings', sa.Column('video_multimodal_api_base', sa.String(255), nullable=True, server_default='https://api.kk666.online/v1'))
     op.add_column('settings', sa.Column('video_multimodal_model', sa.String(100), nullable=True, server_default='gpt-4o'))
     op.add_column('settings', sa.Column('video_multimodal_enabled', sa.Boolean(), nullable=False, server_default='1'))
 

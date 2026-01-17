@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, FileText, FileEdit, ImagePlus, Paperclip, Palette, Lightbulb, ShoppingBag, Repeat2, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
-import { BulbOutlined } from '@ant-design/icons';
 import { Button, Textarea, Card, useToast, MaterialGeneratorModal, ProductReplaceModal, ReferenceFileList, ReferenceFileSelector, FilePreviewModal, ImagePreviewList } from '@/components/shared';
-import { TemplateSelector, getTemplateFile } from '@/components/shared/TemplateSelector';
+import { getTemplateFile } from '@/components/shared/TemplateSelector';
 import { listUserTemplates, type UserTemplate, uploadReferenceFile, type ReferenceFile, associateFileToProject, triggerFileParse, uploadMaterial, associateMaterialsToProject, captionMaterials, type Material } from '@/api/endpoints';
 import { useProjectStore } from '@/store/useProjectStore';
 import { ECOM_PRESET_STYLES } from '@/config/ecomPresetStyles';
@@ -32,6 +31,7 @@ export const Home: React.FC = () => {
   const [useTemplateStyle, setUseTemplateStyle] = useState(false);
   const [templateStyle, setTemplateStyle] = useState('');
   const [hoveredPresetId, setHoveredPresetId] = useState<string | null>(null);
+  const [selectedStylePresetId, setSelectedStylePresetId] = useState<string | null>(null);
   const [ecomPageAspectRatio, setEcomPageAspectRatio] = useState('3:4');
   const [isPreparingEcomPrompt, setIsPreparingEcomPrompt] = useState(false);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
@@ -447,7 +447,7 @@ export const Home: React.FC = () => {
                setIsPreparingEcomPrompt(false);
                show({
                  message:
-                   '产品图片识别返回了网页源码（疑似 API Base 配置错误）。请到「设置」把 API Base 设为 OpenAI 兼容的 /v1 地址（例如 https://yunwu.ai/v1），然后重试。',
+                   '产品图片识别返回了网页源码（疑似 API Base 配置错误）。请到「设置」把 API Base 设为 OpenAI 兼容的 /v1 地址（例如 https://api.kk666.online/v1），然后重试。',
                  type: 'error',
                });
                return;
@@ -661,10 +661,10 @@ export const Home: React.FC = () => {
         </div>
 
         {/* 创建卡片 */}
-        <Card className="p-4 md:p-10 bg-white dark:bg-dark-secondary/90 backdrop-blur-xl shadow-2xl border border-primary-200 dark:border-white/10 hover:shadow-glow transition-all duration-300">
+        <Card className="p-4 md:p-10 bg-dark-secondary/90 backdrop-blur-xl shadow-2xl border border-white/10 hover:shadow-glow transition-all duration-300">
           {/* 步骤1：选择创建方式 - 2x2卡片网格 */}
           <div className="mb-6 md:mb-8">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">选择创建方式</h2>
+            <h2 className="text-lg font-semibold mb-4 text-white">选择创建方式</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {(Object.keys(tabConfig) as CreationType[]).map((type) => {
                 const config = tabConfig[type];
@@ -676,7 +676,7 @@ export const Home: React.FC = () => {
                     className={`relative p-4 md:p-5 rounded-xl border-2 transition-all duration-300 text-left ${
                       isActive
                         ? 'border-purple-vibrant bg-purple-vibrant/10 shadow-glow transform scale-[1.02]'
-                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-dark-tertiary/50 hover:border-purple-vibrant/50 hover:bg-gray-100 dark:hover:bg-dark-elevated'
+                        : 'border-white/10 bg-dark-tertiary/50 hover:border-purple-vibrant/50 hover:bg-dark-elevated'
                     }`}
                   >
                     {/* 图标 */}
@@ -684,14 +684,14 @@ export const Home: React.FC = () => {
                       className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-all ${
                         isActive
                           ? 'bg-gradient-cta text-white'
-                          : 'bg-primary-100 dark:bg-dark-elevated text-purple-apple'
+                          : 'bg-dark-elevated text-purple-apple'
                       }`}
                     >
                       {config.icon}
                     </div>
 
                     {/* 标题 */}
-                    <h3 className={`text-base md:text-lg font-bold mb-2 ${isActive ? 'text-purple-vibrant' : 'text-gray-900 dark:text-white'}`}>
+                    <h3 className={`text-base md:text-lg font-bold mb-2 ${isActive ? 'text-purple-vibrant' : 'text-white'}`}>
                       {config.label}
                     </h3>
 
@@ -719,7 +719,7 @@ export const Home: React.FC = () => {
           {/* 步骤2：电商模式 - 大型商品图上传区 */}
           {activeTab === 'ecom' && (
             <div className="mb-6 md:mb-8">
-              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">上传商品图片</h2>
+              <h2 className="text-lg font-semibold mb-4 text-white">上传商品图片</h2>
               <div
                 role="button"
                 tabIndex={0}
@@ -753,8 +753,8 @@ export const Home: React.FC = () => {
                   isDraggingImage
                     ? 'border-purple-vibrant bg-purple-vibrant/10 scale-[1.01]'
                     : uploadedMaterials.length === 0
-                    ? 'border-gray-300 dark:border-white/20 hover:border-purple-vibrant/50 bg-gray-50 dark:bg-dark-tertiary/30 hover:bg-gray-100 dark:hover:bg-dark-elevated/50'
-                    : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-dark-tertiary/20'
+                    ? 'border-white/20 hover:border-purple-vibrant/50 bg-dark-tertiary/30 hover:bg-dark-elevated/50'
+                    : 'border-white/10 bg-dark-tertiary/20'
                 }`}
               >
                 {uploadedMaterials.length === 0 ? (
@@ -767,7 +767,7 @@ export const Home: React.FC = () => {
                           : 'text-purple-apple group-hover:scale-110'
                       }`}
                     />
-                    <p className="text-lg font-medium mb-2 text-gray-900 dark:text-white">点击上传或拖拽商品图片</p>
+                    <p className="text-lg font-medium mb-2 text-white">点击上传或拖拽商品图片</p>
                     <p className="text-sm text-text-secondary">支持 JPG、PNG、WEBP，最多5张</p>
                     <p className="text-xs text-text-tertiary mt-2">也可以在下方输入框粘贴图片（Ctrl+V）</p>
                   </>
@@ -779,7 +779,7 @@ export const Home: React.FC = () => {
                         <img
                           src={material.url}
                           alt={material.original_filename || `商品图${idx + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-white/10"
+                          className="w-full h-32 object-cover rounded-lg border border-white/10"
                         />
                         <button
                           onClick={(e) => {
@@ -801,7 +801,7 @@ export const Home: React.FC = () => {
                           e.stopPropagation();
                           imageInputRef.current?.click();
                         }}
-                        className="h-32 border-2 border-dashed border-gray-300 dark:border-white/20 rounded-lg flex flex-col items-center justify-center hover:border-purple-vibrant/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+                        className="h-32 border-2 border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center hover:border-purple-vibrant/50 hover:bg-white/5 transition-all"
                       >
                         <ImagePlus size={24} className="text-purple-apple mb-1" />
                         <span className="text-xs text-text-secondary">添加更多</span>
@@ -826,23 +826,26 @@ export const Home: React.FC = () => {
           {/* 步骤3：补充信息输入（电商模式：紧凑设计） */}
           {activeTab === 'ecom' && (
             <div className="mb-6 md:mb-8">
-              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">补充产品信息（可选）</h2>
-              <div className="relative group">
+              <h2 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+                <FileText size={18} className="text-purple-vibrant" />
+                补充产品信息（可选）
+              </h2>
+              <div className="relative group p-4 rounded-xl bg-dark-tertiary/50 border border-white/10">
                 <Textarea
                   ref={textareaRef}
-                  placeholder="补充产品信息（可选）：名称、卖点、材质、规格..."
+                  placeholder="输入产品名称、卖点、材质、规格等信息..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   onPaste={handlePaste}
                   rows={3}
-                  className="relative pr-20 md:pr-28 text-sm md:text-base border-2 border-gray-200 dark:border-white/10 focus:border-purple-vibrant transition-colors duration-200"
+                  className="relative pr-20 md:pr-28 text-sm md:text-base"
                 />
 
                 {/* 左下角：参考文件按钮（回形针图标） */}
                 <button
                   type="button"
                   onClick={handlePaperclipClick}
-                  className="absolute left-2 md:left-3 bottom-2 md:bottom-3 z-10 p-1.5 md:p-2 text-text-tertiary hover:text-purple-vibrant dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
+                  className="absolute left-6 md:left-7 bottom-6 md:bottom-7 z-10 p-1.5 md:p-2 text-text-tertiary hover:text-white hover:bg-white/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
                   title="选择参考文件"
                 >
                   <Paperclip size={18} className="md:w-5 md:h-5" />
@@ -850,36 +853,59 @@ export const Home: React.FC = () => {
               </div>
 
               {/* 电商模式：风格描述直接显示在这里 */}
-              <div className="mt-4">
-                <label className="text-sm font-semibold text-gray-900 dark:text-white mb-2 block">风格偏好（可选）</label>
+              <div className="mt-6 p-4 rounded-xl bg-dark-tertiary/50 border border-white/10">
+                <label className="text-sm font-semibold text-white mb-3 block flex items-center gap-2">
+                  <Palette size={16} className="text-purple-vibrant" />
+                  风格偏好（可选）
+                </label>
+
+                {/* 预设风格快捷按钮 - 移到输入框上方 */}
+                <div className="mb-3">
+                  <div className="flex flex-wrap gap-2">
+                    {ECOM_PRESET_STYLES.map((preset) => {
+                      const isSelected = selectedStylePresetId === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setTemplateStyle(preset.description);
+                            setSelectedStylePresetId(preset.id);
+                          }}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                            isSelected
+                              ? 'bg-gradient-to-r from-purple-vibrant to-pink-500 text-white shadow-lg shadow-purple-vibrant/25'
+                              : 'bg-dark-secondary border border-white/10 text-text-secondary hover:border-purple-vibrant/50 hover:bg-purple-vibrant/10 hover:text-white'
+                          }`}
+                        >
+                          {preset.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <Textarea
-                  placeholder="描述您想要的详情页风格，例如：淘宝促销风格，橙白配色，模块化卖点标签..."
+                  placeholder="选择上方预设，或自定义描述风格（如：简约白底、ins风、日系清新...）"
                   value={templateStyle}
-                  onChange={(e) => setTemplateStyle(e.target.value)}
+                  onChange={(e) => {
+                    setTemplateStyle(e.target.value);
+                    // 用户手动编辑时清除预设选中状态
+                    if (selectedStylePresetId) {
+                      const currentPreset = ECOM_PRESET_STYLES.find(p => p.id === selectedStylePresetId);
+                      if (currentPreset && e.target.value !== currentPreset.description) {
+                        setSelectedStylePresetId(null);
+                      }
+                    }
+                  }}
                   rows={2}
-                  className="text-sm border-2 border-gray-200 dark:border-white/10 focus:border-purple-vibrant transition-colors duration-200"
+                  className="text-sm border border-white/10 focus:border-purple-vibrant transition-colors duration-200 bg-dark-secondary/50"
                 />
 
-                {/* 预设风格快捷按钮 */}
-                <div className="mt-3">
-                  <p className="text-xs font-medium text-text-secondary mb-2">快速选择预设平台风格：</p>
-                  <div className="flex flex-wrap gap-2">
-                    {ECOM_PRESET_STYLES.map((preset) => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => setTemplateStyle(preset.description)}
-                        className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-300 dark:border-white/20 text-gray-600 dark:text-text-secondary hover:border-purple-vibrant/50 hover:bg-purple-vibrant/10 hover:text-purple-vibrant dark:hover:text-white transition-all duration-200"
-                      >
-                        {preset.name}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-text-tertiary mt-2 flex items-center gap-1">
-                    <BulbOutlined />
-                    <span>点击平台名称快速填充对应风格描述，也可以自己编写</span>
-                  </p>
-                </div>
+                <p className="text-xs text-text-tertiary mt-2 flex items-center gap-1">
+                  <Lightbulb size={12} />
+                  <span>点击平台快速填充风格描述，也可以自行编辑修改</span>
+                </p>
               </div>
             </div>
           )}
@@ -887,7 +913,7 @@ export const Home: React.FC = () => {
           {/* 步骤3：其他模式 - 完整文本输入区 */}
           {activeTab !== 'ecom' && (
             <div className="mb-6 md:mb-8">
-              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">输入内容</h2>
+              <h2 className="text-lg font-semibold mb-4 text-white">输入内容</h2>
               <div className="relative group">
                 <div className="absolute -inset-0.5 bg-gradient-cta rounded-lg opacity-0 group-hover:opacity-20 blur transition-opacity duration-300"></div>
                 <Textarea
@@ -897,14 +923,14 @@ export const Home: React.FC = () => {
                   onChange={(e) => setContent(e.target.value)}
                   onPaste={handlePaste}
                   rows={8}
-                  className="relative pr-20 md:pr-28 pb-12 md:pb-14 text-sm md:text-base border-2 border-gray-200 dark:border-white/10 focus:border-purple-vibrant transition-colors duration-200"
+                  className="relative pr-20 md:pr-28 pb-12 md:pb-14 text-sm md:text-base border-2 border-white/10 focus:border-purple-vibrant transition-colors duration-200"
                 />
 
                 {/* 左下角：参考文件按钮（回形针图标） */}
                 <button
                   type="button"
                   onClick={handlePaperclipClick}
-                  className="absolute left-2 md:left-3 bottom-2 md:bottom-3 z-10 p-1.5 md:p-2 text-text-tertiary hover:text-purple-vibrant dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
+                  className="absolute left-2 md:left-3 bottom-2 md:bottom-3 z-10 p-1.5 md:p-2 text-text-tertiary hover:text-white hover:bg-white/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
                   title="选择参考文件"
                 >
                   <Paperclip size={18} className="md:w-5 md:h-5" />
@@ -957,17 +983,17 @@ export const Home: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-              className="w-full flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-dark-tertiary/30 border border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-dark-elevated/50 transition-all group"
+              className="w-full flex items-center justify-between p-4 rounded-lg bg-dark-tertiary/30 border border-white/10 hover:bg-dark-elevated/50 transition-all group"
             >
               <div className="flex items-center gap-2">
                 <Palette size={18} className="text-purple-apple" />
-                <span className="text-base font-semibold text-gray-900 dark:text-white">高级设置</span>
+                <span className="text-base font-semibold text-white">高级设置</span>
                 <span className="text-xs text-text-tertiary">（详情页比例、模板上传等）</span>
               </div>
               {showAdvancedOptions ? (
-                <ChevronUp size={20} className="text-text-secondary group-hover:text-purple-vibrant dark:group-hover:text-white transition-colors" />
+                <ChevronUp size={20} className="text-text-secondary group-hover:text-white transition-colors" />
               ) : (
-                <ChevronDown size={20} className="text-text-secondary group-hover:text-purple-vibrant dark:group-hover:text-white transition-colors" />
+                <ChevronDown size={20} className="text-text-secondary group-hover:text-white transition-colors" />
               )}
             </button>
 
@@ -977,7 +1003,7 @@ export const Home: React.FC = () => {
                 {activeTab === 'ecom' && (
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <label className="text-sm font-semibold text-gray-900 dark:text-white">详情页图片比例</label>
+                      <label className="text-sm font-semibold text-white">详情页图片比例</label>
                       <span className="text-xs text-text-tertiary">主图固定 1:1</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -988,8 +1014,8 @@ export const Home: React.FC = () => {
                           onClick={() => setEcomPageAspectRatio(ratio)}
                           className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${
                             ecomPageAspectRatio === ratio
-                              ? 'border-purple-vibrant bg-purple-vibrant/20 text-purple-vibrant dark:text-white'
-                              : 'border-gray-300 dark:border-white/20 text-gray-600 dark:text-text-secondary hover:border-purple-vibrant/50 hover:bg-gray-50 dark:hover:bg-white/5'
+                              ? 'border-purple-vibrant bg-purple-vibrant/20 text-white'
+                              : 'border-white/20 text-text-secondary hover:border-purple-vibrant/50 hover:bg-white/5'
                           }`}
                         >
                           {ratio}
@@ -1002,13 +1028,16 @@ export const Home: React.FC = () => {
                   </div>
                 )}
 
-                {/* 使用风格模板（而非风格描述） */}
+                {/* 上传参考详情图 */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-gray-900 dark:text-white">参考模板图片</label>
+                    <label className="text-sm font-semibold text-white flex items-center gap-2">
+                      <ImagePlus size={16} className="text-purple-vibrant" />
+                      参考详情图（可选）
+                    </label>
                     <label className="flex items-center gap-2 cursor-pointer group">
-                      <span className="text-xs text-text-secondary group-hover:text-purple-vibrant dark:group-hover:text-white transition-colors">
-                        启用模板参考
+                      <span className="text-xs text-text-secondary group-hover:text-white transition-colors">
+                        启用参考图
                       </span>
                       <div className="relative">
                         <input
@@ -1016,10 +1045,8 @@ export const Home: React.FC = () => {
                           checked={!useTemplateStyle}
                           onChange={(e) => {
                             setUseTemplateStyle(!e.target.checked);
-                            if (e.target.checked) {
-                              // 启用模板参考时保留当前选择
-                            } else {
-                              // 禁用模板参考时清空选择
+                            if (!e.target.checked) {
+                              // 禁用参考图时清空选择
                               setSelectedTemplate(null);
                               setSelectedTemplateId(null);
                               setSelectedPresetTemplateId(null);
@@ -1027,23 +1054,56 @@ export const Home: React.FC = () => {
                           }}
                           className="sr-only peer"
                         />
-                        <div className="w-9 h-5 bg-gray-300 dark:bg-dark-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-vibrant/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-vibrant"></div>
+                        <div className="w-9 h-5 bg-dark-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-vibrant/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-vibrant"></div>
                       </div>
                     </label>
                   </div>
 
                   {!useTemplateStyle && (
-                    <div className="p-4 bg-gray-50 dark:bg-dark-tertiary/30 rounded-lg border border-gray-200 dark:border-white/10">
-                      <TemplateSelector
-                        onSelect={handleTemplateSelect}
-                        selectedTemplateId={selectedTemplateId}
-                        selectedPresetTemplateId={selectedPresetTemplateId}
-                        showUpload={true}
-                        projectId={currentProjectId}
-                      />
-                      <p className="text-xs text-text-tertiary mt-3">
-                        上传参考图片后，AI 会模仿其版式和风格（注意：这会覆盖上面的"风格偏好"描述）
-                      </p>
+                    <div className="p-4 bg-dark-tertiary/30 rounded-lg border border-white/10">
+                      <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed border-white/20 rounded-lg hover:border-purple-vibrant/50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) {
+                              setSelectedTemplate(file);
+                              setSelectedTemplateId(null);
+                              setSelectedPresetTemplateId(null);
+                            }
+                          };
+                          input.click();
+                        }}
+                      >
+                        {selectedTemplate ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <img
+                              src={URL.createObjectURL(selectedTemplate)}
+                              alt="参考图预览"
+                              className="max-h-32 rounded-lg object-contain"
+                            />
+                            <span className="text-sm text-white">{selectedTemplate.name}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTemplate(null);
+                              }}
+                              className="text-xs text-red-400 hover:text-red-300"
+                            >
+                              移除
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <ImagePlus size={32} className="text-text-tertiary mb-2" />
+                            <span className="text-sm text-text-secondary">点击上传参考详情图</span>
+                            <span className="text-xs text-text-tertiary mt-1">AI 会模仿其版式和风格</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1053,7 +1113,7 @@ export const Home: React.FC = () => {
 
           {/* 大按钮：开始生成（电商模式） */}
           {activeTab === 'ecom' && (
-            <div className="sticky bottom-0 bg-white/95 dark:bg-dark-secondary/95 backdrop-blur-sm border-t border-gray-200 dark:border-white/10 p-4 -mx-4 md:-mx-10 -mb-4 md:-mb-10">
+            <div className="sticky bottom-0 bg-dark-secondary/95 backdrop-blur-sm border-t border-white/10 p-4 -mx-4 md:-mx-10 -mb-4 md:-mb-10">
               <div className="max-w-5xl mx-auto">
                 <Button
                   onClick={handleSubmit}

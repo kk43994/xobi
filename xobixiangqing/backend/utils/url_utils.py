@@ -36,7 +36,7 @@ def normalize_openai_api_base(api_base: Optional[str]) -> Optional[str]:
     Normalize an OpenAI-compatible API base URL.
 
     Many proxies require the `/v1` suffix for OpenAI SDK compatibility. The UI
-    may store a bare domain (e.g. https://yunwu.ai), which would otherwise cause
+    may store a bare domain (e.g. https://api.kk666.online), which would otherwise cause
     requests to hit a HTML website instead of the JSON API.
     """
     if api_base is None:

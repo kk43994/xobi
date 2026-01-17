@@ -134,7 +134,7 @@ function Settings({ open, onClose }) {
           </Form.Item>
 
           <Form.Item name={['yunwu', 'baseUrl']} label="API Base URL">
-            <Input placeholder="https://yunwu.ai" />
+            <Input placeholder="https://api.kk666.online" />
           </Form.Item>
 
           <Form.Item name={['yunwu', 'videoModel']} label="视频模型">
@@ -172,7 +172,7 @@ function Settings({ open, onClose }) {
           </Form.Item>
 
           <Form.Item name={['multimodal', 'baseUrl']} label="API Base URL">
-            <Input placeholder="https://yunwu.ai/v1" />
+            <Input placeholder="https://api.kk666.online/v1" />
           </Form.Item>
 
           <Form.Item name={['multimodal', 'model']} label="模型">
@@ -249,9 +249,9 @@ function Settings({ open, onClose }) {
           layout="vertical"
           onFinish={handleSave}
           initialValues={{
-            yunwu: { baseUrl: 'https://yunwu.ai', videoModel: 'sora-2-pro' },
+            yunwu: { baseUrl: 'https://api.kk666.online', videoModel: 'sora-2-pro' },
             multimodal: {
-              baseUrl: 'https://yunwu.ai/v1',
+              baseUrl: 'https://api.kk666.online/v1',
               model: 'gpt-4o',
               enabled: true,
             },

@@ -27,11 +27,11 @@ class Settings(db.Model):
     output_language = db.Column(db.String(10), nullable=False, default='zh')  # 输出语言偏好（zh, en, ja, auto）
 
     # 视频工厂相关配置
-    yunwu_api_key = db.Column(db.String(500), nullable=True)  # 云雾视频生成API Key
-    yunwu_api_base = db.Column(db.String(255), nullable=True, default='https://yunwu.ai')  # 云雾API Base URL
-    yunwu_video_model = db.Column(db.String(100), nullable=True, default='sora-2-pro')  # 云雾视频模型
+    yunwu_api_key = db.Column(db.String(500), nullable=True)  # 酷可视频生成API Key
+    yunwu_api_base = db.Column(db.String(255), nullable=True, default='https://api.kk666.online')  # 酷可API Base URL
+    yunwu_video_model = db.Column(db.String(100), nullable=True, default='sora-2-pro')  # 酷可视频模型
     video_multimodal_api_key = db.Column(db.String(500), nullable=True)  # 视频工厂多模态API Key（用于图片分析、脚本生成）
-    video_multimodal_api_base = db.Column(db.String(255), nullable=True, default='https://yunwu.ai/v1')  # 多模态API Base
+    video_multimodal_api_base = db.Column(db.String(255), nullable=True, default='https://api.kk666.online/v1')  # 多模态API Base
     video_multimodal_model = db.Column(db.String(100), nullable=True, default='gpt-4o')  # 多模态模型
     video_multimodal_enabled = db.Column(db.Boolean, nullable=False, default=True)  # 是否启用AI功能
 
@@ -104,9 +104,9 @@ class Settings(db.Model):
                 image_caption_model=Config.IMAGE_CAPTION_MODEL,
                 output_language='zh',  # 默认中文
                 # 视频工厂默认配置
-                yunwu_api_base='https://yunwu.ai',
+                yunwu_api_base='https://api.kk666.online',
                 yunwu_video_model='sora-2-pro',
-                video_multimodal_api_base='https://yunwu.ai/v1',
+                video_multimodal_api_base='https://api.kk666.online/v1',
                 video_multimodal_model='gpt-4o',
                 video_multimodal_enabled=True,
             )

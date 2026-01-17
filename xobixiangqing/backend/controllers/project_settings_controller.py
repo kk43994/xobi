@@ -405,7 +405,7 @@ def test_project_video_multimodal_connection(project_id: str):
         api_base = _strip_or_none(payload.get("video_multimodal_api_base")) or (
             (project_s.video_multimodal_api_base if project_s else None)
             or global_s.video_multimodal_api_base
-            or "https://yunwu.ai/v1"
+            or "https://api.kk666.online/v1"
         )
 
         api_key = payload.get("video_multimodal_api_key")
@@ -469,7 +469,7 @@ def test_project_yunwu_video_connection(project_id: str):
         project_s = ProjectSettings.query.get(project_id)
 
         api_base = _strip_or_none(payload.get("yunwu_api_base")) or (
-            (project_s.yunwu_api_base if project_s else None) or global_s.yunwu_api_base or "https://yunwu.ai"
+            (project_s.yunwu_api_base if project_s else None) or global_s.yunwu_api_base or "https://api.kk666.online"
         )
 
         api_key = payload.get("yunwu_api_key")

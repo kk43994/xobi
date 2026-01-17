@@ -330,8 +330,8 @@
                                 <ul style={{ margin: 0, paddingLeft: 20 }}>
                                     <li>API Key 将存储在浏览器本地，请勿在公共设备使用</li>
                                     <li>建议使用有额度限制的 API Key</li>
-                                    <li>定期在云雾平台检查 Key 使用情况</li>
-                                    <li>如怀疑泄露，立即在 <a href="https://yunwu.ai" target="_blank">云雾平台</a> 撤销</li>
+                                    <li>定期在酷可平台检查 Key 使用情况</li>
+                                    <li>如怀疑泄露，立即在 <a href="https://api.kk666.online" target="_blank">酷可平台</a> 撤销</li>
                                 </ul>
                             }
                             type="warning"
@@ -352,16 +352,16 @@
                             form={form}
                             layout="vertical"
                             initialValues={{
-                                baseUrl: 'https://yunwu.ai',
+                                baseUrl: 'https://api.kk666.online',
                                 imageModel: 'gemini-3-pro-image-preview',
                                 flashModel: 'gemini-3-flash-preview'
                             }}
                         >
                             <Form.Item
-                                label="云雾 Base URL"
+                                label="酷可 Base URL"
                                 name="baseUrl"
                                 rules={[{ required: true, message: '请输入 Base URL' }]}
-                                extra="默认使用云雾官方地址，无特殊需求请勿修改"
+                                extra="默认使用酷可官方地址，无特殊需求请勿修改"
                             >
                                 <Input />
                             </Form.Item>
@@ -372,7 +372,7 @@
                                 rules={[{ required: true, message: '请输入 API Key' }]}
                                 extra={
                                     <span>
-                                        获取地址：<a href="https://yunwu.ai" target="_blank">yunwu.ai</a> | 一个 Key 支持所有模型
+                                        获取地址：<a href="https://api.kk666.online" target="_blank">api.kk666.online</a> | 一个 Key 支持所有模型
                                     </span>
                                 }
                             >

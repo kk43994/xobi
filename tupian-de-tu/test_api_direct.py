@@ -8,7 +8,7 @@ import asyncio
 import os
 
 # 配置
-YUNWU_BASE_URL = "https://yunwu.ai"
+YUNWU_BASE_URL = "https://api.kk666.online"
 GEMINI_FLASH_API_KEY = os.getenv("GEMINI_FLASH_API_KEY", "")
 GEMINI_FLASH_MODEL = "gemini-3-flash-preview"
 

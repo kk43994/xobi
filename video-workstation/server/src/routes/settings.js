@@ -11,7 +11,7 @@ const settingsPath = path.join(__dirname, '../../../settings.json');
 
 function normalizeYunwuBaseUrl(baseUrl) {
   const raw = String(baseUrl || '').trim();
-  if (!raw) return 'https://yunwu.ai';
+  if (!raw) return 'https://api.kk666.online';
   const trimmed = raw.replace(/\/+$/, '');
   // 云雾视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
   if (trimmed.endsWith('/v1')) return trimmed.slice(0, -3);
@@ -23,13 +23,13 @@ const defaultSettings = {
   // 云雾API设置 (视频生成)
   yunwu: {
     apiKey: '',
-    baseUrl: 'https://yunwu.ai',
+    baseUrl: 'https://api.kk666.online',
     videoModel: 'sora-2-pro'
   },
   // 多模态模型设置 (图片分析、脚本生成)
   multimodal: {
     apiKey: '',
-    baseUrl: 'https://yunwu.ai/v1',
+    baseUrl: 'https://api.kk666.online/v1',
     model: 'gpt-4o',
     enabled: true
   },

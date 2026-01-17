@@ -49,7 +49,7 @@ const Api = {
             // 区分不同类型的错误
             let userMessage = e.message;
             if (e.name === 'AbortError') {
-                userMessage = 'AI 响应超时，请稍后重试（云雾 API 可能繁忙）';
+                userMessage = 'AI 响应超时，请稍后重试（酷可 API 可能繁忙）';
             } else if (e.message.includes('Failed to fetch')) {
                 userMessage = '网络连接失败，请检查后端服务是否启动';
             }

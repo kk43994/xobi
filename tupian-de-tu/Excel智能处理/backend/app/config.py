@@ -37,7 +37,7 @@ class Config:
     """Application configuration"""
 
     # Yunwu API Base URL
-    YUNWU_BASE_URL: str = os.getenv("YUNWU_BASE_URL", "https://yunwu.ai")
+    YUNWU_BASE_URL: str = os.getenv("YUNWU_BASE_URL", "https://api.kk666.online")
 
     # Gemini 3 Pro Image Preview (用于图片生成 - Painter)
     GEMINI_IMAGE_API_KEY: str = os.getenv("GEMINI_IMAGE_API_KEY", "")

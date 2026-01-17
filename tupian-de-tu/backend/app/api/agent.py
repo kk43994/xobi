@@ -252,7 +252,7 @@ async def chat_with_agent(request: ChatRequest):
         print("错误类型: API 请求超时")
         traceback.print_exc()
         return ChatResponse(
-            response="AI 响应超时，云雾 API 可能繁忙，请稍后重试",
+            response="AI 响应超时，酷可 API 可能繁忙，请稍后重试",
             action=None,
             data=None
         )

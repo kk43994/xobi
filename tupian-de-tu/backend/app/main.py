@@ -69,7 +69,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 添加动态配置中间件（从请求头提取云雾 API 配置）
+# 添加动态配置中间件（从请求头提取酷可 API 配置）
 app.add_middleware(DynamicConfigMiddleware)
 
 # 注册路由

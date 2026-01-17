@@ -6,7 +6,7 @@ import { getSettings } from '../routes/settings.js';
  */
 function normalizeYunwuBaseUrl(baseUrl) {
   const raw = String(baseUrl || '').trim();
-  if (!raw) return 'https://yunwu.ai';
+  if (!raw) return 'https://api.kk666.online';
   const trimmed = raw.replace(/\/+$/, '');
   // 云雾视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
   if (trimmed.endsWith('/v1')) return trimmed.slice(0, -3);
@@ -14,7 +14,7 @@ function normalizeYunwuBaseUrl(baseUrl) {
 }
 
 export class YunwuService {
-  constructor(apiKey, { baseUrl = 'https://yunwu.ai', videoModel = 'sora-2-pro' } = {}) {
+  constructor(apiKey, { baseUrl = 'https://api.kk666.online', videoModel = 'sora-2-pro' } = {}) {
     this.apiKey = apiKey;
     this.baseUrl = normalizeYunwuBaseUrl(baseUrl);
     this.videoModel = videoModel;
@@ -106,7 +106,7 @@ export function getYunwuService() {
   if (!apiKey) {
     throw new Error('请设置 YUNWU_API_KEY 环境变量');
   }
-  const baseUrl = settings?.yunwu?.baseUrl || 'https://yunwu.ai';
+  const baseUrl = settings?.yunwu?.baseUrl || 'https://api.kk666.online';
   const videoModel = settings?.yunwu?.videoModel || 'sora-2-pro';
   if (!instance || instance.apiKey !== apiKey || instance.baseUrl !== baseUrl || instance.videoModel !== videoModel) {
     instance = new YunwuService(apiKey, { baseUrl, videoModel });

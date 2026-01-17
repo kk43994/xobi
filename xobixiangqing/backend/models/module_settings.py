@@ -20,7 +20,7 @@ class ModuleSettings(db.Model):
     mineru_api_base = db.Column(db.String(255), nullable=True)
     mineru_token = db.Column(db.String(500), nullable=True)
 
-    # --- 视频工厂（云雾） ---
+    # --- 视频工厂（酷可） ---
     yunwu_api_key = db.Column(db.String(500), nullable=True)
     yunwu_api_base = db.Column(db.String(255), nullable=True)
     yunwu_video_model = db.Column(db.String(100), nullable=True)

@@ -53,10 +53,10 @@ def _merge_effective(global_s: Settings, module_s: Optional[ModuleSettings]) -> 
         "image_caption_model": pick_str("image_caption_model") or (global_s.image_caption_model or global_s.text_model or "gemini-3-flash-preview"),
         "mineru_api_base": pick_str("mineru_api_base") or (global_s.mineru_api_base or current_app.config.get("MINERU_API_BASE") or Config.MINERU_API_BASE),
         "mineru_token_length": pick_secret_length("mineru_token"),
-        "yunwu_api_base": pick_str("yunwu_api_base") or (global_s.yunwu_api_base or "https://yunwu.ai"),
+        "yunwu_api_base": pick_str("yunwu_api_base") or (global_s.yunwu_api_base or "https://api.kk666.online"),
         "yunwu_video_model": pick_str("yunwu_video_model") or (global_s.yunwu_video_model or "sora-2-pro"),
         "yunwu_api_key_length": pick_secret_length("yunwu_api_key"),
-        "video_multimodal_api_base": pick_str("video_multimodal_api_base") or (global_s.video_multimodal_api_base or "https://yunwu.ai/v1"),
+        "video_multimodal_api_base": pick_str("video_multimodal_api_base") or (global_s.video_multimodal_api_base or "https://api.kk666.online/v1"),
         "video_multimodal_model": pick_str("video_multimodal_model") or (global_s.video_multimodal_model or "gpt-4o"),
         "video_multimodal_enabled": pick_bool("video_multimodal_enabled") if pick_bool("video_multimodal_enabled") is not None else True,
         "video_multimodal_api_key_length": pick_secret_length("video_multimodal_api_key"),
@@ -285,14 +285,14 @@ def test_module_yunwu_video_connection(module_key: str):
         module_s = ModuleSettings.query.get(module_key)
 
         api_base = _strip_or_none(payload.get("yunwu_api_base")) or (
-            (module_s.yunwu_api_base if module_s else None) or global_s.yunwu_api_base or "https://yunwu.ai"
+            (module_s.yunwu_api_base if module_s else None) or global_s.yunwu_api_base or "https://api.kk666.online"
         )
 
         api_key = payload.get("yunwu_api_key")
         if api_key == "use-saved-key" or api_key is None:
             api_key = _resolve_effective_secret(global_s, module_s, "yunwu_api_key")
         api_key = (str(api_key).strip() if api_key is not None else "") or ""
-        # 兼容：用户未单独设置“云雾视频 Key”时，默认复用主AI Key（全局或模块覆盖）。
+        # 兼容：用户未单独设置"酷可视频 Key"时，默认复用主AI Key（全局或模块覆盖）。
         if not api_key:
             api_key = (_resolve_effective_secret(global_s, module_s, "api_key") or "").strip() or ""
 
@@ -332,7 +332,7 @@ def test_module_video_multimodal_connection(module_key: str):
         module_s = ModuleSettings.query.get(module_key)
 
         api_base = _strip_or_none(payload.get("video_multimodal_api_base")) or (
-            (module_s.video_multimodal_api_base if module_s else None) or global_s.video_multimodal_api_base or "https://yunwu.ai/v1"
+            (module_s.video_multimodal_api_base if module_s else None) or global_s.video_multimodal_api_base or "https://api.kk666.online/v1"
         )
         api_key = payload.get("video_multimodal_api_key")
         if api_key == "use-saved-key" or api_key is None:

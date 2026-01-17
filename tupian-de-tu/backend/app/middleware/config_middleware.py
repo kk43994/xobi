@@ -9,11 +9,11 @@ from ..config import set_runtime_config
 
 class DynamicConfigMiddleware(BaseHTTPMiddleware):
     """
-    从请求头提取云雾 API 配置并注入到上下文变量中
+    从请求头提取酷可 API 配置并注入到上下文变量中
 
     支持的请求头：
-    - X-Yunwu-Api-Key: 云雾 API Key
-    - X-Yunwu-Base-Url: 云雾 Base URL
+    - X-Yunwu-Api-Key: 酷可 API Key
+    - X-Yunwu-Base-Url: 酷可 Base URL
     - X-Gemini-Flash-Model: Flash 模型名称
     - X-Gemini-Image-Model: Image 模型名称
     """
@@ -22,7 +22,7 @@ class DynamicConfigMiddleware(BaseHTTPMiddleware):
         # 提取自定义配置头（请求头名称不区分大小写）
         runtime_config = {}
 
-        # API Key（云雾一个 key 通用）
+        # API Key（酷可一个 key 通用）
         if api_key := request.headers.get('x-yunwu-api-key'):
             runtime_config['yunwu_api_key'] = api_key
 

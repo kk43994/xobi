@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Sparkles, Layers, FileText, ChevronDown, Upload, X } from 'lucide-react';
 import { useAgentBridgeSlots } from '@/layout/agentBridge';
-import { uploadAsset, getSettings } from '@/api/endpoints';
+import { uploadAsset, getSettings, createProject } from '@/api/endpoints';
 
 export function MainFactoryLandingPage() {
   const navigate = useNavigate();
@@ -124,11 +124,24 @@ export function MainFactoryLandingPage() {
 
     setIsSubmitting(true);
     try {
-      // 先上传参考图到后端，避免 localStorage 大小限制
+      // 1. 创建一个主图工厂项目
+      let projectId: string | null = null;
+      try {
+        const projectRes = await createProject({
+          idea_prompt: prompt.trim(),
+          project_type: 'main_image',
+        });
+        projectId = projectRes.data?.id || null;
+      } catch (err) {
+        console.error('Create project failed:', err);
+        // 项目创建失败不阻止继续，只是不关联项目
+      }
+
+      // 2. 上传参考图到后端，避免 localStorage 大小限制
       const uploadedUrls: string[] = [];
       for (const img of referenceImages) {
         try {
-          const res = await uploadAsset(img.file, { kind: 'image', system: 'A' });
+          const res = await uploadAsset(img.file, { kind: 'image', system: 'A', projectId: projectId || undefined });
           const url = (res.data as any)?.unified?.url;
           if (url) {
             uploadedUrls.push(url);
@@ -139,7 +152,7 @@ export function MainFactoryLandingPage() {
         }
       }
 
-      // 保存配置到 localStorage（使用上传后的 URL 而不是 base64）
+      // 3. 保存配置到 localStorage（使用上传后的 URL 而不是 base64）
       const config = {
         prompt: prompt.trim(),
         imageType,
@@ -149,6 +162,7 @@ export function MainFactoryLandingPage() {
         language,
         aspectRatio,
         referenceImages: uploadedUrls,
+        projectId, // 保存项目ID以便画布页面使用
       };
       localStorage.setItem('canvas_initial_config', JSON.stringify(config));
 

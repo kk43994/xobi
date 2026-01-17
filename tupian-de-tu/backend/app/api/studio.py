@@ -154,7 +154,7 @@ async def _call_chat(messages: list[dict], temperature: float, max_tokens: int) 
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(url, headers=headers, json=payload)
     if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"云雾API错误: HTTP {resp.status_code}")
+        raise HTTPException(status_code=502, detail=f"酷可API错误: HTTP {resp.status_code}")
 
     data = resp.json()
     return (data.get("choices") or [{}])[0].get("message", {}).get("content", "") or ""

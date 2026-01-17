@@ -3,11 +3,11 @@
  * 参考 Lovart 风格重构
  */
 
-import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Dropdown, Space, Tag, Typography, message, notification, Collapse } from 'antd';
 import type { MenuProps } from 'antd';
-import { BgColorsOutlined, BorderOutlined, EditOutlined, ExpandOutlined } from '@ant-design/icons';
+import { BgColorsOutlined, BorderOutlined, EditOutlined, ExpandOutlined, PictureOutlined } from '@ant-design/icons';
 import { useWorkbenchToolbarSlots } from '@/layout/workbenchToolbar';
 import { usePortalUiStore } from '@/store/usePortalUiStore';
 import { uploadAsset } from '@/api/endpoints';
@@ -62,77 +62,6 @@ function calculateImageSize(
   }
 
   return { width, height };
-}
-
-/**
- * 智能计算新图片的位置（网格排列，避免重叠）
- */
-function calculateSmartPosition(
-  existingImages: CanvasImage[],
-  newWidth: number,
-  newHeight: number,
-  gridGap: number = 40,
-  startX: number = 100,
-  startY: number = 100,
-  maxPerRow: number = 4
-): { x: number; y: number } {
-  if (existingImages.length === 0) {
-    return { x: startX, y: startY };
-  }
-
-  // 计算每行的最大高度和当前行的图片数量
-  const rows: { images: CanvasImage[]; maxHeight: number; y: number }[] = [];
-  let currentRow: CanvasImage[] = [];
-  let currentRowY = startY;
-  let currentRowMaxHeight = 0;
-
-  // 按 y 坐标分组图片到行
-  const sortedImages = [...existingImages].sort((a, b) => {
-    if (Math.abs(a.y - b.y) < 50) {
-      return a.x - b.x; // 同一行按 x 排序
-    }
-    return a.y - b.y;
-  });
-
-  for (const img of sortedImages) {
-    if (currentRow.length === 0) {
-      currentRow.push(img);
-      currentRowY = img.y;
-      currentRowMaxHeight = img.height;
-    } else if (Math.abs(img.y - currentRowY) < 50) {
-      // 同一行
-      currentRow.push(img);
-      currentRowMaxHeight = Math.max(currentRowMaxHeight, img.height);
-    } else {
-      // 新行
-      rows.push({ images: currentRow, maxHeight: currentRowMaxHeight, y: currentRowY });
-      currentRow = [img];
-      currentRowY = img.y;
-      currentRowMaxHeight = img.height;
-    }
-  }
-  if (currentRow.length > 0) {
-    rows.push({ images: currentRow, maxHeight: currentRowMaxHeight, y: currentRowY });
-  }
-
-  // 找到最后一行
-  const lastRow = rows[rows.length - 1];
-
-  if (lastRow && lastRow.images.length < maxPerRow) {
-    // 当前行还有空间，放在最后一张图片右边
-    const lastImg = lastRow.images[lastRow.images.length - 1];
-    return {
-      x: lastImg.x + lastImg.width + gridGap,
-      y: lastRow.y,
-    };
-  } else {
-    // 需要换行
-    const newY = lastRow ? lastRow.y + lastRow.maxHeight + gridGap : startY;
-    return {
-      x: startX,
-      y: newY,
-    };
-  }
 }
 
 /**
@@ -414,7 +343,10 @@ async function getApiConfig() {
   return null;
 }
 
-async function callAI(message: string): Promise<string> {
+async function callAI(message: string, images?: { url: string }[]): Promise<{
+  response: string;
+  generated_images?: { image_url: string; width: number; height: number }[];
+}> {
   const config = await getApiConfig();
   if (!config?.apiKeyConfigured) {
     throw new Error('请先在设置中配置 API Key');
@@ -423,7 +355,10 @@ async function callAI(message: string): Promise<string> {
   const response = await fetch('/api/ai/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({
+      message,
+      images: images?.map(img => img.url), // 传递图片URL
+    }),
   });
 
   if (!response.ok) {
@@ -432,7 +367,11 @@ async function callAI(message: string): Promise<string> {
   }
 
   const data = await response.json();
-  return data.data?.response || '抱歉，我无法回答这个问题。';
+
+  return {
+    response: data.data?.response || '抱歉，我无法回答这个问题。',
+    generated_images: data.data?.generated_images, // 如果API返回了生成的图片
+  };
 }
 
 // 图片生成 API
@@ -446,6 +385,7 @@ async function generateImage(
     language?: string;
     referenceImages?: string[];
     count?: number;
+    projectId?: string;
   }
 ): Promise<{
   job_id?: string;
@@ -471,19 +411,16 @@ async function generateImage(
     fullPrompt = `${fullPrompt} [${options.language}]`;
   }
 
-  const requestedModel = (options?.model || '').trim() || (config.imageModel || '').trim();
-  const payload: any = {
-    prompt: fullPrompt,
-    aspect_ratio: aspectRatio === 'auto' ? '1:1' : aspectRatio,
-    reference_images: options?.referenceImages || [],
-    count: options?.count || 1,
-  };
-  if (requestedModel) payload.model = requestedModel;
-
   const response = await fetch('/api/ai/generate-image', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      prompt: fullPrompt,
+      aspect_ratio: aspectRatio === 'auto' ? '1:1' : aspectRatio,
+      reference_images: options?.referenceImages || [],
+      count: options?.count || 1,
+      project_id: options?.projectId || null,
+    }),
   });
 
   if (!response.ok) {
@@ -635,6 +572,7 @@ function Toolbar({ activeTool, onToolChange }: {
   activeTool: string;
   onToolChange: (tool: string) => void;
 }) {
+  const theme = usePortalUiStore((s) => s.theme);
   const tools = [
     { id: 'select', icon: MousePointer2, label: '选择' },
     { id: 'move', icon: Move, label: '移动画布' },
@@ -652,7 +590,9 @@ function Toolbar({ activeTool, onToolChange }: {
 
   return (
     <div
-      className="w-14 bg-gray-100 dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-white/5 flex flex-col items-center py-3 flex-shrink-0"
+      className={`w-14 border-r flex flex-col items-center py-3 flex-shrink-0 ${
+        theme === 'dark' ? 'bg-[#0a0a0a] border-white/5' : 'bg-gray-50 border-gray-200'
+      }`}
       data-tour="toolbar"
     >
       {/* 主工具 */}
@@ -667,7 +607,9 @@ function Toolbar({ activeTool, onToolChange }: {
               className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
                 isActive
                   ? 'bg-purple-vibrant/20 text-purple-vibrant'
-                  : 'text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5'
+                  : theme === 'dark'
+                    ? 'text-white/50 hover:text-white hover:bg-white/5'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
               }`}
               title={tool.label}
               data-tour={tool.id === 'image' ? 'add-image-button' : undefined}
@@ -689,7 +631,7 @@ function Toolbar({ activeTool, onToolChange }: {
             <button
               key={tool.id}
               onClick={() => onToolChange(tool.id)}
-              className="w-10 h-10 rounded-lg flex items-center justify-center text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5 transition-all"
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition-all"
               title={tool.label}
             >
               <Icon size={20} />
@@ -714,6 +656,7 @@ function ImageFloatingToolbar({
   canvasScale: number;
   canvasOffset: { x: number; y: number };
 }) {
+  const theme = usePortalUiStore((s) => s.theme);
   const tools = [
     { id: 'send-to-ai', icon: Sparkles, label: '发送到AI' },
     { id: 'zoom', icon: ZoomIn, label: '放大' },
@@ -726,25 +669,18 @@ function ImageFloatingToolbar({
   ];
 
   // 计算工具栏位置（图片上方居中）
-  const rawX = canvasOffset.x + (image.x + image.width / 2) * canvasScale;
+  const toolbarX = canvasOffset.x + (image.x + image.width / 2) * canvasScale;
   const toolbarY = canvasOffset.y + image.y * canvasScale - 60;
-
-  // 工具栏大约宽度，防止溢出
-  const estimatedToolbarWidth = 500;
-  const minX = estimatedToolbarWidth / 2 + 10;
-  const maxX = window.innerWidth - estimatedToolbarWidth / 2 - 10;
-  const toolbarX = Math.max(minX, Math.min(maxX, rawX));
 
   return (
     <div
-      className="absolute z-50 flex items-center gap-0.5 px-1.5 py-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl"
+      className={`absolute z-50 flex items-center gap-1 px-2 py-1.5 border rounded-xl shadow-2xl ${
+        theme === 'dark' ? 'bg-[#1a1a1a] border-white/10' : 'bg-white border-gray-200'
+      }`}
       style={{
         left: toolbarX,
-        top: Math.max(60, toolbarY),
+        top: Math.max(10, toolbarY),
         transform: 'translateX(-50%)',
-        maxWidth: 'calc(100vw - 320px)',
-        flexWrap: 'nowrap',
-        whiteSpace: 'nowrap',
       }}
     >
       {tools.map((tool) => {
@@ -753,22 +689,25 @@ function ImageFloatingToolbar({
           <button
             key={tool.id}
             onClick={() => onAction(tool.id)}
-            className={`px-2 py-1.5 rounded-lg text-xs flex items-center gap-1 transition-all flex-shrink-0 ${
+            className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all ${
               tool.id === 'delete'
                 ? 'text-red-400 hover:bg-red-500/10'
                 : tool.id === 'send-to-ai'
                 ? 'text-purple-vibrant hover:bg-purple-vibrant/10'
-                : 'text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10'
+                : theme === 'dark'
+                ? 'text-white/70 hover:text-white hover:bg-white/10'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}
             title={tool.label}
             data-tour={tool.id === 'send-to-ai' ? 'send-to-ai-button' : undefined}
           >
             <Icon size={14} />
+            <span className="hidden sm:inline">{tool.label}</span>
           </button>
         );
       })}
       <button
-        className="px-1.5 py-1.5 rounded-lg text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 flex-shrink-0"
+        className="px-2 py-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10"
         title="更多"
       >
         <MoreHorizontal size={14} />
@@ -798,6 +737,7 @@ function InfiniteCanvas({
   onSendImageToChat?: (image: CanvasImage) => void;
   onOpenInpainting?: (image: CanvasImage) => void;
 }) {
+  const theme = usePortalUiStore((s) => s.theme);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -854,11 +794,22 @@ function InfiniteCanvas({
   }, [isSpacePressed]);
 
   // 处理滚轮缩放
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setScale((s) => Math.min(3, Math.max(0.1, s * delta)));
   }, []);
+
+  // 手动添加滚轮事件监听器（非被动模式）
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      canvas.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleWheel]);
 
   // 处理鼠标按下
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -1227,8 +1178,7 @@ function InfiniteCanvas({
   return (
     <div
       ref={canvasRef}
-      className="flex-1 relative overflow-hidden bg-white dark:bg-black cursor-crosshair canvas-bg"
-      onWheel={handleWheel}
+      className="flex-1 relative overflow-hidden bg-black cursor-crosshair canvas-bg"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -1243,8 +1193,8 @@ function InfiniteCanvas({
         className="absolute inset-0 pointer-events-none"
         style={{
           backgroundImage: `
-            linear-gradient(var(--canvas-grid-line) 1px, transparent 1px),
-            linear-gradient(90deg, var(--canvas-grid-line) 1px, transparent 1px)
+            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
           `,
           backgroundSize: `${50 * scale}px ${50 * scale}px`,
           backgroundPosition: `${offset.x}px ${offset.y}px`,
@@ -1264,7 +1214,7 @@ function InfiniteCanvas({
             key={img.id}
             className={`absolute cursor-move transition-shadow ${
               img.id === selectedImageId || selectedImageIds.has(img.id)
-                ? 'ring-2 ring-purple-vibrant ring-offset-2 ring-offset-white dark:ring-offset-black'
+                ? 'ring-2 ring-purple-vibrant ring-offset-2 ring-offset-black'
                 : ''
             }`}
             style={{
@@ -1327,11 +1277,13 @@ function InfiniteCanvas({
 
       {/* 多选工具栏 */}
       {selectedImageIds.size > 1 && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-xl shadow-lg z-50">
-          <span className="text-gray-900 dark:text-white text-sm">
+        <div className={`absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 backdrop-blur-sm border rounded-xl shadow-lg z-50 ${
+          theme === 'dark' ? 'bg-[#1a1a1a]/95 border-white/10' : 'bg-white/95 border-gray-200'
+        }`}>
+          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             已选中 {selectedImageIds.size} 张图片
           </span>
-          <div className="w-px h-4 bg-white/10" />
+          <div className={`w-px h-4 ${theme === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} />
           <Button
             size="small"
             danger
@@ -1359,10 +1311,12 @@ function InfiniteCanvas({
       {/* 拖拽上传提示 */}
       {isDraggingFile && (
         <div className="absolute inset-0 bg-purple-vibrant/10 border-4 border-dashed border-purple-vibrant pointer-events-none flex items-center justify-center z-50">
-          <div className="bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl px-8 py-6 text-center">
+          <div className={`backdrop-blur-sm border rounded-2xl px-8 py-6 text-center ${
+            theme === 'dark' ? 'bg-[#1a1a1a]/95 border-white/10' : 'bg-white/95 border-gray-200'
+          }`}>
             <Upload size={48} className="text-purple-vibrant mx-auto mb-3" />
-            <div className="text-gray-900 dark:text-white text-xl font-semibold mb-2">释放以添加图片</div>
-            <div className="text-gray-600 dark:text-white/60 text-sm">支持拖拽多张图片同时上传</div>
+            <div className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>释放以添加图片</div>
+            <div className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-gray-500'}`}>支持拖拽多张图片同时上传</div>
           </div>
         </div>
       )}
@@ -1378,29 +1332,37 @@ function InfiniteCanvas({
       )}
 
       {/* 缩放控制 */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-xl">
+      <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-2 backdrop-blur-sm border rounded-xl ${
+        theme === 'dark' ? 'bg-[#1a1a1a]/90 border-white/10' : 'bg-white/90 border-gray-200'
+      }`}>
         <button
           onClick={() => setScale((s) => Math.max(0.1, s * 0.8))}
-          className="p-1.5 text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-white/10"
+          className={`p-1.5 rounded-lg ${
+            theme === 'dark' ? 'text-white/50 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+          }`}
         >
           <ZoomOut size={16} />
         </button>
-        <span className="text-xs text-gray-700 dark:text-white/70 w-12 text-center">
+        <span className={`text-xs w-12 text-center ${theme === 'dark' ? 'text-white/70' : 'text-gray-600'}`}>
           {Math.round(scale * 100)}%
         </span>
         <button
           onClick={() => setScale((s) => Math.min(3, s * 1.2))}
-          className="p-1.5 text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-white/10"
+          className={`p-1.5 rounded-lg ${
+            theme === 'dark' ? 'text-white/50 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+          }`}
         >
           <ZoomIn size={16} />
         </button>
-        <div className="w-px h-4 bg-gray-300 dark:bg-white/10" />
+        <div className={`w-px h-4 ${theme === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} />
         <button
           onClick={() => {
             setScale(1);
             setOffset({ x: 0, y: 0 });
           }}
-          className="p-1.5 text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-white/10"
+          className={`p-1.5 rounded-lg ${
+            theme === 'dark' ? 'text-white/50 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+          }`}
           title="重置视图"
         >
           <RotateCcw size={16} />
@@ -1411,8 +1373,8 @@ function InfiniteCanvas({
       {images.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
-            <Upload size={48} className="mx-auto text-gray-400 dark:text-white/20 mb-4" />
-            <p className="text-gray-500 dark:text-white/40 text-sm">拖拽图片到画布，或点击左侧工具添加</p>
+            <Upload size={48} className="mx-auto text-white/20 mb-4" />
+            <p className="text-white/40 text-sm">拖拽图片到画布，或点击左侧工具添加</p>
           </div>
         </div>
       )}
@@ -1443,6 +1405,7 @@ function AIChatSidebar({
 }) {
   const navigate = useNavigate();
   const openPanel = usePortalUiStore((s) => s.openPanel);
+  const theme = usePortalUiStore((s) => s.theme);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -1478,6 +1441,7 @@ function AIChatSidebar({
   // 快捷操作按钮
   const quickActions = [
     { id: 'generate', label: '生成图片', icon: <BgColorsOutlined /> },
+    { id: 'generate-from-canvas', label: '基于画布生成', icon: <PictureOutlined />, disabled: canvasImages.length === 0 },
     { id: 'edit', label: '编辑选中', icon: <EditOutlined /> },
     { id: 'remove-bg', label: '移除背景', icon: <BorderOutlined /> },
     { id: 'expand', label: '扩展画面', icon: <ExpandOutlined /> },
@@ -1546,31 +1510,47 @@ function AIChatSidebar({
       width: img.width,
       height: img.height,
     })) : undefined;
+
+    // 收集附加图片的URL作为参考图
+    const attachedImageUrls = attachedImages.map(img => img.src);
+
     setMessages((prev) => [...prev, {
       role: 'user',
-      content: userMessage || '请分析这些图片',
+      content: userMessage || '请基于这些图片生成',
       images: messageImages
     }]);
     setAttachedImages([]); // 清空附加图片
 
-    // 检查是否是图片生成请求
-    if (isImageGenerationRequest(userMessage)) {
+    // 智能判断：如果有附加图片或者是明确的生图请求，则生成图片
+    const shouldGenerateImage = attachedImageUrls.length > 0 || isImageGenerationRequest(userMessage);
+
+    if (shouldGenerateImage) {
       const imageCount = initialConfig?.imageCount || 1;
       const referenceImages = initialConfig?.referenceImages || [];
 
+      // 合并所有参考图：初始配置的参考图 + 用户附加的图片
+      const allReferenceImages = [...referenceImages, ...attachedImageUrls];
+
       setIsGeneratingImage(true);
-      setMessages((prev) => [...prev, { role: 'ai', content: `正在生成${imageCount}张图片，请稍候...` }]);
+      setMessages((prev) => [...prev, {
+        role: 'ai',
+        content: `正在生成${imageCount}张图片${allReferenceImages.length > 0 ? `（参考${allReferenceImages.length}张图片）` : ''}，请稍候...`
+      }]);
 
       try {
-        const prompt = extractPromptFromMessage(userMessage);
+        // 如果有附加图片但没有明确的prompt，使用默认prompt
+        const prompt = userMessage
+          ? extractPromptFromMessage(userMessage)
+          : (allReferenceImages.length > 0 ? '基于参考图生成相似风格的产品图' : '一张精美的电商产品图');
         const aspectRatio = extractAspectRatio(userMessage);
         const options = {
           imageType: initialConfig?.imageType,
           model: initialConfig?.model,
           platform: initialConfig?.platform,
           language: initialConfig?.language,
-          referenceImages: referenceImages,
+          referenceImages: allReferenceImages,
           count: imageCount,
+          projectId: initialConfig?.projectId,
         };
 
         const result = await generateImage(prompt, aspectRatio, options);
@@ -1619,11 +1599,26 @@ function AIChatSidebar({
         setIsGeneratingImage(false);
       }
     } else {
-      // 普通对话
+      // 普通对话（传递附加的图片给AI）
       setIsLoading(true);
       try {
-        const response = await callAI(userMessage);
-        setMessages((prev) => [...prev, { role: 'ai', content: response }]);
+        const aiResponse = await callAI(userMessage, messageImages);
+        setMessages((prev) => [...prev, { role: 'ai', content: aiResponse.response }]);
+
+        // 如果AI返回了生成的图片，自动添加到画布
+        if (aiResponse.generated_images && aiResponse.generated_images.length > 0) {
+          aiResponse.generated_images.forEach((img, index) => {
+            setTimeout(() => {
+              onAddImageToCanvas(img.image_url, img.width, img.height);
+            }, index * 100);
+          });
+
+          // 添加提示消息
+          setMessages((prev) => [
+            ...prev,
+            { role: 'ai', content: `已将生成的${aiResponse.generated_images!.length}张图片添加到画布` },
+          ]);
+        }
       } catch (error: any) {
         setMessages((prev) => [
           ...prev,
@@ -1659,6 +1654,7 @@ function AIChatSidebar({
           language: initialConfig?.language,
           referenceImages: referenceImages,
           count: imageCount,
+          projectId: initialConfig?.projectId,
         };
 
         setMessages((prev) => [
@@ -1714,6 +1710,79 @@ function AIChatSidebar({
           setIsGeneratingImage(false);
         }
         break;
+
+      case 'generate-from-canvas':
+        // 基于画布上的所有图片生成新图
+        if (canvasImages.length === 0) {
+          message.warning('画布上还没有图片，请先添加图片');
+          return;
+        }
+
+        const canvasImageUrls = canvasImages.map(img => img.src);
+        const canvasPrompt = initialConfig?.prompt || '基于参考图生成相似风格的产品图';
+        const canvasAspectRatio = initialConfig?.aspectRatio || '1:1';
+        const canvasImageCount = initialConfig?.imageCount || 1;
+        const canvasOptions = {
+          imageType: initialConfig?.imageType,
+          model: initialConfig?.model,
+          platform: initialConfig?.platform,
+          language: initialConfig?.language,
+          referenceImages: canvasImageUrls,
+          count: canvasImageCount,
+          projectId: initialConfig?.projectId,
+        };
+
+        setMessages((prev) => [
+          ...prev,
+          { role: 'user', content: `基于画布上的${canvasImages.length}张图片生成新图` },
+          { role: 'ai', content: `正在基于${canvasImages.length}张参考图生成${canvasImageCount}张新图片，请稍候...` }
+        ]);
+        setIsGeneratingImage(true);
+
+        try {
+          const canvasResult = await generateImage(canvasPrompt, canvasAspectRatio, canvasOptions);
+          const canvasJobId = String(canvasResult.job_id || '').trim() || null;
+          const canvasGeneratedCount = canvasResult.images?.length || 1;
+
+          setMessages((prev) => {
+            const newMessages = prev.slice(0, -1);
+            const suffix = canvasJobId ? `\n任务：${canvasJobId.slice(0, 8)}…（可在任务中心查看）` : '';
+            return [...newMessages, { role: 'ai', content: `成功生成${canvasGeneratedCount}张图片！已添加到画布，并写入资源库。${suffix}` }];
+          });
+
+          if (canvasJobId) {
+            notification.success({
+              message: '主图生成任务已创建',
+              description: `job_id：${canvasJobId}`,
+              duration: 4,
+              btn: (
+                <Space>
+                  <Button size="small" onClick={() => openPanel('jobs')}>打开任务中心</Button>
+                  <Button size="small" type="primary" onClick={() => navigate(`/jobs?jobId=${encodeURIComponent(canvasJobId)}`)}>查看详情</Button>
+                </Space>
+              ),
+            });
+          }
+
+          if (canvasResult.images && canvasResult.images.length > 0) {
+            canvasResult.images.forEach((img, index) => {
+              setTimeout(() => {
+                onAddImageToCanvas(img.image_url, img.width, img.height);
+              }, index * 100);
+            });
+          } else {
+            onAddImageToCanvas(canvasResult.image_url, canvasResult.width, canvasResult.height);
+          }
+        } catch (error: any) {
+          setMessages((prev) => {
+            const newMessages = prev.slice(0, -1);
+            return [...newMessages, { role: 'ai', content: `图片生成失败：${error.message}` }];
+          });
+        } finally {
+          setIsGeneratingImage(false);
+        }
+        break;
+
       case 'edit':
         setInput('请帮我编辑当前选中的图片');
         break;
@@ -1750,26 +1819,34 @@ function AIChatSidebar({
   }
 
   return (
-    <div className="w-[360px] bg-gray-100 dark:bg-[#0a0a0a] border-l border-gray-200 dark:border-white/5 flex flex-col flex-shrink-0">
+    <div className={`w-[360px] border-l flex flex-col flex-shrink-0 ${
+      theme === 'dark' ? 'bg-[#0a0a0a] border-white/5' : 'bg-gray-50 border-gray-200'
+    }`}>
       {/* 头部 */}
-      <div className="h-14 border-b border-gray-200 dark:border-white/5 flex items-center justify-between px-4">
+      <div className={`h-14 border-b flex items-center justify-between px-4 ${
+        theme === 'dark' ? 'border-white/5' : 'border-gray-200'
+      }`}>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gradient-cta flex items-center justify-center">
             <Sparkles size={16} className="text-white" />
           </div>
-          <span className="font-medium text-gray-900 dark:text-white text-sm">AI 设计师</span>
+          <span className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>AI 设计师</span>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={handleResetChat}
-            className="p-1.5 text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-white/5"
+            className={`p-1.5 rounded-lg ${
+              theme === 'dark' ? 'text-white/40 hover:text-white hover:bg-white/5' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-200'
+            }`}
             title="重置对话"
           >
             <RotateCcw size={16} />
           </button>
           <button
             onClick={onToggle}
-            className="p-1.5 text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-white/5"
+            className={`p-1.5 rounded-lg ${
+              theme === 'dark' ? 'text-white/40 hover:text-white hover:bg-white/5' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-200'
+            }`}
           >
             <X size={16} />
           </button>
@@ -1785,22 +1862,24 @@ function AIChatSidebar({
         items={[{
           key: 'canvas-context',
           label: (
-            <div className="flex items-center justify-between text-sm text-gray-700 dark:text-white/70">
+            <div className={`flex items-center justify-between text-sm ${theme === 'dark' ? 'text-white/70' : 'text-gray-600'}`}>
               <span>画布上下文</span>
-              <span className="text-xs text-gray-500 dark:text-white/50">{canvasImages.length} 张图片</span>
+              <span className={`text-xs ${theme === 'dark' ? 'text-white/50' : 'text-gray-400'}`}>{canvasImages.length} 张图片</span>
             </div>
           ),
           children: (
             <div className="px-3 pb-3 max-h-32 overflow-y-auto">
               {canvasImages.length === 0 ? (
-                <p className="text-xs text-gray-500 dark:text-white/40 text-center py-4">画布为空</p>
+                <p className={`text-xs text-center py-4 ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>画布为空</p>
               ) : (
                 <div className="grid grid-cols-4 gap-2">
                   {canvasImages.map(img => (
                     <button
                       key={img.id}
                       onClick={() => handleAttachImage(img)}
-                      className="relative group aspect-square rounded overflow-hidden border border-gray-200 dark:border-white/10 hover:border-purple-vibrant transition-all"
+                      className={`relative group aspect-square rounded overflow-hidden border transition-all ${
+                        theme === 'dark' ? 'border-white/10 hover:border-purple-vibrant' : 'border-gray-200 hover:border-purple-vibrant'
+                      }`}
                       title="点击添加到对话"
                     >
                       <img
@@ -1837,7 +1916,7 @@ function AIChatSidebar({
               {msg.images && msg.images.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
                   {msg.images.map((image, imgIdx) => (
-                    <div key={imgIdx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-white/20">
+                    <div key={imgIdx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/20">
                       <img
                         src={image.url}
                         alt=""
@@ -1853,7 +1932,7 @@ function AIChatSidebar({
                 className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                   msg.role === 'user'
                     ? 'bg-purple-vibrant text-white'
-                    : 'bg-white text-gray-800 border border-gray-300 shadow-md dark:bg-[#1a1a1a] dark:text-white/90 dark:border-white/10 dark:shadow-none'
+                    : 'bg-transparent text-white/90'
                 }`}
               >
                 {msg.content}
@@ -1879,16 +1958,23 @@ function AIChatSidebar({
         {/* 快捷操作按钮 */}
         {messages.length === 1 && !isLoading && !isGeneratingImage && (
           <div className="space-y-2 mt-4">
-            <div className="text-xs text-gray-500 dark:text-white/40 mb-2">快捷操作</div>
+            <div className={`text-xs mb-2 ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>快捷操作</div>
             <div className="grid grid-cols-2 gap-2">
               {quickActions.map((action) => (
                 <button
                   key={action.id}
                   onClick={() => handleQuickAction(action.id)}
-                  className="flex items-center gap-2 p-3 bg-white dark:bg-[#1a1a1a] hover:bg-gray-100 dark:hover:bg-[#222] border border-gray-200 dark:border-white/5 hover:border-purple-vibrant/30 rounded-xl transition-all text-left"
+                  disabled={action.disabled}
+                  className={`flex items-center gap-2 p-3 border rounded-xl transition-all text-left ${
+                    action.disabled
+                      ? 'opacity-50 cursor-not-allowed'
+                      : theme === 'dark'
+                        ? 'bg-[#1a1a1a] border-white/5 hover:bg-[#222] hover:border-purple-vibrant/30'
+                        : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-purple-vibrant/30'
+                  }`}
                 >
                   <span className="text-lg">{action.icon}</span>
-                  <span className="text-sm text-gray-700 dark:text-white/80">{action.label}</span>
+                  <span className={`text-sm ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`}>{action.label}</span>
                 </button>
               ))}
             </div>
@@ -1899,7 +1985,7 @@ function AIChatSidebar({
       </div>
 
       {/* 输入区域 */}
-      <div className="p-4 border-t border-gray-200 dark:border-white/5">
+      <div className={`p-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-gray-200'}`}>
         {/* 附加的图片预览 */}
         {attachedImages.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
@@ -1908,7 +1994,7 @@ function AIChatSidebar({
                 <img
                   src={img.src}
                   alt=""
-                  className="w-12 h-12 object-cover rounded border border-gray-200 dark:border-white/20"
+                  className={`w-12 h-12 object-cover rounded border ${theme === 'dark' ? 'border-white/20' : 'border-gray-300'}`}
                 />
                 <button
                   onClick={() => handleRemoveAttachedImage(img.id)}
@@ -1929,7 +2015,11 @@ function AIChatSidebar({
             placeholder={attachedImages.length > 0 ? "说说你的想法..." : "描述你的需求..."}
             rows={2}
             disabled={isLoading || isGeneratingImage}
-            className="w-full bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 rounded-xl px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-purple-vibrant/50 text-sm border border-gray-200 dark:border-white/5"
+            className={`w-full rounded-xl px-4 py-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-purple-vibrant/50 text-sm border ${
+              theme === 'dark'
+                ? 'bg-[#1a1a1a] text-white placeholder:text-white/30 border-white/5'
+                : 'bg-white text-gray-900 placeholder:text-gray-400 border-gray-200'
+            }`}
           />
           <button
             onClick={handleSend}
@@ -1937,7 +2027,9 @@ function AIChatSidebar({
             className={`absolute right-3 bottom-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
               (input.trim() || attachedImages.length > 0) && !isLoading && !isGeneratingImage
                 ? 'bg-purple-vibrant text-white hover:bg-purple-vibrant/80'
-                : 'bg-gray-200 text-gray-400 dark:bg-white/5 dark:text-white/20'
+                : theme === 'dark'
+                  ? 'bg-white/5 text-white/20'
+                  : 'bg-gray-100 text-gray-300'
             }`}
           >
             <Send size={14} />
@@ -1959,8 +2051,9 @@ function AIChatSidebar({
 
 // ==================== 主页面 ====================
 
-export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
+export function MainFactoryCanvasPage() {
   const navigate = useNavigate();
+  const theme = usePortalUiStore((s) => s.theme);
   const openAssets = usePortalUiStore((s) => s.openAssets);
   const [activeTool, setActiveTool] = useState('select');
   const [chatOpen, setChatOpen] = useState(true);
@@ -1979,6 +2072,8 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
+  const textSecondary = theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined;
+
   const selectedImage = useMemo(() => {
     if (!selectedImageId) return null;
     return images.find((img) => img.id === selectedImageId) || null;
@@ -1989,81 +2084,6 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
     return parseAssetIdFromUrl(selectedImage.src);
   }, [selectedImage?.src]);
 
-  // AI 生成图片添加到画布的回调
-  const handleAddImageToCanvas = useCallback(async (src: string, width: number, height: number) => {
-    const { width: finalWidth, height: finalHeight } = calculateImageSize(width, height);
-
-    // 生成缩略图
-    const thumbnail = await generateThumbnail(src, 200);
-
-    setImages((prev) => {
-      // 使用智能位置计算，避免图片重叠
-      const position = calculateSmartPosition(prev, finalWidth, finalHeight);
-
-      const newImage: CanvasImage = {
-        id: generateImageId(),
-        src,
-        thumbnail,
-        x: position.x,
-        y: position.y,
-        width: finalWidth,
-        height: finalHeight,
-        rotation: 0,
-        selected: false,
-      };
-      return [...prev, newImage];
-    });
-    // 使用 setTimeout 确保 images 状态已更新后再设置选中
-    setTimeout(() => {
-      setImages((prev) => {
-        if (prev.length > 0) {
-          setSelectedImageId(prev[prev.length - 1].id);
-        }
-        return prev;
-      });
-    }, 0);
-  }, []);
-
-  // Agent Bridge 回调 - 将Agent生成的图片添加到画布
-  const handleAgentApply = useCallback((payload: any) => {
-    console.log('[Canvas] Agent apply payload:', payload);
-
-    // 检查是否有图片数据
-    const data = payload.data || payload.extracted_info || {};
-
-    // 处理多种可能的图片数据格式
-    const processImage = (imageData: any) => {
-      if (typeof imageData === 'string') {
-        // 如果是URL字符串，使用默认尺寸
-        handleAddImageToCanvas(imageData, 800, 800);
-      } else if (imageData?.image_url || imageData?.url || imageData?.src) {
-        const url = imageData.image_url || imageData.url || imageData.src;
-        const width = imageData.width || 800;
-        const height = imageData.height || 800;
-        handleAddImageToCanvas(url, width, height);
-      }
-    };
-
-    // 处理 images 数组
-    if (data.images && Array.isArray(data.images)) {
-      data.images.forEach((img: any, index: number) => {
-        setTimeout(() => processImage(img), index * 100);
-      });
-      message.success(`已将 ${data.images.length} 张图片添加到画布`);
-      return;
-    }
-
-    // 处理单张图片
-    if (data.image_url || data.url || data.src) {
-      processImage(data);
-      message.success('已将图片添加到画布');
-      return;
-    }
-
-    // 如果没有图片数据，显示消息
-    message.info('Agent 响应已接收');
-  }, [handleAddImageToCanvas]);
-
   useAgentBridgeSlots({
     title: '主图工厂（画布）',
     context: {
@@ -2073,8 +2093,7 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
       selected_asset_id: selectedAssetId,
       initial_config: initialConfig,
     },
-    onApply: handleAgentApply,
-  }, [images.length, selectedImage?.src, selectedAssetId, initialConfig, handleAgentApply]);
+  }, [images.length, selectedImage?.src, selectedAssetId, initialConfig]);
 
   const exportCanvas = useCallback(
     async (mode: 'download' | 'upload') => {
@@ -2094,7 +2113,7 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
         }
 
         const file = toPngFile(blob, filename);
-        const res = await uploadAsset(file, { kind: 'image', system: 'A' });
+        const res = await uploadAsset(file, { kind: 'image', system: 'A', projectId: initialConfig?.projectId || undefined });
         const url = (res.data as any)?.unified?.url as string | undefined;
         message.success('已保存到资源库');
         openAssets();
@@ -2105,7 +2124,7 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
         setExporting(false);
       }
     },
-    [exporting, images, openAssets]
+    [exporting, images, openAssets, initialConfig?.projectId]
   );
 
   const downloadSelected = useCallback(async () => {
@@ -2137,7 +2156,7 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
     try {
       const blob = await blobFromSrc(selectedImage.src);
       const file = toPngFile(blob, `xobi_selected_${Date.now()}.png`);
-      const res = await uploadAsset(file, { kind: 'image', system: 'A' });
+      const res = await uploadAsset(file, { kind: 'image', system: 'A', projectId: initialConfig?.projectId || undefined });
       const url = (res.data as any)?.unified?.url as string | undefined;
       message.success('已保存到资源库');
       openAssets();
@@ -2145,7 +2164,7 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
     } catch (e: any) {
       message.error(e?.message || '保存失败');
     }
-  }, [openAssets, selectedImage?.src]);
+  }, [openAssets, selectedImage?.src, initialConfig?.projectId]);
 
   // 记录历史状态
   const recordHistory = useCallback(() => {
@@ -2209,10 +2228,10 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
           </Button>
         </Space>
 
-        <div className="w-px h-5 bg-gray-300 dark:bg-white/10 mx-1" />
+        <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
 
         <Tag color="purple">无限画布</Tag>
-        <Typography.Text type="secondary" style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
+        <Typography.Text type="secondary" style={{ color: textSecondary, fontSize: 12 }}>
           {images.length} 张图片
         </Typography.Text>
       </Space>
@@ -2279,7 +2298,7 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
 
         let src: string | null = null;
         try {
-          const up = await uploadAsset(file, { kind: 'image', system: 'A' });
+          const up = await uploadAsset(file, { kind: 'image', system: 'A', projectId: initialConfig?.projectId || undefined });
           const unifiedUrl = (up.data as any)?.unified?.url;
           if (unifiedUrl) src = String(unifiedUrl);
           message.success('已上传到资源库并添加到画布');
@@ -2403,6 +2422,38 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [images, selectedImageId, handleUndo, handleRedo]);
 
+  // AI 生成图片添加到画布的回调
+  const handleAddImageToCanvas = useCallback(async (src: string, width: number, height: number) => {
+    const { width: finalWidth, height: finalHeight } = calculateImageSize(width, height);
+
+    // 生成缩略图
+    const thumbnail = await generateThumbnail(src, 200);
+
+    setImages((prev) => {
+      const newImage: CanvasImage = {
+        id: generateImageId(),
+        src,
+        thumbnail,
+        x: 100 + prev.length * 50,
+        y: 100 + prev.length * 50,
+        width: finalWidth,
+        height: finalHeight,
+        rotation: 0,
+        selected: false,
+      };
+      return [...prev, newImage];
+    });
+    // 使用 setTimeout 确保 images 状态已更新后再设置选中
+    setTimeout(() => {
+      setImages((prev) => {
+        if (prev.length > 0) {
+          setSelectedImageId(prev[prev.length - 1].id);
+        }
+        return prev;
+      });
+    }, 0);
+  }, []);
+
   // 发送图片到聊天的回调 - 使用 ref 来存储待附加的图片
   const [pendingImageToAttach, setPendingImageToAttach] = useState<CanvasImage | null>(null);
   const handleSendImageToChat = useCallback((image: CanvasImage) => {
@@ -2418,7 +2469,7 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
 
   return (
     <div
-      className="h-full bg-gray-50 dark:bg-black flex flex-col"
+      className="h-full bg-black flex flex-col"
       style={{ paddingTop: 'var(--xobi-toolbar-safe-top)' }}
     >
       {/* 主内容区（沉浸式：使用全局浮动工具条，不再单独占用顶部高度） */}
@@ -2476,15 +2527,15 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
             setInpaintingImage(null);
           }}
           onComplete={(newImageSrc) => {
-            // 更新选中图片的src，并刷新缩略图（避免仍显示旧图）
-            setImages((prev) =>
-              prev.map((img) =>
-                img.id === inpaintingImage.id ? { ...img, src: newImageSrc, thumbnail: newImageSrc } : img
-              )
-            );
+            // 更新选中图片的src
+            setImages(images.map(img =>
+              img.id === inpaintingImage.id
+                ? { ...img, src: newImageSrc }
+                : img
+            ));
           }}
         />
       )}
     </div>
   );
-});
+}

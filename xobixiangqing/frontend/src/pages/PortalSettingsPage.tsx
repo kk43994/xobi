@@ -166,10 +166,10 @@ export function PortalSettingsPage() {
           max_description_workers: s.max_description_workers || 5,
           max_image_workers: s.max_image_workers || 8,
           output_language: (s.output_language as OutputLanguage) || 'zh',
-          yunwu_api_base: s.yunwu_api_base || 'https://yunwu.ai',
+          yunwu_api_base: s.yunwu_api_base || 'https://api.kk666.online',
           yunwu_api_key: '',
           yunwu_video_model: s.yunwu_video_model || 'sora-2-pro',
-          video_multimodal_api_base: s.video_multimodal_api_base || 'https://yunwu.ai/v1',
+          video_multimodal_api_base: s.video_multimodal_api_base || 'https://api.kk666.online/v1',
           video_multimodal_api_key: '',
           video_multimodal_model: s.video_multimodal_model || 'gpt-4o',
           video_multimodal_enabled: s.video_multimodal_enabled ?? true,
@@ -366,7 +366,7 @@ export function PortalSettingsPage() {
         : field === 'mineru_token'
           ? 'MinerU Token'
           : field === 'yunwu_api_key'
-            ? '云雾 API Key'
+            ? '酷可 API Key'
             : '多模态 API Key';
 
     const hasOverride =
@@ -439,17 +439,17 @@ export function PortalSettingsPage() {
       const hasSavedKey = (settings?.yunwu_api_key_length || 0) > 0;
       const hasSavedMain = (settings?.api_key_length || 0) > 0;
       if (!values.yunwu_api_key && !hasSavedKey && !values.api_key && !hasSavedMain) {
-        return message.error('请先输入主 API Key（或云雾 API Key）');
+        return message.error('请先输入主 API Key（或酷可 API Key）');
       }
       const res = await testYunwuVideoConnection({
         yunwu_api_base: values.yunwu_api_base || undefined,
         yunwu_api_key: values.yunwu_api_key || values.api_key || 'use-saved-key',
       });
       setGlobalConn((p) => ({ ...p, yunwu: 'ok' }));
-      message.success(res.data?.message ? String(res.data.message) : '云雾视频连接成功');
+      message.success(res.data?.message ? String(res.data.message) : '酷可视频连接成功');
     } catch (e: any) {
       setGlobalConn((p) => ({ ...p, yunwu: 'fail' }));
-      message.error(e?.response?.data?.error?.message || e?.message || '云雾视频连接失败');
+      message.error(e?.response?.data?.error?.message || e?.message || '酷可视频连接失败');
     }
   };
 
@@ -513,17 +513,17 @@ export function PortalSettingsPage() {
       const effectiveLen = Number(moduleEffective?.yunwu_api_key_length || 0);
       const effectiveMainLen = Number(moduleEffective?.api_key_length || 0);
       if (!values.yunwu_api_key && effectiveLen <= 0 && !values.api_key && effectiveMainLen <= 0) {
-        return message.error('请先输入主 API Key（或云雾 API Key）');
+        return message.error('请先输入主 API Key（或酷可 API Key）');
       }
       const res = await testModuleYunwuVideoConnection(moduleKey, {
         yunwu_api_base: values.yunwu_api_base || undefined,
         yunwu_api_key: values.yunwu_api_key || values.api_key || 'use-saved-key',
       });
       setModuleConn((p) => ({ ...p, yunwu: 'ok' }));
-      message.success(res.data?.message ? String(res.data.message) : '云雾视频连接成功');
+      message.success(res.data?.message ? String(res.data.message) : '酷可视频连接成功');
     } catch (e: any) {
       setModuleConn((p) => ({ ...p, yunwu: 'fail' }));
-      message.error(e?.response?.data?.error?.message || e?.message || '云雾视频连接失败');
+      message.error(e?.response?.data?.error?.message || e?.message || '酷可视频连接失败');
     }
   };
 
@@ -592,7 +592,7 @@ export function PortalSettingsPage() {
                   API 配置中心
                 </Typography.Text>
                 <Typography.Text type="secondary" style={{ color: textSecondary }}>
-                  基础模式只需要 3 项：多模态（Agent/识图/聊天/分析）/ 生图 / 视频（云雾）。其它都放到高级里。
+                  基础模式只需要 3 项：多模态（Agent/识图/聊天/分析）/ 生图 / 视频（酷可）。其它都放到高级里。
                 </Typography.Text>
               </Space>
               <Space>
@@ -630,18 +630,18 @@ export function PortalSettingsPage() {
                             <Space wrap>
                               {statusTag(globalConn.ai, 'AI')}
                               {advancedMode ? statusTag(globalConn.mineru, 'MinerU') : null}
-                              {statusTag(globalConn.yunwu, '云雾视频')}
+                              {statusTag(globalConn.yunwu, '酷可视频')}
                               {advancedMode ? statusTag(globalConn.multimodal, '多模态') : null}
                             </Space>
                           </Space>
                           <Space wrap>
                             <Button onClick={testGlobalAi}>测试 AI</Button>
-                            <Button onClick={testGlobalYunwu}>测试云雾视频</Button>
+                            <Button onClick={testGlobalYunwu}>测试酷可视频</Button>
                             {advancedMode ? <Button onClick={testGlobalMineru}>测试 MinerU</Button> : null}
                             {advancedMode ? <Button onClick={testGlobalMultimodal}>测试多模态</Button> : null}
                           </Space>
                           <Typography.Text type="secondary" style={{ color: textSecondary, fontSize: 12 }}>
-                            Key/Token 留空时会使用“已保存的 Key/Token”进行测试；云雾 Key 留空会自动复用主 API Key。
+                            Key/Token 留空时会使用"已保存的 Key/Token"进行测试；酷可 Key 留空会自动复用主 API Key。
                           </Typography.Text>
                         </Space>
                       </div>
@@ -659,8 +659,8 @@ export function PortalSettingsPage() {
                             ]}
                           />
                         </Form.Item>
-                        <Form.Item name="api_base_url" label="API Base URL" tooltip="OpenAI 格式通常需要以 /v1 结尾（如 https://yunwu.ai/v1）">
-                          <Input placeholder="https://api.example.com/v1" />
+                        <Form.Item name="api_base_url" label="API Base URL" tooltip="OpenAI 格式通常需要以 /v1 结尾（如 https://api.kk666.online/v1）">
+                          <Input placeholder="https://api.kk666.online/v1" />
                         </Form.Item>
                         <Form.Item name="api_key" label="API Key">
                           <Input.Password placeholder={apiKeyPlaceholder} />
@@ -722,12 +722,12 @@ export function PortalSettingsPage() {
                       ) : null}
 
                       <div>
-                        <Typography.Text strong>视频模型（云雾）</Typography.Text>
+                        <Typography.Text strong>视频模型（酷可）</Typography.Text>
                         <Divider style={{ margin: '8px 0' }} />
-                        <Form.Item name="yunwu_api_base" label="云雾 API Base URL">
-                          <Input placeholder="https://yunwu.ai" />
+                        <Form.Item name="yunwu_api_base" label="酷可 API Base URL">
+                          <Input placeholder="https://api.kk666.online" />
                         </Form.Item>
-                        <Form.Item name="yunwu_api_key" label="云雾 API Key">
+                        <Form.Item name="yunwu_api_key" label="酷可 API Key">
                           <Input.Password placeholder={yunwuKeyPlaceholder} />
                         </Form.Item>
                         <Form.Item name="yunwu_video_model" label="视频模型">
@@ -740,7 +740,7 @@ export function PortalSettingsPage() {
                             <Typography.Text strong>视频多模态（高级）</Typography.Text>
                             <Divider style={{ margin: '8px 0' }} />
                             <Form.Item name="video_multimodal_api_base" label="多模态 API Base URL">
-                              <Input placeholder="https://yunwu.ai/v1" />
+                              <Input placeholder="https://api.kk666.online/v1" />
                             </Form.Item>
                             <Form.Item name="video_multimodal_api_key" label="多模态 API Key">
                               <Input.Password placeholder={multimodalKeyPlaceholder} />
@@ -780,7 +780,7 @@ export function PortalSettingsPage() {
                           <Space wrap>
                             {statusTag(moduleConn.ai, 'AI')}
                             {statusTag(moduleConn.mineru, 'MinerU')}
-                            {statusTag(moduleConn.yunwu, '云雾视频')}
+                            {statusTag(moduleConn.yunwu, '酷可视频')}
                             {statusTag(moduleConn.multimodal, '多模态')}
                           </Space>
                         </Space>
@@ -792,14 +792,14 @@ export function PortalSettingsPage() {
                             测试 MinerU
                           </Button>
                           <Button onClick={testModuleYunwu} disabled={moduleLoading}>
-                            测试云雾视频
+                            测试酷可视频
                           </Button>
                           <Button onClick={testModuleMultimodal} disabled={moduleLoading}>
                             测试多模态
                           </Button>
                         </Space>
                         <Typography.Text type="secondary" style={{ color: textSecondary, fontSize: 12 }}>
-                          说明：留空=继承全局；Key/Token 留空=不变（如需恢复继承，请点“清除覆盖”）；云雾 Key 留空会自动复用主 API Key。
+                          说明：留空=继承全局；Key/Token 留空=不变（如需恢复继承，请点"清除覆盖"）；酷可 Key 留空会自动复用主 API Key。
                         </Typography.Text>
                       </Space>
                     </div>
@@ -820,8 +820,8 @@ export function PortalSettingsPage() {
                               ]}
                             />
                           </Form.Item>
-                          <Form.Item name="api_base_url" label="API Base URL（留空继承）" tooltip="OpenAI 格式通常需要以 /v1 结尾（如 https://yunwu.ai/v1）">
-                            <Input placeholder={moduleEffective?.api_base_url ? `当前有效：${moduleEffective.api_base_url}` : 'https://api.example.com/v1'} />
+                          <Form.Item name="api_base_url" label="API Base URL（留空继承）" tooltip="OpenAI 格式通常需要以 /v1 结尾（如 https://api.kk666.online/v1）">
+                            <Input placeholder={moduleEffective?.api_base_url ? `当前有效：${moduleEffective.api_base_url}` : 'https://api.kk666.online/v1'} />
                           </Form.Item>
                           <Form.Item name="api_key" label="API Key（留空不变）">
                             <Space.Compact style={{ width: '100%' }}>
@@ -870,10 +870,10 @@ export function PortalSettingsPage() {
                         <div>
                           <Typography.Text strong>视频（模块覆盖）</Typography.Text>
                           <Divider style={{ margin: '8px 0' }} />
-                          <Form.Item name="yunwu_api_base" label="云雾 API Base URL（留空继承）">
-                            <Input placeholder={moduleEffective?.yunwu_api_base ? `当前有效：${moduleEffective.yunwu_api_base}` : 'https://yunwu.ai'} />
+                          <Form.Item name="yunwu_api_base" label="酷可 API Base URL（留空继承）">
+                            <Input placeholder={moduleEffective?.yunwu_api_base ? `当前有效：${moduleEffective.yunwu_api_base}` : 'https://api.kk666.online'} />
                           </Form.Item>
-                          <Form.Item name="yunwu_api_key" label="云雾 API Key（留空不变）">
+                          <Form.Item name="yunwu_api_key" label="酷可 API Key（留空不变）">
                             <Space.Compact style={{ width: '100%' }}>
                               <Input.Password placeholder={moduleYunwuKeyPlaceholder} />
                               <Button onClick={() => clearModuleSecret('yunwu_api_key')} disabled={Number(moduleOverrides?.yunwu_api_key_length || 0) <= 0}>
@@ -881,7 +881,7 @@ export function PortalSettingsPage() {
                               </Button>
                             </Space.Compact>
                           </Form.Item>
-                          <Form.Item name="yunwu_video_model" label="云雾视频模型（留空继承）">
+                          <Form.Item name="yunwu_video_model" label="酷可视频模型（留空继承）">
                             <Input placeholder={moduleEffective?.yunwu_video_model ? `当前有效：${moduleEffective.yunwu_video_model}` : 'sora-2-pro'} />
                           </Form.Item>
 
@@ -889,7 +889,7 @@ export function PortalSettingsPage() {
 
                           <Form.Item name="video_multimodal_api_base" label="多模态 API Base URL（留空继承）">
                             <Input
-                              placeholder={moduleEffective?.video_multimodal_api_base ? `当前有效：${moduleEffective.video_multimodal_api_base}` : 'https://yunwu.ai/v1'}
+                              placeholder={moduleEffective?.video_multimodal_api_base ? `当前有效：${moduleEffective.video_multimodal_api_base}` : 'https://api.kk666.online/v1'}
                             />
                           </Form.Item>
                           <Form.Item name="video_multimodal_api_key" label="多模态 API Key（留空不变）">
@@ -939,7 +939,7 @@ export function PortalSettingsPage() {
                               MinerU：{String(moduleEffective?.mineru_api_base || '')}（Token 长度：{Number(moduleEffective?.mineru_token_length || 0)}）
                             </Typography.Text>
                             <Typography.Text type="secondary" style={{ color: textSecondary }}>
-                              云雾：{String(moduleEffective?.yunwu_api_base || '')} / {String(moduleEffective?.yunwu_video_model || '')}（Key 长度：{Number(moduleEffective?.yunwu_api_key_length || 0)}）
+                              酷可：{String(moduleEffective?.yunwu_api_base || '')} / {String(moduleEffective?.yunwu_video_model || '')}（Key 长度：{Number(moduleEffective?.yunwu_api_key_length || 0)}）
                             </Typography.Text>
                             <Typography.Text type="secondary" style={{ color: textSecondary }}>
                               多模态：{String(moduleEffective?.video_multimodal_api_base || '')} / {String(moduleEffective?.video_multimodal_model || '')}（Key 长度：
