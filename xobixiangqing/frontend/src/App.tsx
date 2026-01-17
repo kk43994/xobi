@@ -8,6 +8,7 @@ import { ImagePreview } from './pages/ImagePreview';
 import { ProjectWorkbenchPage } from './pages/ProjectWorkbenchPage';
 import { ProjectArchivePage } from './pages/ProjectArchivePage';
 import { PortalSettingsPage } from './pages/PortalSettingsPage';
+import { Settings } from './pages/Settings';
 import { Dashboard } from './pages/Dashboard';
 import { LegacyProjectRedirect } from './pages/LegacyProjectRedirect';
 import { PortalLayout } from './layout/PortalLayout';

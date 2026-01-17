@@ -132,7 +132,7 @@ def update_settings():
 
         if "yunwu_api_base" in data:
             base = (data["yunwu_api_base"] or "").strip().rstrip("/")
-            # 云雾视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
+            # 酷可视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
             if base.endswith("/v1"):
                 base = base[:-3]
             settings.yunwu_api_base = base or None
@@ -217,9 +217,9 @@ def reset_settings():
         settings.max_description_workers = Config.MAX_DESCRIPTION_WORKERS
         settings.max_image_workers = Config.MAX_IMAGE_WORKERS
         # Reset video factory settings to defaults
-        settings.yunwu_api_base = 'https://yunwu.ai'
+        settings.yunwu_api_base = 'https://api.kk666.online'
         settings.yunwu_video_model = 'sora-2-pro'
-        settings.video_multimodal_api_base = 'https://yunwu.ai/v1'
+        settings.video_multimodal_api_base = 'https://api.kk666.online/v1'
         settings.video_multimodal_model = 'gpt-4o'
         settings.video_multimodal_enabled = True
         settings.updated_at = datetime.now(timezone.utc)
@@ -393,7 +393,7 @@ def test_video_multimodal_connection():
 
     Request Body (optional):
         {
-            "video_multimodal_api_base": "https://yunwu.ai/v1",
+            "video_multimodal_api_base": "https://api.kk666.online/v1",
             "video_multimodal_api_key": "your-key" | "use-saved-key",
             "video_multimodal_model": "gpt-4o"
         }
@@ -407,7 +407,7 @@ def test_video_multimodal_connection():
 
         settings = Settings.get_settings()
 
-        api_base = (data.get("video_multimodal_api_base") or "").strip() or settings.video_multimodal_api_base or current_app.config.get("VIDEO_MULTIMODAL_API_BASE") or "https://yunwu.ai/v1"
+        api_base = (data.get("video_multimodal_api_base") or "").strip() or settings.video_multimodal_api_base or current_app.config.get("VIDEO_MULTIMODAL_API_BASE") or "https://api.kk666.online/v1"
         api_key = data.get("video_multimodal_api_key")
         if api_key == "use-saved-key" or api_key is None:
             api_key = settings.video_multimodal_api_key or current_app.config.get("VIDEO_MULTIMODAL_API_KEY") or ""
@@ -438,8 +438,8 @@ def _normalize_yunwu_models_url(base: str) -> str:
     """Return a /v1/models URL for YunWu base.
 
     Accepts either:
-    - https://yunwu.ai
-    - https://yunwu.ai/v1
+    - https://api.kk666.online
+    - https://api.kk666.online/v1
     """
     b = (base or "").strip().rstrip("/")
     if not b:
@@ -456,7 +456,7 @@ def test_yunwu_video_connection():
 
     Request Body (optional):
         {
-            "yunwu_api_base": "https://yunwu.ai",
+            "yunwu_api_base": "https://api.kk666.online",
             "yunwu_api_key": "your-key" | "use-saved-key"
         }
 
@@ -469,12 +469,12 @@ def test_yunwu_video_connection():
 
         settings = Settings.get_settings()
 
-        api_base = (data.get("yunwu_api_base") or "").strip() or settings.yunwu_api_base or current_app.config.get("YUNWU_API_BASE") or "https://yunwu.ai"
+        api_base = (data.get("yunwu_api_base") or "").strip() or settings.yunwu_api_base or current_app.config.get("YUNWU_API_BASE") or "https://api.kk666.online"
         api_key = data.get("yunwu_api_key")
         if api_key == "use-saved-key" or api_key is None:
             api_key = settings.yunwu_api_key or current_app.config.get("YUNWU_API_KEY") or ""
         api_key = (str(api_key).strip() if api_key is not None else "") or ""
-        # 兼容：用户只配置了"主AI Key"，未单独填"云雾视频 Key"时，默认复用主AI Key。
+        # 兼容：用户只配置了"主AI Key"，未单独填"酷可视频 Key"时，默认复用主AI Key。
         if not api_key:
             api_key = (settings.api_key or "").strip() or ""
 
@@ -506,7 +506,7 @@ def test_image_model():
     Request Body:
         {
             "ai_provider_format": "openai",
-            "api_base_url": "https://yunwu.ai/v1",
+            "api_base_url": "https://api.kk666.online/v1",
             "api_key": "your-key" | "use-saved-key",
             "image_model": "gemini-3-pro-image-preview"
         }

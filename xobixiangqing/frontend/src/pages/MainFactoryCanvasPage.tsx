@@ -1178,7 +1178,7 @@ function InfiniteCanvas({
   return (
     <div
       ref={canvasRef}
-      className="flex-1 relative overflow-hidden bg-black cursor-crosshair canvas-bg"
+      className={`flex-1 relative overflow-hidden cursor-crosshair canvas-bg ${theme === 'dark' ? 'bg-black' : 'bg-gray-100'}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -1192,9 +1192,14 @@ function InfiniteCanvas({
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `
+          backgroundImage: theme === 'dark'
+            ? `
             linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
             linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
+          `
+            : `
+            linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)
           `,
           backgroundSize: `${50 * scale}px ${50 * scale}px`,
           backgroundPosition: `${offset.x}px ${offset.y}px`,
@@ -1214,7 +1219,7 @@ function InfiniteCanvas({
             key={img.id}
             className={`absolute cursor-move transition-shadow ${
               img.id === selectedImageId || selectedImageIds.has(img.id)
-                ? 'ring-2 ring-purple-vibrant ring-offset-2 ring-offset-black'
+                ? `ring-2 ring-purple-vibrant ring-offset-2 ${theme === 'dark' ? 'ring-offset-black' : 'ring-offset-gray-100'}`
                 : ''
             }`}
             style={{
@@ -1373,8 +1378,8 @@ function InfiniteCanvas({
       {images.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
-            <Upload size={48} className="mx-auto text-white/20 mb-4" />
-            <p className="text-white/40 text-sm">拖拽图片到画布，或点击左侧工具添加</p>
+            <Upload size={48} className={`mx-auto mb-4 ${theme === 'dark' ? 'text-white/20' : 'text-gray-300'}`} />
+            <p className={`text-sm ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>拖拽图片到画布，或点击左侧工具添加</p>
           </div>
         </div>
       )}
@@ -2228,7 +2233,7 @@ export function MainFactoryCanvasPage() {
           </Button>
         </Space>
 
-        <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+        <div style={{ width: 1, height: 20, background: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '0 4px' }} />
 
         <Tag color="purple">无限画布</Tag>
         <Typography.Text type="secondary" style={{ color: textSecondary, fontSize: 12 }}>
@@ -2469,7 +2474,7 @@ export function MainFactoryCanvasPage() {
 
   return (
     <div
-      className="h-full bg-black flex flex-col"
+      className={`h-full flex flex-col ${theme === 'dark' ? 'bg-black' : 'bg-gray-100'}`}
       style={{ paddingTop: 'var(--xobi-toolbar-safe-top)' }}
     >
       {/* 主内容区（沉浸式：使用全局浮动工具条，不再单独占用顶部高度） */}

@@ -25,6 +25,7 @@ import { usePortalUiStore } from '@/store/usePortalUiStore';
 import { WorkbenchToolbarContext, type WorkbenchToolbarSlots } from './workbenchToolbar';
 import { AgentPanel } from '@/components/agent/AgentPanel';
 import { AgentBridgeContext, type AgentBridgeSlots } from './agentBridge';
+import { XobiLogo } from '@/components/shared';
 
 const { Sider, Content } = Layout;
 

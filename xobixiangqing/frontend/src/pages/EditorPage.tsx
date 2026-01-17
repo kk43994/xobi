@@ -41,6 +41,8 @@ const OP_OPTIONS = [
 export function EditorPage() {
   const openAssets = usePortalUiStore((s) => s.openAssets);
   const openJobs = usePortalUiStore((s) => s.openJobs);
+  const theme = usePortalUiStore((s) => s.theme);
+  const isDark = theme === 'dark';
 
   const [sourceMode, setSourceMode] = useState<SourceMode>('asset');
   const [file, setFile] = useState<File | null>(null);
@@ -56,9 +58,9 @@ export function EditorPage() {
 
   const [form] = Form.useForm();
 
-  const panelBorder = '1px solid rgba(255,255,255,0.10)';
-  const canvasBg = '#000000';
-  const textSecondary = 'rgba(255,255,255,0.45)';
+  const panelBorder = isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.08)';
+  const canvasBg = isDark ? '#000000' : '#fafafa';
+  const textSecondary = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.55)';
 
   const loadAssets = async () => {
     setAssetsLoading(true);

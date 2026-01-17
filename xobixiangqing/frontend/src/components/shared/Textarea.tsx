@@ -1,23 +1,27 @@
 import React from 'react';
 import { cn } from '@/utils';
+import { usePortalUiStore } from '@/store/usePortalUiStore';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
-  variant?: 'light' | 'dark';
+  variant?: 'light' | 'dark' | 'auto';
 }
 
 const TextareaComponent = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({
   label,
   error,
   className,
-  variant = 'dark',
+  variant = 'auto',
   ...props
 }, ref) => {
+  const theme = usePortalUiStore((s) => s.theme);
+  const effectiveVariant = variant === 'auto' ? (theme === 'dark' ? 'dark' : 'light') : variant;
+
   const baseStyles = 'w-full min-h-[120px] px-4 py-3 rounded-lg transition-all resize-y';
 
   const variantStyles = {
-    light: 'border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-banana-500 focus:border-transparent',
+    light: 'border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-purple-vibrant focus:border-purple-vibrant',
     dark: 'border border-white/10 bg-dark-secondary text-white placeholder:text-text-tertiary focus:ring-2 focus:ring-purple-vibrant focus:border-purple-vibrant',
   };
 
@@ -26,7 +30,7 @@ const TextareaComponent = React.forwardRef<HTMLTextAreaElement, TextareaProps>((
       {label && (
         <label className={cn(
           "block text-sm font-medium mb-2",
-          variant === 'dark' ? 'text-white' : 'text-gray-700'
+          effectiveVariant === 'dark' ? 'text-white' : 'text-gray-700'
         )}>
           {label}
         </label>
@@ -35,7 +39,7 @@ const TextareaComponent = React.forwardRef<HTMLTextAreaElement, TextareaProps>((
         ref={ref}
         className={cn(
           baseStyles,
-          variantStyles[variant],
+          variantStyles[effectiveVariant],
           'focus:outline-none',
           error && 'border-red-500 focus:ring-red-500',
           className

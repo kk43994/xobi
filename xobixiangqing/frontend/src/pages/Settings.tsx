@@ -6,6 +6,7 @@ import * as api from '@/api/endpoints';
 import type { OutputLanguage } from '@/api/endpoints';
 import { OUTPUT_LANGUAGE_OPTIONS } from '@/api/endpoints';
 import type { Settings as SettingsType } from '@/types';
+import { usePortalUiStore } from '@/store/usePortalUiStore';
 
 // 配置项类型定义
 type FieldType = 'text' | 'password' | 'number' | 'select' | 'buttons';
@@ -56,7 +57,7 @@ const settingsSections: SectionConfig[] = [
         key: 'ai_provider_format',
         label: 'AI 提供商格式',
         type: 'buttons',
-        description: '选择 API 请求格式，影响后端如何构造和发送请求。保存设置后生效。',
+        description: '选择 API 请求格式，影响后端如何构造和发送请求。OpenAI 格式：适用于 OpenAI、酷可、AIHubmix 等兼容 OpenAI API 的服务；Gemini 格式：适用于 Google Gemini 官方 API。保存设置后生效。',
         options: [
           { value: 'openai', label: 'OpenAI 格式' },
           { value: 'gemini', label: 'Gemini 格式' },
@@ -67,16 +68,16 @@ const settingsSections: SectionConfig[] = [
         label: 'API Base URL',
         type: 'text',
         placeholder: 'https://api.kk666.online/v1',
-        description: '设置大模型提供商 API 的基础 URL（OpenAI 格式通常需要以 /v1 结尾，如 https://api.kk666.online/v1）',
+        description: '设置大模型提供商 API 的基础 URL。OpenAI 格式示例：https://api.kk666.online/v1（需要以 /v1 结尾）；Gemini 格式示例：https://generativelanguage.googleapis.com。如果使用云雾 AI，填写：https://yunwu.ai/v1',
       },
       {
         key: 'api_key',
         label: 'API Key',
         type: 'password',
-        placeholder: '输入新的 API Key',
+        placeholder: '输入新的 API Key（如：sk-xxxxx）',
         sensitiveField: true,
         lengthKey: 'api_key_length',
-        description: '留空则保持当前设置不变，输入新值则更新',
+        description: '从 API 提供商处获取的密钥。留空则保持当前设置不变，输入新值则更新。获取方式：在下方链接注册账号后，进入控制台/API 管理页面创建新的 API Key。',
       },
     ],
   },
@@ -89,21 +90,21 @@ const settingsSections: SectionConfig[] = [
         label: '文本大模型',
         type: 'text',
         placeholder: '留空使用环境变量配置 (如: gemini-2.0-flash-exp)',
-        description: '用于生成大纲、描述等文本内容的模型名称',
+        description: '用于生成大纲、描述等文本内容的模型名称。推荐模型：gemini-2.0-flash-exp（Gemini 格式）、gpt-4o、gpt-4o-mini（OpenAI 格式）。留空则使用后端环境变量中配置的默认模型。',
       },
       {
         key: 'image_model',
         label: '图像生成模型',
         type: 'text',
         placeholder: '如: gemini-2.0-flash-exp-image-generation',
-        description: '推荐模型：gemini-2.0-flash-exp-image-generation、imagen-3.0-generate-001。如遇500错误，请检查模型名称是否正确',
+        description: '用于生成商品主图的模型。推荐模型：gemini-2.0-flash-exp-image-generation、imagen-3.0-generate-001（Gemini 格式）、dall-e-3（OpenAI 格式）。如遇 500 错误，请检查模型名称是否正确，或使用下方"测试图片模型"按钮验证。',
       },
       {
         key: 'image_caption_model',
         label: '图片识别模型',
         type: 'text',
         placeholder: '留空使用环境变量配置 (如: gemini-2.0-flash-exp)',
-        description: '用于识别参考文件中的图片并生成描述',
+        description: '用于识别参考文件中的图片并生成描述。推荐模型：gemini-2.0-flash-exp（Gemini 格式）、gpt-4o、gpt-4o-mini（OpenAI 格式）。该模型需要支持视觉理解功能。',
       },
     ],
   },
@@ -116,7 +117,7 @@ const settingsSections: SectionConfig[] = [
         label: 'MinerU API Base',
         type: 'text',
         placeholder: '留空使用环境变量配置 (如: https://mineru.net)',
-        description: 'MinerU 服务地址，用于解析参考文件',
+        description: 'MinerU 服务地址，用于解析 PDF、Word 等参考文件。如果您有自己的 MinerU 服务，请填写服务地址；否则留空使用默认配置。',
       },
       {
         key: 'mineru_token',
@@ -125,7 +126,7 @@ const settingsSections: SectionConfig[] = [
         placeholder: '输入新的 MinerU Token',
         sensitiveField: true,
         lengthKey: 'mineru_token_length',
-        description: '留空则保持当前设置不变，输入新值则更新',
+        description: 'MinerU 服务的访问令牌。如果您使用的 MinerU 服务需要认证，请填写 Token；否则留空。留空则保持当前设置不变，输入新值则更新。',
       },
     ],
   },
@@ -137,7 +138,7 @@ const settingsSections: SectionConfig[] = [
         key: 'image_resolution',
         label: '图像清晰度（某些OpenAI格式中转调整该值无效）',
         type: 'select',
-        description: '更高的清晰度会生成更详细的图像，但需要更长时间',
+        description: '设置生成图像的分辨率。更高的清晰度会生成更详细的图像，但需要更长时间和更多费用。推荐：2K（平衡质量和速度）。注意：某些 OpenAI 格式的中转服务可能不支持此参数。',
         options: [
           { value: '1K', label: '1K (1024px)' },
           { value: '2K', label: '2K (2048px)' },
@@ -156,7 +157,7 @@ const settingsSections: SectionConfig[] = [
         type: 'number',
         min: 1,
         max: 20,
-        description: '同时生成描述的最大工作线程数 (1-20)，越大速度越快',
+        description: '同时生成描述的最大工作线程数 (1-20)。数值越大，批量生成速度越快，但会消耗更多 API 配额。推荐：5（适合大多数场景）。如果 API 有并发限制，请适当降低此值。',
       },
       {
         key: 'max_image_workers',
@@ -164,7 +165,7 @@ const settingsSections: SectionConfig[] = [
         type: 'number',
         min: 1,
         max: 20,
-        description: '同时生成图像的最大工作线程数 (1-20)，越大速度越快',
+        description: '同时生成图像的最大工作线程数 (1-20)。数值越大，批量生成速度越快，但会消耗更多 API 配额和费用。推荐：8（适合大多数场景）。如果 API 有并发限制或费用较高，请适当降低此值。',
       },
     ],
   },
@@ -176,7 +177,7 @@ const settingsSections: SectionConfig[] = [
         key: 'output_language',
         label: '默认输出语言',
         type: 'buttons',
-        description: 'AI 生成内容时使用的默认语言',
+        description: 'AI 生成商品描述、大纲等内容时使用的默认语言。可以在创建项目时单独指定语言，此处设置的是全局默认值。',
         options: OUTPUT_LANGUAGE_OPTIONS,
       },
     ],
@@ -187,6 +188,7 @@ const settingsSections: SectionConfig[] = [
 export const Settings: React.FC = () => {
   const { show, ToastContainer } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+  const theme = usePortalUiStore((s) => s.theme);
 
   const [settings, setSettings] = useState<SettingsType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -267,7 +269,7 @@ export const Settings: React.FC = () => {
 
   const handleReset = () => {
     confirm(
-      '将把大模型、图像生成和并发等所有配置恢复为环境默认值，已保存的自定义设置将丢失，确定继续吗？',
+      '此操作将重置以下配置为系统默认值：\n\n• AI 提供商格式和 API 配置\n• 文本和图像生成模型\n• MinerU 配置\n• 图像清晰度和并发数\n• 输出语言设置\n\n⚠️ 注意：已保存的 API Key 和 Token 不会被清除，但其他自定义设置将丢失。\n\n确定要重置吗？',
       async () => {
         setIsSaving(true);
         try {
@@ -481,47 +483,97 @@ export const Settings: React.FC = () => {
       <ToastContainer />
       {ConfirmDialog}
       <div className="space-y-8">
+        {/* 新手指引 */}
+        <div className={`${
+          theme === 'dark'
+            ? 'bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 border-slate-600'
+            : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-blue-200'
+        } border rounded-xl p-5 shadow-sm`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-base font-bold ${theme === 'dark' ? 'text-slate-100' : 'text-gray-800'} flex items-center`}>
+              <span className="mr-2">📖</span>
+              快速配置指南
+            </h3>
+            <img src="/xobi.svg" alt="Xobi Logo" className="h-8 opacity-80" />
+          </div>
+          <div className={`text-xs ${theme === 'dark' ? 'text-slate-300' : 'text-gray-700'} space-y-2 ${
+            theme === 'dark' ? 'bg-slate-900/60' : 'bg-white/50'
+          } backdrop-blur-sm rounded-lg p-3 border ${theme === 'dark' ? 'border-slate-700' : 'border-blue-100'}`}>
+            <p className="flex items-start"><span className={`font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-primary-600'} mr-2 min-w-[60px]`}>第一步：</span><span>选择 AI 提供商格式（OpenAI 或 Gemini）</span></p>
+            <p className="flex items-start"><span className={`font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-primary-600'} mr-2 min-w-[60px]`}>第二步：</span><span>填写 API Base URL 和 API Key（点击下方链接获取）</span></p>
+            <p className="flex items-start"><span className={`font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-primary-600'} mr-2 min-w-[60px]`}>第三步：</span><span>配置模型名称（可留空使用默认值）</span></p>
+            <p className="flex items-start"><span className={`font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-primary-600'} mr-2 min-w-[60px]`}>第四步：</span><span>点击"测试 API 连接"验证配置是否正确</span></p>
+            <p className="flex items-start"><span className={`font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-primary-600'} mr-2 min-w-[60px]`}>第五步：</span><span>点击"保存设置"完成配置</span></p>
+          </div>
+        </div>
+
         {/* 配置区块（配置驱动） */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {settingsSections.map((section) => (
-            <div key={section.title}>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                {section.icon}
-                <span className="ml-2">{section.title}</span>
+            <div key={section.title} className={`${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'
+            } rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow duration-200`}>
+              <h2 className={`text-lg font-bold ${theme === 'dark' ? 'text-slate-100' : 'text-gray-900'} mb-5 flex items-center pb-3 border-b ${
+                theme === 'dark' ? 'border-slate-700' : 'border-gray-100'
+              }`}>
+                <span className={`flex items-center justify-center w-8 h-8 rounded-lg ${
+                  theme === 'dark' ? 'bg-slate-700 text-blue-400' : 'bg-gradient-to-br from-primary-50 to-purple-50 text-primary-600'
+                } mr-3`}>
+                  {section.icon}
+                </span>
+                <span>{section.title}</span>
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {section.fields.map((field) => renderField(field))}
                 {section.title === '大模型 API 配置' && (
                   <>
-                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-gray-700">
-                        API 密匙获取：
+                    <div className="mt-4 p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100 rounded-xl shadow-sm">
+                      <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                        <span className="mr-2">🔑</span>
+                        API 密匙获取
+                      </p>
+                      <div className="flex flex-wrap gap-2.5 text-sm mb-3">
+                        <a
+                          href="https://yunwu.ai"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        >
+                          <span className="mr-1.5">⭐</span>
+                          云雾 AI (推荐)
+                        </a>
                         <a
                           href="https://api.kk666.online"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 underline font-medium ml-2"
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
-                          酷可 (推荐)
+                          酷可
                         </a>
-                        <span className="mx-2 text-gray-400">|</span>
                         <a
                           href="https://aihubmix.com/?aff=17EC"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 underline font-medium"
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           AIHubmix
                         </a>
-                      </p>
+                      </div>
+                      <div className="flex items-start gap-2 p-2.5 bg-white/60 backdrop-blur-sm rounded-lg border border-blue-100">
+                        <span className="text-base mt-0.5">💡</span>
+                        <p className="text-xs text-gray-700 leading-relaxed">
+                          <strong>提示：</strong>注册后进入控制台/API 管理页面，创建新的 API Key 并复制到上方输入框
+                        </p>
+                      </div>
                     </div>
-                    <div className="mt-3">
+                    <div className="mt-4 flex gap-3">
                       <Button
                         variant="secondary"
                         icon={<Wifi size={16} />}
                         onClick={handleTestConnection}
                         loading={isTesting}
                         disabled={isTesting || isSaving}
+                        className="shadow-sm hover:shadow-md transition-shadow"
                       >
                         {isTesting ? '测试中...' : '测试 API 连接'}
                       </Button>
@@ -529,16 +581,20 @@ export const Settings: React.FC = () => {
                   </>
                 )}
                 {section.title === '模型配置' && (
-                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-sm text-gray-700 mb-3">
-                      切换图像模型后，建议先测试该模型是否支持图像生成功能
-                    </p>
+                  <div className="mt-4 p-4 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 border border-amber-200 rounded-xl shadow-sm">
+                    <div className="flex items-start gap-2 mb-3">
+                      <span className="text-base mt-0.5">⚠️</span>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        <strong>建议：</strong>切换图像模型后，先测试该模型是否支持图像生成功能
+                      </p>
+                    </div>
                     <Button
                       variant="secondary"
                       icon={<FlaskConical size={16} />}
                       onClick={handleTestImageModel}
                       loading={isTestingImageModel}
                       disabled={isTestingImageModel || isSaving || !formData.image_model}
+                      className="shadow-sm hover:shadow-md transition-shadow"
                     >
                       {isTestingImageModel ? '测试生图中...' : '测试图片模型'}
                     </Button>
@@ -550,23 +606,27 @@ export const Settings: React.FC = () => {
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-          <Button
-            variant="secondary"
-            icon={<RotateCcw size={18} />}
-            onClick={handleReset}
-            disabled={isSaving}
-          >
-            重置为默认配置
-          </Button>
-          <Button
-            variant="primary"
-            icon={<Save size={18} />}
-            onClick={handleSave}
-            loading={isSaving}
-          >
-            {isSaving ? '保存中...' : '保存设置'}
-          </Button>
+        <div className="sticky bottom-0 bg-white/80 backdrop-blur-md border-t border-gray-200 rounded-xl shadow-lg p-5 -mx-2">
+          <div className="flex items-center justify-between gap-4">
+            <Button
+              variant="secondary"
+              icon={<RotateCcw size={18} />}
+              onClick={handleReset}
+              disabled={isSaving}
+              className="shadow-sm hover:shadow-md transition-all"
+            >
+              重置为默认配置
+            </Button>
+            <Button
+              variant="primary"
+              icon={<Save size={18} />}
+              onClick={handleSave}
+              loading={isSaving}
+              className="shadow-md hover:shadow-lg transition-all px-8"
+            >
+              {isSaving ? '保存中...' : '保存设置'}
+            </Button>
+          </div>
         </div>
       </div>
     </>

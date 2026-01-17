@@ -5,6 +5,7 @@ import { Button, Textarea, Card, useToast, MaterialGeneratorModal, ProductReplac
 import { getTemplateFile } from '@/components/shared/TemplateSelector';
 import { listUserTemplates, type UserTemplate, uploadReferenceFile, type ReferenceFile, associateFileToProject, triggerFileParse, uploadMaterial, associateMaterialsToProject, captionMaterials, type Material } from '@/api/endpoints';
 import { useProjectStore } from '@/store/useProjectStore';
+import { usePortalUiStore } from '@/store/usePortalUiStore';
 import { ECOM_PRESET_STYLES } from '@/config/ecomPresetStyles';
 
 type CreationType = 'ecom' | 'idea' | 'outline' | 'description';
@@ -12,6 +13,8 @@ type CreationType = 'ecom' | 'idea' | 'outline' | 'description';
 export const Home: React.FC = () => {
   const navigate = useNavigate();
   const { initializeProject, isGlobalLoading } = useProjectStore();
+  const theme = usePortalUiStore((s) => s.theme);
+  const isDark = theme === 'dark';
   const { show, ToastContainer } = useToast();
 
   const [activeTab, setActiveTab] = useState<CreationType>('ecom');
@@ -661,10 +664,14 @@ export const Home: React.FC = () => {
         </div>
 
         {/* 创建卡片 */}
-        <Card className="p-4 md:p-10 bg-dark-secondary/90 backdrop-blur-xl shadow-2xl border border-white/10 hover:shadow-glow transition-all duration-300">
+        <Card className={`p-4 md:p-10 backdrop-blur-xl shadow-2xl transition-all duration-300 ${
+          isDark
+            ? 'bg-dark-secondary/90 border border-white/10 hover:shadow-glow'
+            : 'bg-white/90 border border-gray-200 hover:shadow-xl'
+        }`}>
           {/* 步骤1：选择创建方式 - 2x2卡片网格 */}
           <div className="mb-6 md:mb-8">
-            <h2 className="text-lg font-semibold mb-4 text-white">选择创建方式</h2>
+            <h2 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>选择创建方式</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {(Object.keys(tabConfig) as CreationType[]).map((type) => {
                 const config = tabConfig[type];
@@ -676,7 +683,9 @@ export const Home: React.FC = () => {
                     className={`relative p-4 md:p-5 rounded-xl border-2 transition-all duration-300 text-left ${
                       isActive
                         ? 'border-purple-vibrant bg-purple-vibrant/10 shadow-glow transform scale-[1.02]'
-                        : 'border-white/10 bg-dark-tertiary/50 hover:border-purple-vibrant/50 hover:bg-dark-elevated'
+                        : isDark
+                        ? 'border-white/10 bg-dark-tertiary/50 hover:border-purple-vibrant/50 hover:bg-dark-elevated'
+                        : 'border-gray-200 bg-gray-50 hover:border-purple-vibrant/50 hover:bg-gray-100'
                     }`}
                   >
                     {/* 图标 */}
@@ -684,14 +693,16 @@ export const Home: React.FC = () => {
                       className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-all ${
                         isActive
                           ? 'bg-gradient-cta text-white'
-                          : 'bg-dark-elevated text-purple-apple'
+                          : isDark
+                          ? 'bg-dark-elevated text-purple-apple'
+                          : 'bg-gray-100 text-purple-600'
                       }`}
                     >
                       {config.icon}
                     </div>
 
                     {/* 标题 */}
-                    <h3 className={`text-base md:text-lg font-bold mb-2 ${isActive ? 'text-purple-vibrant' : 'text-white'}`}>
+                    <h3 className={`text-base md:text-lg font-bold mb-2 ${isActive ? 'text-purple-vibrant' : isDark ? 'text-white' : 'text-gray-900'}`}>
                       {config.label}
                     </h3>
 
@@ -719,7 +730,7 @@ export const Home: React.FC = () => {
           {/* 步骤2：电商模式 - 大型商品图上传区 */}
           {activeTab === 'ecom' && (
             <div className="mb-6 md:mb-8">
-              <h2 className="text-lg font-semibold mb-4 text-white">上传商品图片</h2>
+              <h2 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>上传商品图片</h2>
               <div
                 role="button"
                 tabIndex={0}
@@ -753,8 +764,12 @@ export const Home: React.FC = () => {
                   isDraggingImage
                     ? 'border-purple-vibrant bg-purple-vibrant/10 scale-[1.01]'
                     : uploadedMaterials.length === 0
-                    ? 'border-white/20 hover:border-purple-vibrant/50 bg-dark-tertiary/30 hover:bg-dark-elevated/50'
-                    : 'border-white/10 bg-dark-tertiary/20'
+                    ? isDark
+                      ? 'border-white/20 hover:border-purple-vibrant/50 bg-dark-tertiary/30 hover:bg-dark-elevated/50'
+                      : 'border-gray-300 hover:border-purple-vibrant/50 bg-gray-50 hover:bg-gray-100'
+                    : isDark
+                    ? 'border-white/10 bg-dark-tertiary/20'
+                    : 'border-gray-200 bg-gray-50'
                 }`}
               >
                 {uploadedMaterials.length === 0 ? (
@@ -764,10 +779,12 @@ export const Home: React.FC = () => {
                       className={`mb-4 transition-all duration-300 ${
                         isDraggingImage
                           ? 'text-purple-vibrant scale-110'
-                          : 'text-purple-apple group-hover:scale-110'
+                          : isDark
+                          ? 'text-purple-apple group-hover:scale-110'
+                          : 'text-purple-500 group-hover:scale-110'
                       }`}
                     />
-                    <p className="text-lg font-medium mb-2 text-white">点击上传或拖拽商品图片</p>
+                    <p className={`text-lg font-medium mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>点击上传或拖拽商品图片</p>
                     <p className="text-sm text-text-secondary">支持 JPG、PNG、WEBP，最多5张</p>
                     <p className="text-xs text-text-tertiary mt-2">也可以在下方输入框粘贴图片（Ctrl+V）</p>
                   </>
@@ -779,7 +796,7 @@ export const Home: React.FC = () => {
                         <img
                           src={material.url}
                           alt={material.original_filename || `商品图${idx + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border border-white/10"
+                          className={`w-full h-32 object-cover rounded-lg border ${isDark ? 'border-white/10' : 'border-gray-200'}`}
                         />
                         <button
                           onClick={(e) => {
@@ -801,9 +818,13 @@ export const Home: React.FC = () => {
                           e.stopPropagation();
                           imageInputRef.current?.click();
                         }}
-                        className="h-32 border-2 border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center hover:border-purple-vibrant/50 hover:bg-white/5 transition-all"
+                        className={`h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center transition-all ${
+                          isDark
+                            ? 'border-white/20 hover:border-purple-vibrant/50 hover:bg-white/5'
+                            : 'border-gray-300 hover:border-purple-vibrant/50 hover:bg-gray-100'
+                        }`}
                       >
-                        <ImagePlus size={24} className="text-purple-apple mb-1" />
+                        <ImagePlus size={24} className={`mb-1 ${isDark ? 'text-purple-apple' : 'text-purple-500'}`} />
                         <span className="text-xs text-text-secondary">添加更多</span>
                       </button>
                     )}
@@ -826,11 +847,11 @@ export const Home: React.FC = () => {
           {/* 步骤3：补充信息输入（电商模式：紧凑设计） */}
           {activeTab === 'ecom' && (
             <div className="mb-6 md:mb-8">
-              <h2 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+              <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 <FileText size={18} className="text-purple-vibrant" />
                 补充产品信息（可选）
               </h2>
-              <div className="relative group p-4 rounded-xl bg-dark-tertiary/50 border border-white/10">
+              <div className={`relative group p-4 rounded-xl ${isDark ? 'bg-dark-tertiary/50 border border-white/10' : 'bg-gray-50 border border-gray-200'}`}>
                 <Textarea
                   ref={textareaRef}
                   placeholder="输入产品名称、卖点、材质、规格等信息..."
@@ -845,7 +866,9 @@ export const Home: React.FC = () => {
                 <button
                   type="button"
                   onClick={handlePaperclipClick}
-                  className="absolute left-6 md:left-7 bottom-6 md:bottom-7 z-10 p-1.5 md:p-2 text-text-tertiary hover:text-white hover:bg-white/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
+                  className={`absolute left-6 md:left-7 bottom-6 md:bottom-7 z-10 p-1.5 md:p-2 rounded-lg transition-colors active:scale-95 touch-manipulation ${
+                    isDark ? 'text-text-tertiary hover:text-white hover:bg-white/10' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-200'
+                  }`}
                   title="选择参考文件"
                 >
                   <Paperclip size={18} className="md:w-5 md:h-5" />
@@ -853,8 +876,8 @@ export const Home: React.FC = () => {
               </div>
 
               {/* 电商模式：风格描述直接显示在这里 */}
-              <div className="mt-6 p-4 rounded-xl bg-dark-tertiary/50 border border-white/10">
-                <label className="text-sm font-semibold text-white mb-3 block flex items-center gap-2">
+              <div className={`mt-6 p-4 rounded-xl ${isDark ? 'bg-dark-tertiary/50 border border-white/10' : 'bg-gray-50 border border-gray-200'}`}>
+                <label className={`text-sm font-semibold mb-3 block flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                   <Palette size={16} className="text-purple-vibrant" />
                   风格偏好（可选）
                 </label>
@@ -875,7 +898,9 @@ export const Home: React.FC = () => {
                           className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
                             isSelected
                               ? 'bg-gradient-to-r from-purple-vibrant to-pink-500 text-white shadow-lg shadow-purple-vibrant/25'
-                              : 'bg-dark-secondary border border-white/10 text-text-secondary hover:border-purple-vibrant/50 hover:bg-purple-vibrant/10 hover:text-white'
+                              : isDark
+                              ? 'bg-dark-secondary border border-white/10 text-text-secondary hover:border-purple-vibrant/50 hover:bg-purple-vibrant/10 hover:text-white'
+                              : 'bg-white border border-gray-200 text-gray-600 hover:border-purple-vibrant/50 hover:bg-purple-vibrant/10 hover:text-purple-700'
                           }`}
                         >
                           {preset.name}
@@ -899,7 +924,11 @@ export const Home: React.FC = () => {
                     }
                   }}
                   rows={2}
-                  className="text-sm border border-white/10 focus:border-purple-vibrant transition-colors duration-200 bg-dark-secondary/50"
+                  className={`text-sm transition-colors duration-200 ${
+                    isDark
+                      ? 'border border-white/10 focus:border-purple-vibrant bg-dark-secondary/50'
+                      : 'border border-gray-200 focus:border-purple-vibrant bg-white'
+                  }`}
                 />
 
                 <p className="text-xs text-text-tertiary mt-2 flex items-center gap-1">
@@ -913,7 +942,7 @@ export const Home: React.FC = () => {
           {/* 步骤3：其他模式 - 完整文本输入区 */}
           {activeTab !== 'ecom' && (
             <div className="mb-6 md:mb-8">
-              <h2 className="text-lg font-semibold mb-4 text-white">输入内容</h2>
+              <h2 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>输入内容</h2>
               <div className="relative group">
                 <div className="absolute -inset-0.5 bg-gradient-cta rounded-lg opacity-0 group-hover:opacity-20 blur transition-opacity duration-300"></div>
                 <Textarea
@@ -923,14 +952,20 @@ export const Home: React.FC = () => {
                   onChange={(e) => setContent(e.target.value)}
                   onPaste={handlePaste}
                   rows={8}
-                  className="relative pr-20 md:pr-28 pb-12 md:pb-14 text-sm md:text-base border-2 border-white/10 focus:border-purple-vibrant transition-colors duration-200"
+                  className={`relative pr-20 md:pr-28 pb-12 md:pb-14 text-sm md:text-base border-2 transition-colors duration-200 ${
+                    isDark
+                      ? 'border-white/10 focus:border-purple-vibrant'
+                      : 'border-gray-200 focus:border-purple-vibrant'
+                  }`}
                 />
 
                 {/* 左下角：参考文件按钮（回形针图标） */}
                 <button
                   type="button"
                   onClick={handlePaperclipClick}
-                  className="absolute left-2 md:left-3 bottom-2 md:bottom-3 z-10 p-1.5 md:p-2 text-text-tertiary hover:text-white hover:bg-white/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
+                  className={`absolute left-2 md:left-3 bottom-2 md:bottom-3 z-10 p-1.5 md:p-2 rounded-lg transition-colors active:scale-95 touch-manipulation ${
+                    isDark ? 'text-text-tertiary hover:text-white hover:bg-white/10' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-200'
+                  }`}
                   title="选择参考文件"
                 >
                   <Paperclip size={18} className="md:w-5 md:h-5" />
@@ -983,17 +1018,21 @@ export const Home: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-              className="w-full flex items-center justify-between p-4 rounded-lg bg-dark-tertiary/30 border border-white/10 hover:bg-dark-elevated/50 transition-all group"
+              className={`w-full flex items-center justify-between p-4 rounded-lg border transition-all group ${
+                isDark
+                  ? 'bg-dark-tertiary/30 border-white/10 hover:bg-dark-elevated/50'
+                  : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+              }`}
             >
               <div className="flex items-center gap-2">
-                <Palette size={18} className="text-purple-apple" />
-                <span className="text-base font-semibold text-white">高级设置</span>
+                <Palette size={18} className={isDark ? 'text-purple-apple' : 'text-purple-500'} />
+                <span className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>高级设置</span>
                 <span className="text-xs text-text-tertiary">（详情页比例、模板上传等）</span>
               </div>
               {showAdvancedOptions ? (
-                <ChevronUp size={20} className="text-text-secondary group-hover:text-white transition-colors" />
+                <ChevronUp size={20} className={`transition-colors ${isDark ? 'text-text-secondary group-hover:text-white' : 'text-gray-400 group-hover:text-gray-700'}`} />
               ) : (
-                <ChevronDown size={20} className="text-text-secondary group-hover:text-white transition-colors" />
+                <ChevronDown size={20} className={`transition-colors ${isDark ? 'text-text-secondary group-hover:text-white' : 'text-gray-400 group-hover:text-gray-700'}`} />
               )}
             </button>
 
@@ -1003,7 +1042,7 @@ export const Home: React.FC = () => {
                 {activeTab === 'ecom' && (
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <label className="text-sm font-semibold text-white">详情页图片比例</label>
+                      <label className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>详情页图片比例</label>
                       <span className="text-xs text-text-tertiary">主图固定 1:1</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -1015,7 +1054,9 @@ export const Home: React.FC = () => {
                           className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${
                             ecomPageAspectRatio === ratio
                               ? 'border-purple-vibrant bg-purple-vibrant/20 text-white'
-                              : 'border-white/20 text-text-secondary hover:border-purple-vibrant/50 hover:bg-white/5'
+                              : isDark
+                              ? 'border-white/20 text-text-secondary hover:border-purple-vibrant/50 hover:bg-white/5'
+                              : 'border-gray-200 text-gray-600 hover:border-purple-vibrant/50 hover:bg-gray-100'
                           }`}
                         >
                           {ratio}
@@ -1031,12 +1072,12 @@ export const Home: React.FC = () => {
                 {/* 上传参考详情图 */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-white flex items-center gap-2">
+                    <label className={`text-sm font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                       <ImagePlus size={16} className="text-purple-vibrant" />
                       参考详情图（可选）
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer group">
-                      <span className="text-xs text-text-secondary group-hover:text-white transition-colors">
+                      <span className={`text-xs transition-colors ${isDark ? 'text-text-secondary group-hover:text-white' : 'text-gray-500 group-hover:text-gray-700'}`}>
                         启用参考图
                       </span>
                       <div className="relative">
@@ -1054,14 +1095,16 @@ export const Home: React.FC = () => {
                           }}
                           className="sr-only peer"
                         />
-                        <div className="w-9 h-5 bg-dark-tertiary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-vibrant/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-vibrant"></div>
+                        <div className={`w-9 h-5 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-vibrant/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-vibrant ${isDark ? 'bg-dark-tertiary' : 'bg-gray-300'}`}></div>
                       </div>
                     </label>
                   </div>
 
                   {!useTemplateStyle && (
-                    <div className="p-4 bg-dark-tertiary/30 rounded-lg border border-white/10">
-                      <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed border-white/20 rounded-lg hover:border-purple-vibrant/50 transition-colors cursor-pointer"
+                    <div className={`p-4 rounded-lg border ${isDark ? 'bg-dark-tertiary/30 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
+                      <div className={`flex flex-col items-center justify-center py-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
+                        isDark ? 'border-white/20 hover:border-purple-vibrant/50' : 'border-gray-300 hover:border-purple-vibrant/50'
+                      }`}
                         onClick={() => {
                           const input = document.createElement('input');
                           input.type = 'file';
@@ -1084,7 +1127,7 @@ export const Home: React.FC = () => {
                               alt="参考图预览"
                               className="max-h-32 rounded-lg object-contain"
                             />
-                            <span className="text-sm text-white">{selectedTemplate.name}</span>
+                            <span className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{selectedTemplate.name}</span>
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1113,7 +1156,9 @@ export const Home: React.FC = () => {
 
           {/* 大按钮：开始生成（电商模式） */}
           {activeTab === 'ecom' && (
-            <div className="sticky bottom-0 bg-dark-secondary/95 backdrop-blur-sm border-t border-white/10 p-4 -mx-4 md:-mx-10 -mb-4 md:-mb-10">
+            <div className={`sticky bottom-0 backdrop-blur-sm border-t p-4 -mx-4 md:-mx-10 -mb-4 md:-mb-10 ${
+              isDark ? 'bg-dark-secondary/95 border-white/10' : 'bg-white/95 border-gray-200'
+            }`}>
               <div className="max-w-5xl mx-auto">
                 <Button
                   onClick={handleSubmit}

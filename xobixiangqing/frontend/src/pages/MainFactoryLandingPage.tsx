@@ -187,8 +187,13 @@ export function MainFactoryLandingPage() {
       <main className="flex-1 flex flex-col items-center justify-center px-4">
         {/* Logo 和标题 */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-cta flex items-center justify-center shadow-glow">
-            <Sparkles size={32} className="text-white" />
+          <div className="w-24 h-24 mx-auto mb-4 relative flex items-center justify-center">
+            {/* 外层光晕 */}
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-violet-500/20 via-purple-500/20 to-pink-500/20 blur-xl"></div>
+            {/* 主图标 */}
+            <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-600 via-purple-500 to-pink-500 flex items-center justify-center shadow-xl shadow-purple-500/40">
+              <span className="text-3xl font-black bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent" style={{ fontFamily: 'system-ui' }}>Xobi</span>
+            </div>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
             Hi，我是你的 AI 设计师

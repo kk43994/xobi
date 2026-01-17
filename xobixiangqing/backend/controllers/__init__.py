@@ -14,6 +14,7 @@ from .dataset_controller import dataset_bp
 from .tools_controller import tools_bp
 from .agent_controller import agent_bp
 from .ai_controller import ai_bp
+from .stats_controller import stats_bp
 
 __all__ = [
     'project_bp',
@@ -32,5 +33,6 @@ __all__ = [
     'tools_bp',
     'agent_bp',
     'ai_bp',
+    'stats_bp',
 ]
 
