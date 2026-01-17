@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -26,7 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, current_app, request
-from PIL import Image  # type: ignore
+from PIL import Image, ImageFilter  # type: ignore
 
 from models import Asset, Job, db
 from services.ai_service_manager import get_ai_service
@@ -50,14 +52,115 @@ DETAIL_PAGE_VARIANTS = [
     {"type": "促销信息", "prompt_suffix": "促销活动信息，限时优惠、满减等促销内容"},
 ]
 
+MAIN_BANNER_VARIANTS = [
+    {
+        "type": "白底主图",
+        "prompt_suffix": "纯白/浅灰背景，产品完整清晰，主体居中或三分法构图，柔和自然阴影，商业摄影质感。",
+    },
+    {
+        "type": "场景主图",
+        "prompt_suffix": "真实生活场景背景（与产品匹配），突出使用氛围与质感，产品依旧清晰主角。",
+    },
+    {
+        "type": "细节特写",
+        "prompt_suffix": "中度特写展示关键细节/材质纹理，但不要极端裁切导致看不出产品主体。",
+    },
+    {
+        "type": "对比展示",
+        "prompt_suffix": "同画面展示对比（如大小/容量/前后效果/使用方式），用构图与图形元素表达，不要依赖文字。",
+    },
+]
 
-def _get_variant_prompt(base_prompt: str, index: int, total: int) -> str:
+POSTER_VARIANTS = [
+    {"type": "极简海报", "prompt_suffix": "极简大留白、中心产品、强光影层次，海报质感。"},
+    {"type": "氛围海报", "prompt_suffix": "氛围背景+柔和渐变或光斑，突出情绪与品牌感。"},
+    {"type": "产品海报", "prompt_suffix": "产品大特写+干净背景，强调材质与工艺。"},
+    {"type": "场景海报", "prompt_suffix": "强叙事场景，突出使用情境与氛围，但主体仍需清晰。"},
+]
+
+# 对“主图/海报”默认不让模型在图中生成文字，避免无意义乱码。
+MAIN_IMAGE_COMMON_RULES = (
+    "硬性要求：不要生成任何文字、字母、数字、logo、水印、二维码、价格标签、促销贴纸；"
+    "不要出现边框/拼贴/多宫格；背景干净，主体清晰，商业摄影风格。"
+)
+
+
+def _extract_image_type_tag(prompt: str) -> Optional[str]:
+    s = (prompt or "").strip()
+    m = re.match(r"^\[([^\]]{1,32})\]\s*", s)
+    if not m:
+        return None
+    return (m.group(1) or "").strip() or None
+
+
+def _select_variant_set(original_prompt: str) -> List[Dict[str, str]]:
+    tag = _extract_image_type_tag(original_prompt) or ""
+    if "详情" in tag:
+        return DETAIL_PAGE_VARIANTS
+    if "海报" in tag or "Poster" in tag or "poster" in tag:
+        return POSTER_VARIANTS
+    # Default: 主图工厂（Banner/主图）
+    return MAIN_BANNER_VARIANTS
+
+
+def _try_generate_main_banner_shot_plan(ai_service, original_prompt: str, count: int) -> Optional[List[Dict[str, Any]]]:
+    """
+    用文本模型先生成“分镜计划”，提升多张主图差异化与一致性。
+    返回 JSON 数组（长度=count），每项包含构图/背景/镜头/光线等要素。
+    """
+    try:
+        n = int(count or 0)
+    except Exception:
+        n = 0
+    if n <= 1:
+        return None
+
+    prompt = (
+        "你是电商主图导演。请基于用户需求设计一套主图分镜计划，用于生成多张内容不同但风格统一的电商主图。\n"
+        f"请输出严格 JSON 数组，长度={n}，每个元素包含字段：\n"
+        "- title: 这张图的短标题\n"
+        "- background: 背景/场景描述（与产品匹配）\n"
+        "- composition: 构图与主体占比（如何摆放、留白、安全边距）\n"
+        "- camera: 镜头/角度（正面/45度/俯拍等）\n"
+        "- lighting: 光线（柔光/侧光/棚拍等）\n"
+        "- notes: 额外约束（避免极端特写、保持风格一致等）\n\n"
+        "统一硬性要求：不要出现任何文字、字母、数字、logo、水印、二维码、价格标签、促销贴纸；不要拼贴/边框。\n"
+        "每张图必须与其它图明显不同（背景、镜头、构图至少两项不同），但产品与风格一致。\n"
+        f"用户需求：{original_prompt}\n"
+    )
+
+    try:
+        data = ai_service.generate_json(prompt, thinking_budget=250)
+    except Exception:
+        return None
+
+    if isinstance(data, dict) and isinstance(data.get("shots"), list):
+        data = data.get("shots")
+    if not isinstance(data, list):
+        return None
+
+    items: List[Dict[str, Any]] = []
+    for item in data:
+        if isinstance(item, dict):
+            items.append(item)
+    if not items:
+        return None
+
+    # Normalize length to n
+    if len(items) < n:
+        items = items + [items[-1]] * (n - len(items))
+    if len(items) > n:
+        items = items[:n]
+    return items
+
+
+def _get_variant_prompt(base_prompt: str, index: int, total: int, *, variants: List[Dict[str, str]]) -> str:
     """为每张图生成不同的 prompt 变体"""
     if total <= 1:
         return base_prompt
 
     # 循环使用变体
-    variant = DETAIL_PAGE_VARIANTS[index % len(DETAIL_PAGE_VARIANTS)]
+    variant = variants[index % len(variants)]
     return f"{base_prompt}。这是第{index + 1}张图（{variant['type']}）：{variant['prompt_suffix']}"
 
 
@@ -181,6 +284,7 @@ def generate_image():
 
     Body JSON:
       - prompt: string (required)
+      - model: string (optional, overrides image_model)
       - aspect_ratio: string (optional, default 1:1)
       - reference_images: string[] (optional, base64 data urls)
       - count: number (optional, default 1, max 10)
@@ -209,9 +313,16 @@ def generate_image():
             count = 1
         count = max(1, min(count, 10))
 
+        requested_image_model = str(payload.get("model") or payload.get("image_model") or "").strip() or None
+        if requested_image_model and len(requested_image_model) > 200:
+            requested_image_model = requested_image_model[:200]
+
         ai_service = get_ai_service()
         if not getattr(ai_service, "image_provider", None):
             return error_response("IMAGE_PROVIDER_NOT_CONFIGURED", "图片生成服务未配置，请检查 API 设置", 500)
+
+        provider_default_model = getattr(ai_service.image_provider, "model", None)
+        effective_image_model = requested_image_model or (str(provider_default_model).strip() if provider_default_model else None)
 
         enhanced_prompt = prompt
         ref_images: List[Image.Image] = []
@@ -234,6 +345,32 @@ def generate_image():
                     logger.warning("Failed to load reference image %s: %s", idx + 1, load_error, exc_info=True)
         logger.info("Total reference images loaded: %s", len(ref_images))
 
+        variant_set = _select_variant_set(prompt)
+        variant_set_name = (
+            "detail"
+            if variant_set is DETAIL_PAGE_VARIANTS
+            else "poster"
+            if variant_set is POSTER_VARIANTS
+            else "main_banner"
+        )
+
+        base_prompt = enhanced_prompt
+        if variant_set_name in ("main_banner", "poster"):
+            base_prompt = f"{base_prompt}\n\n{MAIN_IMAGE_COMMON_RULES}"
+            if count > 1:
+                base_prompt = (
+                    f"{base_prompt}\n\n"
+                    "这是同一产品的一套系列图：风格/色彩基调保持一致，但每张在背景、镜头、构图上必须明显不同。"
+                )
+
+        shot_plan = None
+        if variant_set_name == "main_banner" and count > 1:
+            t0 = time.monotonic()
+            shot_plan = _try_generate_main_banner_shot_plan(ai_service, prompt, count)
+            shot_plan_ms = int(round((time.monotonic() - t0) * 1000))
+        else:
+            shot_plan_ms = None
+
         # Create a lightweight Job record so the portal can track "单图生成" in Jobs center.
         job = Job(system="A", job_type="SINGLE_GENERATE", status="running")
         job.started_at = datetime.utcnow()
@@ -243,8 +380,11 @@ def generate_image():
                 "source": "canvas_generate_image",
                 "aspect_ratio": aspect_ratio,
                 "prompt": prompt,
-                "enhanced_prompt": enhanced_prompt,
+                "enhanced_prompt": base_prompt,
                 "reference_images": len(ref_images),
+                "variant_set": variant_set_name,
+                "shot_plan": shot_plan,
+                "shot_plan_ms": shot_plan_ms,
             }
         )
         db.session.add(job)
@@ -253,20 +393,73 @@ def generate_image():
 
         upload_root = Path(current_app.config["UPLOAD_FOLDER"]).resolve()
 
-        # 并发生成（默认最多 4 并发，避免同一 Key 瞬时打爆导致 429）
+        # 并发生成：对第三方中转(OpenAI 格式)更保守，避免 429/排队把单张拖到十几分钟
         max_workers_raw = current_app.config.get("MAX_IMAGE_WORKERS", 4)
         try:
             max_workers_cfg = int(max_workers_raw) if max_workers_raw is not None else 4
         except Exception:
             max_workers_cfg = 4
-        max_workers = max(1, min(count, max_workers_cfg, 4))
+
+        provider_format = str(current_app.config.get("AI_PROVIDER_FORMAT") or "").strip().lower()
+        canvas_max_concurrency_raw = current_app.config.get("CANVAS_IMAGE_MAX_CONCURRENCY", 0)
+        try:
+            canvas_max_concurrency = int(canvas_max_concurrency_raw) if canvas_max_concurrency_raw is not None else 0
+        except Exception:
+            canvas_max_concurrency = 0
+        if canvas_max_concurrency <= 0:
+            canvas_max_concurrency = 2 if provider_format == "openai" else 4
+
+        max_workers = max(1, min(count, max_workers_cfg, canvas_max_concurrency))
+
+        timeout_raw = current_app.config.get("CANVAS_IMAGE_TIMEOUT", 120.0)
+        try:
+            image_timeout = float(timeout_raw) if timeout_raw is not None else 120.0
+        except Exception:
+            image_timeout = 120.0
+        image_timeout = max(10.0, min(image_timeout, 600.0))
+
+        max_retries_raw = current_app.config.get("CANVAS_IMAGE_MAX_RETRIES", 0)
+        try:
+            image_max_retries = int(max_retries_raw) if max_retries_raw is not None else 0
+        except Exception:
+            image_max_retries = 0
+        image_max_retries = max(0, min(image_max_retries, 5))
+
+        job_meta = job.get_meta() or {}
+        job_meta["generation"] = {
+            "provider_format": provider_format,
+            "image_model": effective_image_model,
+            "requested_image_model": requested_image_model,
+            "max_workers": max_workers,
+            "timeout_s": image_timeout,
+            "max_retries": image_max_retries,
+        }
+        job_meta["image_runs"] = []
+        job.set_meta(job_meta)
+        db.session.commit()
 
         results_by_index: Dict[int, Dict[str, Any]] = {}
         completed = 0
         failed = 0
 
         # 为每张图生成不同的 prompt 变体（差异化内容）
-        variant_prompts = [(_get_variant_prompt(enhanced_prompt, i, count)) for i in range(count)]
+        if shot_plan and isinstance(shot_plan, list):
+            variant_types: List[Optional[str]] = []
+            variant_prompts: List[str] = []
+            for i in range(count):
+                s = shot_plan[i] if i < len(shot_plan) else {}
+                title = str((s or {}).get("title") or "").strip() or f"方案{i + 1}"
+                background = str((s or {}).get("background") or "").strip()
+                composition = str((s or {}).get("composition") or "").strip()
+                camera = str((s or {}).get("camera") or "").strip()
+                lighting = str((s or {}).get("lighting") or "").strip()
+                notes = str((s or {}).get("notes") or "").strip()
+                extra = "；".join([p for p in [background, composition, camera, lighting, notes] if p])
+                variant_types.append(title)
+                variant_prompts.append(f"{base_prompt}。这是第{i + 1}张图（{title}）：{extra}" if extra else f"{base_prompt}。这是第{i + 1}张图（{title}）。")
+        else:
+            variant_prompts = [(_get_variant_prompt(base_prompt, i, count, variants=variant_set)) for i in range(count)]
+            variant_types = [variant_set[i % len(variant_set)].get("type") if count > 1 else None for i in range(count)]
 
         def _generate_one(i: int) -> Optional[Image.Image]:
             variant_prompt = variant_prompts[i]
@@ -276,28 +469,49 @@ def generate_image():
                 ref_images=ref_images if ref_images else None,
                 aspect_ratio=aspect_ratio,
                 resolution="1K",
+                model=effective_image_model,
+                timeout=image_timeout,
+                max_retries=image_max_retries,
             )
 
         if count <= 1 or max_workers <= 1:
             # 单张图：走同步逻辑，减少线程开销
             for i in range(count):
                 try:
+                    started_at = datetime.utcnow().isoformat()
+                    started_t = time.monotonic()
                     generated = _generate_one(i)
+                    duration_ms = int(round((time.monotonic() - started_t) * 1000))
                     if generated is None:
                         failed += 1
+                        job_meta["image_runs"].append(
+                            {
+                                "index": i,
+                                "variant_type": variant_types[i],
+                                "status": "failed",
+                                "duration_ms": duration_ms,
+                                "asset_id": None,
+                                "error": "No image returned",
+                                "started_at": started_at,
+                                "ended_at": datetime.utcnow().isoformat(),
+                            }
+                        )
+                        job.set_meta(job_meta)
+                        job.set_progress({"total": count, "completed": completed, "failed": failed})
+                        db.session.commit()
                         continue
 
                     filename = f"canvas_{uuid.uuid4().hex}.png"
                     asset = Asset(system="A", kind="image", name=filename, storage="local", job_id=job_id)
-                    variant_info = DETAIL_PAGE_VARIANTS[i % len(DETAIL_PAGE_VARIANTS)] if count > 1 else None
                     asset.set_meta(
                         {
                             "source": "canvas_generate_image",
                             "aspect_ratio": aspect_ratio,
                             "prompt": prompt,
                             "enhanced_prompt": variant_prompts[i],
-                            "variant_type": variant_info["type"] if variant_info else None,
+                            "variant_type": variant_types[i],
                             "variant_index": i,
+                            "model": effective_image_model,
                             "reference_images": len(ref_images),
                         }
                     )
@@ -326,12 +540,39 @@ def generate_image():
                     }
                     completed += 1
 
+                    job_meta["image_runs"].append(
+                        {
+                            "index": i,
+                            "variant_type": variant_types[i],
+                            "status": "succeeded",
+                            "duration_ms": duration_ms,
+                            "asset_id": asset.id,
+                            "error": None,
+                            "started_at": started_at,
+                            "ended_at": datetime.utcnow().isoformat(),
+                        }
+                    )
+                    job.set_meta(job_meta)
                     job.set_progress({"total": count, "completed": completed, "failed": failed})
                     db.session.commit()
                 except Exception as img_error:
                     logger.error("Canvas image generation error (%s/%s): %s", i + 1, count, img_error, exc_info=True)
                     failed += 1
                     try:
+                        duration_ms = int(round((time.monotonic() - started_t) * 1000)) if "started_t" in locals() else None
+                        job_meta["image_runs"].append(
+                            {
+                                "index": i,
+                                "variant_type": variant_types[i],
+                                "status": "failed",
+                                "duration_ms": duration_ms,
+                                "asset_id": None,
+                                "error": str(img_error)[:500],
+                                "started_at": started_at if "started_at" in locals() else None,
+                                "ended_at": datetime.utcnow().isoformat(),
+                            }
+                        )
+                        job.set_meta(job_meta)
                         job.set_progress({"total": count, "completed": completed, "failed": failed})
                         db.session.commit()
                     except Exception:
@@ -339,28 +580,48 @@ def generate_image():
                     continue
         else:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                start_times: Dict[int, float] = {}
+                start_utc: Dict[int, str] = {}
+                for i in range(count):
+                    start_times[i] = time.monotonic()
+                    start_utc[i] = datetime.utcnow().isoformat()
                 futures = {executor.submit(_generate_one, i): i for i in range(count)}
                 for future in as_completed(futures):
                     i = futures[future]
+                    start_t = start_times.get(i)
+                    duration_ms = int(round((time.monotonic() - start_t) * 1000)) if start_t else None
                     try:
                         generated = future.result()
                         if generated is None:
                             failed += 1
+                            job_meta["image_runs"].append(
+                                {
+                                    "index": i,
+                                    "variant_type": variant_types[i],
+                                    "status": "failed",
+                                    "duration_ms": duration_ms,
+                                    "asset_id": None,
+                                    "error": "No image returned",
+                                    "started_at": start_utc.get(i),
+                                    "ended_at": datetime.utcnow().isoformat(),
+                                }
+                            )
+                            job.set_meta(job_meta)
                             job.set_progress({"total": count, "completed": completed, "failed": failed})
                             db.session.commit()
                             continue
 
                         filename = f"canvas_{uuid.uuid4().hex}.png"
                         asset = Asset(system="A", kind="image", name=filename, storage="local", job_id=job_id)
-                        variant_info = DETAIL_PAGE_VARIANTS[i % len(DETAIL_PAGE_VARIANTS)] if count > 1 else None
                         asset.set_meta(
                             {
                                 "source": "canvas_generate_image",
                                 "aspect_ratio": aspect_ratio,
                                 "prompt": prompt,
                                 "enhanced_prompt": variant_prompts[i],
-                                "variant_type": variant_info["type"] if variant_info else None,
+                                "variant_type": variant_types[i],
                                 "variant_index": i,
+                                "model": effective_image_model,
                                 "reference_images": len(ref_images),
                             }
                         )
@@ -389,12 +650,38 @@ def generate_image():
                         }
                         completed += 1
 
+                        job_meta["image_runs"].append(
+                            {
+                                "index": i,
+                                "variant_type": variant_types[i],
+                                "status": "succeeded",
+                                "duration_ms": duration_ms,
+                                "asset_id": asset.id,
+                                "error": None,
+                                "started_at": start_utc.get(i),
+                                "ended_at": datetime.utcnow().isoformat(),
+                            }
+                        )
+                        job.set_meta(job_meta)
                         job.set_progress({"total": count, "completed": completed, "failed": failed})
                         db.session.commit()
                     except Exception as img_error:
                         logger.error("Canvas image generation error (%s/%s): %s", i + 1, count, img_error, exc_info=True)
                         failed += 1
                         try:
+                            job_meta["image_runs"].append(
+                                {
+                                    "index": i,
+                                    "variant_type": variant_types[i],
+                                    "status": "failed",
+                                    "duration_ms": duration_ms,
+                                    "asset_id": None,
+                                    "error": str(img_error)[:500],
+                                    "started_at": start_utc.get(i),
+                                    "ended_at": datetime.utcnow().isoformat(),
+                                }
+                            )
+                            job.set_meta(job_meta)
                             job.set_progress({"total": count, "completed": completed, "failed": failed})
                             db.session.commit()
                         except Exception:
@@ -482,8 +769,18 @@ def _save_image_as_asset(
 def _load_image_from_source(image_data: str) -> Image.Image:
     """Load image from base64 or asset URL."""
     logger.info("_load_image_from_source called with: %s (first 80 chars)", image_data[:80] if len(image_data) > 80 else image_data)
-    if image_data.startswith("/api/assets/"):
-        asset_id = image_data.split("/")[3]
+    s = str(image_data or "").strip()
+    asset_id: Optional[str] = None
+    if s.startswith("/api/assets/"):
+        parts = s.split("/")
+        if len(parts) >= 4:
+            asset_id = parts[3]
+    else:
+        m = re.search(r"/api/assets/([^/]+)/", s)
+        if m:
+            asset_id = m.group(1)
+
+    if asset_id:
         logger.info("Loading from asset: %s", asset_id)
         asset = Asset.query.get(asset_id)
         if not asset or not asset.file_path:
@@ -648,8 +945,8 @@ def inpaint():
 
         logger.info("Inpaint request: prompt=%s", prompt[:100])
 
-        # Decode images
-        source_image = _decode_base64_image(image_data)
+        # Decode images (image supports asset URL or base64)
+        source_image = _load_image_from_source(image_data)
         source_image.load()
         mask_image = _decode_base64_image(mask_data)
         mask_image.load()
@@ -659,47 +956,92 @@ def inpaint():
         if not getattr(ai_service, "image_provider", None):
             return error_response("IMAGE_PROVIDER_NOT_CONFIGURED", "图片处理服务未配置，请在设置中配置 API", 500)
 
-        # Prepare composite image with mask overlay for context
-        # We'll create a prompt that describes the inpainting task
+        # Prepare inpaint prompt:
+        # - 让模型理解“只改遮罩区域”
+        # - 但即使模型改动过大，我们也会用遮罩把结果与原图合成，保证未遮罩区域不被破坏
         inpaint_prompt = (
-            f"Inpaint/regenerate the marked red area in this image. "
-            f"The red semi-transparent overlay indicates the region to be regenerated. "
-            f"Generate the following content in that area: {prompt}. "
-            f"Seamlessly blend the new content with the surrounding image, "
-            f"maintaining consistent lighting, style, and perspective."
+            "Inpaint/regenerate ONLY the masked region in this image. "
+            "The red semi-transparent overlay indicates the region to be regenerated. "
+            f"Generate the following content in that region: {prompt}. "
+            "Keep all unmasked regions identical to the original. "
+            "Seamlessly blend with surrounding pixels (lighting, shadows, perspective, texture). "
+            "Do NOT add any text, letters, numbers, watermarks, logos, QR codes, price tags, or stickers."
         )
 
-        # Create a composite image showing original with mask overlay
-        # This helps the AI understand what area to modify
-        composite = source_image.copy()
-        if composite.mode != 'RGBA':
-            composite = composite.convert('RGBA')
+        # Normalize to RGBA and align sizes
+        source_rgba = source_image.convert("RGBA") if source_image.mode != "RGBA" else source_image.copy()
+        mask_rgba = mask_image.convert("RGBA") if mask_image.mode != "RGBA" else mask_image.copy()
+        if mask_rgba.size != source_rgba.size:
+            mask_rgba = mask_rgba.resize(source_rgba.size, Image.Resampling.LANCZOS)
 
-        # Ensure mask is RGBA
-        if mask_image.mode != 'RGBA':
-            mask_image = mask_image.convert('RGBA')
+        # Build a binary mask from alpha channel (user draws red with alpha)
+        mask_alpha = mask_rgba.split()[-1]
+        binary_mask = mask_alpha.point(lambda a: 255 if a > 10 else 0).convert("L")
+        # Slight dilation to avoid hard seams
+        try:
+            binary_mask = binary_mask.filter(ImageFilter.MaxFilter(5))
+        except Exception:
+            pass
 
-        # Resize mask to match source if needed
-        if mask_image.size != composite.size:
-            mask_image = mask_image.resize(composite.size, Image.Resampling.LANCZOS)
+        if binary_mask.getbbox() is None:
+            return bad_request("Mask is empty. Please paint the region to edit.")
 
-        # Blend mask onto composite
-        composite = Image.alpha_composite(composite, mask_image)
+        # Compute a crop box around the masked region to reduce payload and improve stability.
+        left, top, right, bottom = binary_mask.getbbox()  # type: ignore[assignment]
+        pad = int(max(source_rgba.size) * 0.08)
+        pad = max(24, min(240, pad))
+        left = max(0, left - pad)
+        top = max(0, top - pad)
+        right = min(source_rgba.width, right + pad)
+        bottom = min(source_rgba.height, bottom + pad)
+        crop_box = (left, top, right, bottom)
 
-        # Generate using the composite as reference
-        result = ai_service.image_provider.generate_image(
+        source_crop = source_rgba.crop(crop_box)
+        mask_overlay_crop = mask_rgba.crop(crop_box)
+        binary_mask_crop = binary_mask.crop(crop_box)
+
+        composite_crop = Image.alpha_composite(source_crop, mask_overlay_crop)
+
+        # Aspect ratio (best-effort) based on crop
+        crop_ar = "1:1"
+        try:
+            w, h = source_crop.size
+            r = w / float(h or 1)
+            candidates = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "5:4", "4:5"]
+            best = candidates[0]
+            best_diff = 999.0
+            for c in candidates:
+                cw, ch = c.split(":")
+                cr = int(cw) / float(int(ch))
+                diff = abs(cr - r)
+                if diff < best_diff:
+                    best_diff = diff
+                    best = c
+            crop_ar = best
+        except Exception:
+            crop_ar = "1:1"
+
+        # Generate a patch (cropped) using the composite as reference
+        patch = ai_service.image_provider.generate_image(
             prompt=inpaint_prompt,
-            ref_images=[source_image, composite],  # Provide both original and masked version
-            aspect_ratio="1:1",
-            resolution="1K"
+            ref_images=[composite_crop],
+            aspect_ratio=crop_ar,
+            resolution="1K",
         )
 
-        if result is None:
+        if patch is None:
             return error_response("INPAINT_FAILED", "涂抹改图失败，请重试", 500)
 
-        # Resize result to match original if needed
-        if result.size != source_image.size:
-            result = result.resize(source_image.size, Image.Resampling.LANCZOS)
+        patch_rgba = patch.convert("RGBA") if patch.mode != "RGBA" else patch.copy()
+        if patch_rgba.size != source_crop.size:
+            patch_rgba = patch_rgba.resize(source_crop.size, Image.Resampling.LANCZOS)
+
+        # Composite: patch only applies to masked pixels, keep others identical
+        blended_crop = Image.composite(patch_rgba, source_crop, binary_mask_crop)
+
+        # Paste back into full image
+        result = source_rgba.copy()
+        result.paste(blended_crop, (crop_box[0], crop_box[1]))
 
         # Save as asset
         asset_info = _save_image_as_asset(

@@ -471,15 +471,19 @@ async function generateImage(
     fullPrompt = `${fullPrompt} [${options.language}]`;
   }
 
+  const requestedModel = (options?.model || '').trim() || (config.imageModel || '').trim();
+  const payload: any = {
+    prompt: fullPrompt,
+    aspect_ratio: aspectRatio === 'auto' ? '1:1' : aspectRatio,
+    reference_images: options?.referenceImages || [],
+    count: options?.count || 1,
+  };
+  if (requestedModel) payload.model = requestedModel;
+
   const response = await fetch('/api/ai/generate-image', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: fullPrompt,
-      aspect_ratio: aspectRatio === 'auto' ? '1:1' : aspectRatio,
-      reference_images: options?.referenceImages || [],
-      count: options?.count || 1,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -2472,12 +2476,12 @@ export const MainFactoryCanvasPage = memo(function MainFactoryCanvasPage() {
             setInpaintingImage(null);
           }}
           onComplete={(newImageSrc) => {
-            // 更新选中图片的src
-            setImages(images.map(img =>
-              img.id === inpaintingImage.id
-                ? { ...img, src: newImageSrc }
-                : img
-            ));
+            // 更新选中图片的src，并刷新缩略图（避免仍显示旧图）
+            setImages((prev) =>
+              prev.map((img) =>
+                img.id === inpaintingImage.id ? { ...img, src: newImageSrc, thumbnail: newImageSrc } : img
+              )
+            );
           }}
         />
       )}

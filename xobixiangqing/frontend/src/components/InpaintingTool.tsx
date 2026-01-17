@@ -139,15 +139,13 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
       return;
     }
 
-    const canvas = canvasRef.current;
     const maskCanvas = maskCanvasRef.current;
-    if (!canvas || !maskCanvas) return;
+    if (!maskCanvas) return;
 
     setIsGenerating(true);
 
     try {
-      // 获取原图和遮罩数据
-      const imageData = canvas.toDataURL('image/png');
+      // 获取遮罩数据（原图使用 image.src，避免前端缩放导致清晰度损失）
       const maskData = maskCanvas.toDataURL('image/png');
 
       // 调用后端 Inpainting API
@@ -155,7 +153,7 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: imageData,
+          image: image.src,
           mask: maskData,
           prompt: prompt,
         }),
@@ -200,7 +198,7 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
       />
 
       {/* 主面板 */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] max-h-[90vh] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[9999]">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] max-w-[95vw] max-h-[90vh] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[9999] flex flex-col">
         {/* 头部 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-white/10">
           <div className="flex items-center gap-3">
@@ -221,8 +219,8 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
         </div>
 
         {/* 内容区 */}
-        <div className="p-6">
-          <div className="grid grid-cols-[1fr_300px] gap-6">
+        <div className="p-6 overflow-auto flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
             {/* 左侧: 画布区 */}
             <div className="space-y-4">
               {/* 画布容器 */}
@@ -323,7 +321,7 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
                   rows={4}
                   maxLength={500}
                   showCount
-                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                  className="!bg-white dark:!bg-white/5 !border-gray-200 dark:!border-white/10 !text-gray-900 dark:!text-white !placeholder:text-gray-400 dark:!placeholder:text-white/30"
                 />
               </div>
 

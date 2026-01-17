@@ -74,7 +74,11 @@ class GenAIImageProvider(ImageProvider):
         prompt: str,
         ref_images: Optional[List[Image.Image]] = None,
         aspect_ratio: str = "16:9",
-        resolution: str = "2K"
+        resolution: str = "2K",
+        *,
+        model: Optional[str] = None,
+        timeout: Optional[float] = None,
+        max_retries: Optional[int] = None,
     ) -> Optional[Image.Image]:
         """
         Generate image using Google GenAI SDK
@@ -84,7 +88,10 @@ class GenAIImageProvider(ImageProvider):
             ref_images: Optional list of reference images
             aspect_ratio: Image aspect ratio
             resolution: Image resolution (supports "1K", "2K", "4K")
-            
+            model: Optional model override for this request
+            timeout: Optional request timeout override (seconds, ignored for GenAI provider)
+            max_retries: Optional retry override (ignored for GenAI provider)
+              
         Returns:
             Generated PIL Image object, or None if failed
         """
@@ -103,8 +110,9 @@ class GenAIImageProvider(ImageProvider):
             logger.debug(f"Calling GenAI API for image generation with {len(ref_images) if ref_images else 0} reference images...")
             logger.debug(f"Config - aspect_ratio: {aspect_ratio}, resolution: {resolution}")
             
+            selected_model = str(model).strip() if model else self.model
             response = self.client.models.generate_content(
-                model=self.model,
+                model=selected_model,
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_modalities=['TEXT', 'IMAGE'],

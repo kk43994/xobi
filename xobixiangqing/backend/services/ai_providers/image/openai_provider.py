@@ -180,6 +180,36 @@ class OpenAIImageProvider(ImageProvider):
 
         return results
 
+    def _is_images_api_model(self, model: str) -> bool:
+        m = str(model or "").strip().lower()
+        return m.startswith("gpt-image") or m.startswith("dall-e")
+
+    def _pick_images_api_size(self, aspect_ratio: str) -> str:
+        """
+        Map an aspect ratio like '1:1' / '16:9' to OpenAI Images API supported sizes.
+        Falls back to 1024x1024 when parsing fails.
+        """
+        s = str(aspect_ratio or "").strip()
+        m = re.match(r"^\s*(\d+)\s*:\s*(\d+)\s*$", s)
+        if not m:
+            return "1024x1024"
+
+        try:
+            w = int(m.group(1))
+            h = int(m.group(2))
+        except Exception:
+            return "1024x1024"
+
+        if w <= 0 or h <= 0:
+            return "1024x1024"
+
+        ratio = float(w) / float(h)
+        if ratio >= 1.2:
+            return "1792x1024"
+        if ratio <= 0.85:
+            return "1024x1792"
+        return "1024x1024"
+
     def _try_extract_image_from_response(self, message: Any) -> Optional[Image.Image]:
         """
         Try all possible methods to extract an image from the API response
@@ -364,7 +394,11 @@ class OpenAIImageProvider(ImageProvider):
         prompt: str,
         ref_images: Optional[List[Image.Image]] = None,
         aspect_ratio: str = "16:9",
-        resolution: str = "2K"
+        resolution: str = "2K",
+        *,
+        model: Optional[str] = None,
+        timeout: Optional[float] = None,
+        max_retries: Optional[int] = None,
     ) -> Optional[Image.Image]:
         """
         Generate image using OpenAI SDK
@@ -376,11 +410,16 @@ class OpenAIImageProvider(ImageProvider):
             ref_images: Optional list of reference images
             aspect_ratio: Image aspect ratio
             resolution: Image resolution (only 1K supported, parameter ignored)
+            model: Optional model override for this request
+            timeout: Optional request timeout override (seconds)
+            max_retries: Optional retry override (OpenAI SDK retries)
 
         Returns:
             Generated PIL Image object, or None if failed
         """
         try:
+            selected_model = str(model).strip() if model else self.model
+
             # Build message content
             content = []
 
@@ -403,12 +442,63 @@ class OpenAIImageProvider(ImageProvider):
             # Add text prompt
             content.append({"type": "text", "text": prompt})
 
-            logger.info(f"Calling OpenAI API for image generation with model={self.model}")
+            logger.info(f"Calling OpenAI API for image generation with model={selected_model}")
             logger.debug(f"Config - aspect_ratio: {aspect_ratio}, resolution: {resolution}")
 
             # Note: resolution is not supported in OpenAI format, only aspect_ratio via system message
-            response = self.client.chat.completions.create(
-                model=self.model,
+            client = self.client
+            if timeout is not None or max_retries is not None:
+                overrides: Dict[str, Any] = {}
+                if timeout is not None:
+                    overrides["timeout"] = timeout
+                if max_retries is not None:
+                    overrides["max_retries"] = max_retries
+                client = self.client.with_options(**overrides)
+
+            # Some models (e.g. gpt-image-1 / dall-e-3) are primarily served via Images API.
+            # We try Images API first (only when no reference images are provided), then fall back to chat.completions.
+            if self._is_images_api_model(selected_model) and not ref_images:
+                try:
+                    size = self._pick_images_api_size(aspect_ratio)
+                    img_resp = client.images.generate(
+                        model=selected_model,
+                        prompt=prompt,
+                        n=1,
+                        size=size,
+                        response_format="b64_json",
+                    )
+                    item = img_resp.data[0] if getattr(img_resp, "data", None) else None
+                    b64 = None
+                    url = None
+                    if item is not None:
+                        if isinstance(item, dict):
+                            b64 = item.get("b64_json") or item.get("b64") or item.get("data")
+                            url = item.get("url")
+                        else:
+                            b64 = getattr(item, "b64_json", None)
+                            url = getattr(item, "url", None)
+
+                    extracted = self._extract_image_from_base64(str(b64)) if b64 else None
+                    if not extracted and url:
+                        extracted = self._download_image_from_url(str(url))
+
+                    if extracted:
+                        logger.info(f"Successfully generated image via Images API: {extracted.size}, {extracted.mode}")
+                        return extracted
+                except Exception:
+                    logger.warning(
+                        "Images API generation failed for model=%s; falling back to chat.completions",
+                        selected_model,
+                        exc_info=True,
+                    )
+            elif self._is_images_api_model(selected_model) and ref_images:
+                logger.info(
+                    "Model=%s looks like an Images API model, but reference images were provided; using chat.completions path.",
+                    selected_model,
+                )
+
+            response = client.chat.completions.create(
+                model=selected_model,
                 messages=[
                     {"role": "system", "content": f"aspect_ratio={aspect_ratio};resolution={resolution}"},
                     {"role": "user", "content": content},
@@ -440,7 +530,7 @@ class OpenAIImageProvider(ImageProvider):
                 content_preview = content_preview[:500] + "..."
             logger.error(f"Message content preview: {content_preview}")
 
-            raise ValueError(f"No valid image response received from API (model={self.model}). The model may not support image generation or returned an unsupported format.")
+            raise ValueError(f"No valid image response received from API (model={selected_model}). The model may not support image generation or returned an unsupported format.")
 
         except Exception as e:
             error_str = str(e)
@@ -449,7 +539,7 @@ class OpenAIImageProvider(ImageProvider):
                 # 500 error often means invalid model name or model doesn't support image generation
                 error_detail = (
                     f"图片生成失败 (HTTP 500)。可能原因：\n"
-                    f"1. 模型名称 '{self.model}' 无效或不支持图片生成\n"
+                    f"1. 模型名称 '{selected_model}' 无效或不支持图片生成\n"
                     f"2. API 服务暂时不可用\n"
                     f"推荐模型：gemini-2.0-flash-exp-image-generation 或 imagen-3.0-generate-001\n"
                     f"原始错误: {error_str}"
@@ -463,7 +553,7 @@ class OpenAIImageProvider(ImageProvider):
             elif "timeout" in error_str.lower():
                 error_detail = f"API 请求超时，请稍后重试。原始错误: {error_str}"
             else:
-                error_detail = f"Error generating image with OpenAI (model={self.model}): {type(e).__name__}: {error_str}"
+                error_detail = f"Error generating image with OpenAI (model={selected_model}): {type(e).__name__}: {error_str}"
             logger.error(error_detail, exc_info=True)
             raise Exception(error_detail) from e
 

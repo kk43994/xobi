@@ -90,6 +90,12 @@ class Config:
     # 并发配置
     MAX_DESCRIPTION_WORKERS = int(os.getenv('MAX_DESCRIPTION_WORKERS', '5'))
     MAX_IMAGE_WORKERS = int(os.getenv('MAX_IMAGE_WORKERS', '8'))
+
+    # 画布/单图工厂专用：更保守的并发与超时，避免上游限流/重试导致“卡十几分钟”
+    # 说明：MAX_IMAGE_WORKERS 仍用于全局并发；这里用于画布生图的上限与单张超时
+    CANVAS_IMAGE_MAX_CONCURRENCY = int(os.getenv("CANVAS_IMAGE_MAX_CONCURRENCY", "0"))  # 0=auto
+    CANVAS_IMAGE_TIMEOUT = float(os.getenv("CANVAS_IMAGE_TIMEOUT", "120.0"))  # seconds
+    CANVAS_IMAGE_MAX_RETRIES = int(os.getenv("CANVAS_IMAGE_MAX_RETRIES", "0"))
     
     # 图片生成配置
     DEFAULT_ASPECT_RATIO = "3:4"
