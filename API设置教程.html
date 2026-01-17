@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xobi API 设置教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card h2 .step {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .card h3 {
+            color: #555;
+            font-size: 1.1rem;
+            margin: 20px 0 12px 0;
+        }
+
+        .card p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .card ul {
+            color: #666;
+            line-height: 2;
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .card li {
+            margin-bottom: 8px;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre;
+        }
+
+        .code-block .comment {
+            color: #6a9955;
+        }
+
+        .code-block .key {
+            color: #9cdcfe;
+        }
+
+        .code-block .value {
+            color: #ce9178;
+        }
+
+        .code-block .command {
+            color: #dcdcaa;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-left: 4px solid #667eea;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin: 15px 0;
+        }
+
+        .highlight-box.warning {
+            background: linear-gradient(135deg, #fff8e6 0%, #fff3cd 100%);
+            border-left-color: #ffc107;
+        }
+
+        .highlight-box.success {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-left-color: #4caf50;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            color: #555;
+        }
+
+        .highlight-box strong {
+            color: #333;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn.secondary {
+            background: #6c757d;
+        }
+
+        .btn.secondary:hover {
+            box-shadow: 0 5px 20px rgba(108, 117, 125, 0.4);
+        }
+
+        .provider-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .provider-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: border-color 0.2s, transform 0.2s;
+            cursor: pointer;
+        }
+
+        .provider-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+        }
+
+        .provider-card.recommended {
+            border-color: #4caf50;
+            background: linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%);
+        }
+
+        .provider-card h4 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .provider-card p {
+            color: #888;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .provider-card .badge {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+
+        .file-tree {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .file-tree .folder {
+            color: #667eea;
+        }
+
+        .file-tree .file {
+            color: #28a745;
+        }
+
+        .file-tree .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f5f7fa;
+            color: #333;
+            font-weight: 600;
+        }
+
+        td {
+            color: #666;
+        }
+
+        td code {
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: #d63384;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 15px 0;
+        }
+
+        .faq-item:last-child {
+            border-bottom: none;
+        }
+
+        .faq-item h4 {
+            color: #333;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .faq-item h4::before {
+            content: "Q: ";
+            color: #667eea;
+        }
+
+        .faq-item p {
+            margin: 0;
+            padding-left: 24px;
+        }
+
+        .faq-item p::before {
+            content: "A: ";
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .footer a {
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .provider-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Xobi API 设置教程</h1>
+            <p>5分钟完成配置，开始使用AI生成电商图片</p>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="card">
+            <h2><span class="step">1</span> 获取 API Key</h2>
+            <p>Xobi 使用 OpenAI 兼容的 API 格式，支持多种 AI 服务商：</p>
+
+            <div class="provider-grid">
+                <div class="provider-card recommended">
+                    <span class="badge">推荐</span>
+                    <h4>酷可 API</h4>
+                    <p>国内直连，价格实惠</p>
+                    <p style="margin-top: 8px; color: #667eea;">api.kk666.online</p>
+                </div>
+                <div class="provider-card">
+                    <h4>OpenAI 官方</h4>
+                    <p>原版接口，需要科学上网</p>
+                    <p style="margin-top: 8px; color: #667eea;">api.openai.com</p>
+                </div>
+                <div class="provider-card">
+                    <h4>Azure OpenAI</h4>
+                    <p>微软云服务</p>
+                    <p style="margin-top: 8px; color: #667eea;">*.openai.azure.com</p>
+                </div>
+                <div class="provider-card">
+                    <h4>其他兼容服务</h4>
+                    <p>任何 OpenAI 兼容 API</p>
+                    <p style="margin-top: 8px; color: #667eea;">自定义地址</p>
+                </div>
+            </div>
+
+            <div class="highlight-box">
+                <p><strong>💡 提示：</strong>如果你还没有 API Key，可以访问上述服务商官网注册获取。推荐使用酷可 API，无需科学上网，价格实惠。</p>
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="card">
+            <h2><span class="step">2</span> 找到配置文件</h2>
+            <p>配置文件位于项目根目录：</p>
+
+            <div class="file-tree">
+                <span class="folder">📁 xobi/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 xobixiangqing/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">.env.example</span> ← 示例文件<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file highlight">.env</span> ← <strong>你需要创建这个文件</strong><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 backend/</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">📁 frontend/</span><br>
+            </div>
+
+            <h3>创建配置文件</h3>
+            <p>复制示例文件并重命名：</p>
+
+            <div class="code-block">
+                <code><span class="comment"># Windows 命令行</span>
+<span class="command">copy</span> xobixiangqing\.env.example xobixiangqing\.env
+
+<span class="comment"># 或者手动操作：</span>
+<span class="comment"># 1. 找到 .env.example 文件</span>
+<span class="comment"># 2. 复制一份</span>
+<span class="comment"># 3. 重命名为 .env</span></code>
+            </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="card">
+            <h2><span class="step">3</span> 编辑配置文件</h2>
+            <p>用记事本或任意文本编辑器打开 <code>.env</code> 文件，修改以下内容：</p>
+
+            <h3>必填项</h3>
+            <div class="code-block">
+                <code><span class="comment"># ========== 必填：填写你的 API Key ==========</span>
+<span class="key">OPENAI_API_KEY</span>=<span class="value">sk-xxxxxxxxxxxxxxxxxxxxxxxx</span></code>
+            </div>
+
+            <h3>可选项（按需修改）</h3>
+            <div class="code-block">
+                <code><span class="comment"># API 地址（默认酷可，可改成其他服务商）</span>
+<span class="key">OPENAI_API_BASE</span>=<span class="value">https://api.kk666.online/v1</span>
+
+<span class="comment"># AI 模型配置</span>
+<span class="key">TEXT_MODEL</span>=<span class="value">gemini-3-flash-preview</span>
+<span class="key">IMAGE_MODEL</span>=<span class="value">gemini-3-pro-image-preview</span>
+<span class="key">IMAGE_CAPTION_MODEL</span>=<span class="value">gemini-3-flash-preview</span></code>
+            </div>
+
+            <div class="highlight-box warning">
+                <p><strong>⚠️ 注意：</strong>API Key 是敏感信息，请勿分享给他人或上传到公开仓库！</p>
+            </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="card">
+            <h2><span class="step">4</span> 完整配置参考</h2>
+            <p>以下是 <code>.env</code> 文件的完整配置说明：</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>配置项</th>
+                        <th>说明</th>
+                        <th>默认值</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>OPENAI_API_KEY</code></td>
+                        <td>API 密钥（必填）</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><code>OPENAI_API_BASE</code></td>
+                        <td>API 地址</td>
+                        <td>https://api.kk666.online/v1</td>
+                    </tr>
+                    <tr>
+                        <td><code>TEXT_MODEL</code></td>
+                        <td>文本生成模型</td>
+                        <td>gemini-3-flash-preview</td>
+                    </tr>
+                    <tr>
+                        <td><code>IMAGE_MODEL</code></td>
+                        <td>图片生成模型</td>
+                        <td>gemini-3-pro-image-preview</td>
+                    </tr>
+                    <tr>
+                        <td><code>PORT</code></td>
+                        <td>后端端口</td>
+                        <td>5000</td>
+                    </tr>
+                    <tr>
+                        <td><code>OPENAI_TIMEOUT</code></td>
+                        <td>请求超时（秒）</td>
+                        <td>300</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="card">
+            <h2><span class="step">5</span> 启动服务</h2>
+            <p>配置完成后，启动 Xobi：</p>
+
+            <div class="code-block">
+                <code><span class="comment"># 方式一：双击启动脚本（推荐）</span>
+双击运行 <span class="value">Xobi启动器.bat</span>
+
+<span class="comment"># 方式二：命令行启动</span>
+<span class="command">cd</span> xobixiangqing/backend
+<span class="command">python</span> -m flask run --port 5000
+
+<span class="comment"># 新开一个终端</span>
+<span class="command">cd</span> xobixiangqing/frontend
+<span class="command">npm</span> run dev</code>
+            </div>
+
+            <div class="highlight-box success">
+                <p><strong>✅ 成功：</strong>打开浏览器访问 <a href="http://localhost:3000" target="_blank">http://localhost:3000</a> 即可使用！</p>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="card">
+            <h2>❓ 常见问题</h2>
+
+            <div class="faq-item">
+                <h4>API 调用失败，提示 401 错误？</h4>
+                <p>API Key 填写错误或已过期，请检查 <code>OPENAI_API_KEY</code> 是否正确。</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>API 调用失败，提示网络错误？</h4>
+                <p>检查 <code>OPENAI_API_BASE</code> 地址是否正确，确保网络能访问该地址。</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>图片生成很慢或超时？</h4>
+                <p>可以增加超时时间：设置 <code>OPENAI_TIMEOUT=600</code>（10分钟）。</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>想换成 OpenAI 官方 API？</h4>
+                <p>修改 <code>OPENAI_API_BASE=https://api.openai.com/v1</code>，并使用官方 API Key。</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>如何使用其他模型？</h4>
+                <p>修改 <code>TEXT_MODEL</code> 和 <code>IMAGE_MODEL</code> 为你想使用的模型名称。</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>.env 文件不生效？</h4>
+                <p>确保文件名是 <code>.env</code>（不是 <code>.env.txt</code>），并且重启服务。</p>
+            </div>
+        </div>
+
+        <!-- Links -->
+        <div class="card" style="text-align: center;">
+            <h2 style="justify-content: center;">🔗 相关链接</h2>
+            <p style="margin-bottom: 20px;">获取更多帮助和资源</p>
+            <a href="https://github.com/kk43994/xobi" target="_blank" class="btn">GitHub 项目</a>
+            <a href="https://api.kk666.online" target="_blank" class="btn secondary">酷可 API</a>
+        </div>
+
+        <div class="footer">
+            <p>Xobi - AI 电商图片生成平台 | <a href="https://github.com/kk43994/xobi" target="_blank">GitHub</a></p>
+            <p style="margin-top: 8px; font-size: 0.9rem;">Made with ❤️ by Xobi Team</p>
+        </div>
+    </div>
+</body>
+</html>
