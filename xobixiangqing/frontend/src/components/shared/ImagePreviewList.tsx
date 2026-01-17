@@ -85,7 +85,7 @@ export const ImagePreviewList: React.FC<ImagePreviewListProps> = ({
             className="relative flex-shrink-0 group"
           >
             {/* 图片容器 */}
-            <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-banana-400 transition-colors">
+            <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-primary-400 transition-colors">
               <img
                 src={image.url}
                 alt={image.alt}

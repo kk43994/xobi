@@ -203,8 +203,8 @@ export function EditorPage() {
   };
 
   return (
-    <div className="h-full w-full bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4 flex gap-4 min-h-0">
-      <div className="w-[420px] shrink-0 rounded-2xl border border-white/10 bg-dark-secondary/80 backdrop-blur-xl p-4 overflow-auto">
+    <div className="h-full w-full bg-gray-50 dark:bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4 flex gap-4 min-h-0">
+      <div className="w-[420px] shrink-0 rounded-2xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-dark-secondary/80 backdrop-blur-xl p-4 overflow-auto">
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Space direction="vertical" size={0}>
             <Typography.Text strong>编辑器</Typography.Text>
@@ -366,7 +366,7 @@ export function EditorPage() {
         </Space>
       </div>
 
-      <div className="flex-1 min-w-0 rounded-2xl border border-white/10 bg-dark-secondary/80 backdrop-blur-xl overflow-hidden">
+      <div className="flex-1 min-w-0 rounded-2xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-dark-secondary/80 backdrop-blur-xl overflow-hidden">
         <Tabs
           size="small"
           style={{ height: '100%' }}

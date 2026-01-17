@@ -150,30 +150,34 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
       const imageData = canvas.toDataURL('image/png');
       const maskData = maskCanvas.toDataURL('image/png');
 
-      // TODO: 调用AI Inpainting API
-      // const response = await fetch('/api/inpaint', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     image: imageData,
-      //     mask: maskData,
-      //     prompt: prompt,
-      //   }),
-      // });
-      // const result = await response.json();
-      // setResult(result.imageUrl);
+      // 调用后端 Inpainting API
+      const response = await fetch('/api/ai/inpaint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: imageData,
+          mask: maskData,
+          prompt: prompt,
+        }),
+      });
 
-      // 临时模拟: 显示API未实现提示
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      message.info('AI Inpainting API暂未实现。请配置API接口后使用此功能。');
+      const result = await response.json();
 
-      // 示例: 如果API返回了结果
-      // setResult(result.imageUrl);
-      // message.success('生成成功!');
+      if (!response.ok) {
+        const errorMsg = result?.error?.message || result?.message || '生成失败';
+        throw new Error(errorMsg);
+      }
 
-    } catch (error) {
+      if (result.success && result.data?.image_url) {
+        setResult(result.data.image_url);
+        message.success('生成成功!');
+      } else {
+        throw new Error(result?.error?.message || '生成失败，未返回图片');
+      }
+
+    } catch (error: any) {
       console.error('生成失败:', error);
-      message.error('生成失败,请重试');
+      message.error(`生成失败: ${error.message || '请重试'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -196,21 +200,21 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
       />
 
       {/* 主面板 */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] max-h-[90vh] bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[9999]">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] max-h-[90vh] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[9999]">
         {/* 头部 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-vibrant/20 flex items-center justify-center">
               <Paintbrush size={20} className="text-purple-vibrant" />
             </div>
             <div>
-              <h2 className="text-white text-xl font-semibold">涂抹改图</h2>
-              <p className="text-white/50 text-sm">在图片上涂抹要修改的区域</p>
+              <h2 className="text-gray-900 dark:text-white text-xl font-semibold">涂抹改图</h2>
+              <p className="text-gray-500 dark:text-white/50 text-sm">在图片上涂抹要修改的区域</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
           >
             <X size={20} />
           </button>
@@ -222,7 +226,7 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
             {/* 左侧: 画布区 */}
             <div className="space-y-4">
               {/* 画布容器 */}
-              <div className="relative bg-black/20 rounded-lg overflow-hidden border border-white/10 min-h-[600px] flex items-center justify-center">
+              <div className="relative bg-gray-100 dark:bg-black/20 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 min-h-[600px] flex items-center justify-center">
                 {imageLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
                     <div className="text-white text-sm">加载图片中...</div>
@@ -250,7 +254,7 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
               </div>
 
               {/* 工具栏 */}
-              <div className="flex items-center gap-4 p-4 bg-white/5 rounded-lg">
+              <div className="flex items-center gap-4 p-4 bg-gray-100 dark:bg-white/5 rounded-lg">
                 {/* 工具选择 */}
                 <div className="flex items-center gap-2">
                   <button
@@ -258,7 +262,7 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
                     className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
                       activeTool === 'brush'
                         ? 'bg-purple-vibrant text-white'
-                        : 'bg-white/5 text-white/70 hover:bg-white/10'
+                        : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/10'
                     }`}
                   >
                     <Paintbrush size={16} />
@@ -269,7 +273,7 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
                     className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
                       activeTool === 'eraser'
                         ? 'bg-purple-vibrant text-white'
-                        : 'bg-white/5 text-white/70 hover:bg-white/10'
+                        : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/10'
                     }`}
                   >
                     <Eraser size={16} />
@@ -277,11 +281,11 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
                   </button>
                 </div>
 
-                <div className="w-px h-6 bg-white/10" />
+                <div className="w-px h-6 bg-gray-300 dark:bg-white/10" />
 
                 {/* 笔刷大小 */}
                 <div className="flex-1 flex items-center gap-3">
-                  <span className="text-white/70 text-sm whitespace-nowrap">笔刷大小</span>
+                  <span className="text-gray-600 dark:text-white/70 text-sm whitespace-nowrap">笔刷大小</span>
                   <Slider
                     min={5}
                     max={100}
@@ -289,17 +293,17 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
                     onChange={setBrushSize}
                     className="flex-1"
                   />
-                  <span className="text-white text-sm font-mono w-12 text-right">
+                  <span className="text-gray-900 dark:text-white text-sm font-mono w-12 text-right">
                     {brushSize}px
                   </span>
                 </div>
 
-                <div className="w-px h-6 bg-white/10" />
+                <div className="w-px h-6 bg-gray-300 dark:bg-white/10" />
 
                 {/* 清空按钮 */}
                 <button
                   onClick={clearMask}
-                  className="px-4 py-2 rounded-lg flex items-center gap-2 bg-white/5 text-white/70 hover:bg-white/10 transition-all"
+                  className="px-4 py-2 rounded-lg flex items-center gap-2 bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                 >
                   <RotateCcw size={16} />
                   <span className="text-sm">清空</span>
@@ -311,7 +315,7 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
             <div className="space-y-4">
               {/* 提示词输入 */}
               <div className="space-y-2">
-                <label className="text-white text-sm font-medium">提示词</label>
+                <label className="text-gray-900 dark:text-white text-sm font-medium">提示词</label>
                 <Input.TextArea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -325,13 +329,13 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
 
               {/* 示例提示词 */}
               <div className="space-y-2">
-                <label className="text-white/70 text-xs">示例提示词</label>
+                <label className="text-gray-600 dark:text-white/70 text-xs">示例提示词</label>
                 <div className="flex flex-wrap gap-2">
                   {['一只猫', '蓝色天空', '绿色草地', '鲜花', '树木'].map((example) => (
                     <button
                       key={example}
                       onClick={() => setPrompt(example)}
-                      className="px-3 py-1 rounded-lg bg-white/5 text-white/60 text-xs hover:bg-white/10 transition-all"
+                      className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-white/60 text-xs hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                     >
                       {example}
                     </button>
@@ -353,9 +357,9 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
               </Button>
 
               {/* 提示信息 */}
-              <div className="p-4 bg-purple-vibrant/10 border border-purple-vibrant/20 rounded-lg">
-                <div className="text-white text-sm font-medium mb-2">使用说明</div>
-                <ul className="text-white/60 text-xs space-y-1.5 list-disc list-inside">
+              <div className="p-4 bg-purple-50 dark:bg-purple-vibrant/10 border border-purple-200 dark:border-purple-vibrant/20 rounded-lg">
+                <div className="text-gray-900 dark:text-white text-sm font-medium mb-2">使用说明</div>
+                <ul className="text-gray-600 dark:text-white/60 text-xs space-y-1.5 list-disc list-inside">
                   <li>使用笔刷涂抹要修改的区域</li>
                   <li>输入提示词描述想要的内容</li>
                   <li>点击生成按钮等待AI处理</li>
@@ -363,19 +367,11 @@ export const InpaintingTool = ({ image, onClose, onComplete }: InpaintingToolPro
                 </ul>
               </div>
 
-              {/* API未实现提示 */}
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                <div className="text-yellow-500 text-sm font-medium mb-2">开发中</div>
-                <p className="text-yellow-500/60 text-xs">
-                  此功能需要AI Inpainting API支持。请配置API接口后使用。
-                </p>
-              </div>
-
               {/* 结果预览 (如果有结果) */}
               {result && (
                 <div className="space-y-2">
-                  <label className="text-white text-sm font-medium">生成结果</label>
-                  <div className="relative rounded-lg overflow-hidden border border-white/10">
+                  <label className="text-gray-900 dark:text-white text-sm font-medium">生成结果</label>
+                  <div className="relative rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
                     <img src={result} alt="Generated" className="w-full" />
                   </div>
                   <div className="flex gap-2">

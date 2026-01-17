@@ -1,17 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Input, Space, Tag, Typography, message } from 'antd';
-import { DeleteOutlined, SendOutlined } from '@ant-design/icons';
+import { Button, Input, Space, Tag, Typography, message, Card } from 'antd';
+import { DeleteOutlined, SendOutlined, RobotOutlined, CheckOutlined } from '@ant-design/icons';
 import { agentChat } from '@/api/endpoints';
 import { usePortalUiStore } from '@/store/usePortalUiStore';
 import type { AgentApplyPayload } from '@/layout/agentBridge';
 
+// 选项类型定义
+type AgentOption = {
+  label: string;
+  value: string;
+  description?: string;
+};
+
 type AgentMessage = {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   meta?: {
     action?: string | null;
     suggestions?: string[] | null;
+    options?: AgentOption[] | null;
+    question?: string | null;
     extracted_info?: Record<string, any> | null;
     data?: Record<string, any> | null;
     raw?: any;
@@ -30,11 +39,37 @@ export function AgentPanel(props: { context?: Record<string, any> | null; title?
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  const panelBorder = theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f0f0f0';
-  const panelBg = theme === 'dark' ? '#0b0d10' : '#ffffff';
-  const assistantBg = theme === 'dark' ? '#0f1115' : '#f5f7fb';
+  const panelBorder = theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e5e7eb';
+  const panelBg = theme === 'dark' ? '#0b0d10' : '#f9fafb';
+  const assistantBg = theme === 'dark' ? '#0f1115' : '#ffffff';
   const textSecondary = theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined;
+  const optionBg = theme === 'dark' ? 'rgba(139,92,246,0.1)' : 'rgba(124,58,237,0.05)';
+  const optionBorder = theme === 'dark' ? 'rgba(139,92,246,0.3)' : 'rgba(124,58,237,0.2)';
+  const optionHoverBg = theme === 'dark' ? 'rgba(139,92,246,0.2)' : 'rgba(124,58,237,0.1)';
+
+  // 初始化欢迎消息
+  useEffect(() => {
+    if (initialized) return;
+    setInitialized(true);
+
+    const welcomeMsg: AgentMessage = {
+      id: uid(),
+      role: 'assistant',
+      content: '你好！我是你的 AI 设计助手。告诉我你想要创作什么，我会帮你一步步完成。',
+      meta: {
+        options: [
+          { label: '生成详情页', value: '我想生成电商详情页', description: '为产品创建吸引人的详情页图片' },
+          { label: '生成主图', value: '我想生成产品主图', description: '创建高质量的产品展示主图' },
+          { label: '批量生成', value: '我需要批量生成多张图片', description: '一次性生成多张不同风格的图片' },
+          { label: '自定义需求', value: '', description: '直接输入你的具体需求' },
+        ],
+      },
+      createdAt: Date.now(),
+    };
+    setMessages([welcomeMsg]);
+  }, [initialized]);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -64,7 +99,23 @@ export function AgentPanel(props: { context?: Record<string, any> | null; title?
     });
   };
 
-  const clear = () => setMessages([]);
+  const clear = () => {
+    setMessages([]);
+    setInitialized(false);  // 重置初始化状态，下次会重新显示欢迎消息
+  };
+
+  // 处理选项点击
+  const handleOptionClick = (option: AgentOption) => {
+    if (option.value) {
+      send(option.value);
+    } else {
+      // 自定义需求，聚焦输入框
+      const textarea = document.querySelector('.agent-input-textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.focus();
+      }
+    }
+  };
 
   const send = async (text: string) => {
     const content = (text || '').trim();
@@ -92,6 +143,8 @@ export function AgentPanel(props: { context?: Record<string, any> | null; title?
         meta: {
           action: (data as any)?.action ?? null,
           suggestions: (data as any)?.suggestions ?? null,
+          options: (data as any)?.options ?? null,
+          question: (data as any)?.question ?? null,
           extracted_info: (data as any)?.extracted_info ?? null,
           data: (data as any)?.data ?? null,
           raw: (data as any)?.raw ?? null,
@@ -168,6 +221,45 @@ export function AgentPanel(props: { context?: Record<string, any> | null; title?
                     }}
                   >
                     <Typography.Text style={{ color: isUser ? '#fff' : undefined }}>{m.content}</Typography.Text>
+                    {/* 选项按钮 */}
+                    {!isUser && m.meta?.options?.length ? (
+                      <div style={{ marginTop: 12 }}>
+                        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                          {(m.meta.options || []).map((opt, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => handleOptionClick(opt)}
+                              style={{
+                                padding: '10px 14px',
+                                borderRadius: 10,
+                                border: `1px solid ${optionBorder}`,
+                                background: optionBg,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = optionHoverBg;
+                                e.currentTarget.style.borderColor = theme === 'dark' ? 'rgba(139,92,246,0.5)' : 'rgba(124,58,237,0.4)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = optionBg;
+                                e.currentTarget.style.borderColor = optionBorder;
+                              }}
+                            >
+                              <div style={{ fontWeight: 500, marginBottom: opt.description ? 4 : 0 }}>
+                                {opt.label}
+                              </div>
+                              {opt.description && (
+                                <Typography.Text type="secondary" style={{ fontSize: 12, color: textSecondary }}>
+                                  {opt.description}
+                                </Typography.Text>
+                              )}
+                            </div>
+                          ))}
+                        </Space>
+                      </div>
+                    ) : null}
+                    {/* 建议标签 */}
                     {!isUser && m.meta?.suggestions?.length ? (
                       <div style={{ marginTop: 8 }}>
                         <Space wrap size={[6, 6]}>

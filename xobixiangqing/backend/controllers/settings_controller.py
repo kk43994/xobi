@@ -474,7 +474,7 @@ def test_yunwu_video_connection():
         if api_key == "use-saved-key" or api_key is None:
             api_key = settings.yunwu_api_key or current_app.config.get("YUNWU_API_KEY") or ""
         api_key = (str(api_key).strip() if api_key is not None else "") or ""
-        # 兼容：用户只配置了“主AI Key”，未单独填“云雾视频 Key”时，默认复用主AI Key。
+        # 兼容：用户只配置了"主AI Key"，未单独填"云雾视频 Key"时，默认复用主AI Key。
         if not api_key:
             api_key = (settings.api_key or "").strip() or ""
 
@@ -496,6 +496,122 @@ def test_yunwu_video_connection():
     except Exception as e:
         logger.error(f"Error testing YunWu video connection: {str(e)}")
         return error_response("TEST_YUNWU_ERROR", f"Failed to test YunWu video connection: {str(e)}", 400)
+
+
+@settings_bp.route("/test-image-model", methods=["POST"], strict_slashes=False)
+def test_image_model():
+    """
+    POST /api/settings/test-image-model - Test if an image model can generate images
+
+    Request Body:
+        {
+            "ai_provider_format": "openai",
+            "api_base_url": "https://yunwu.ai/v1",
+            "api_key": "your-key" | "use-saved-key",
+            "image_model": "gemini-3-pro-image-preview"
+        }
+
+    Returns:
+        {
+            "success": true/false,
+            "model": "model-name",
+            "image_size": "1024x1024",
+            "response_format": "multi_mod_content|content_list|content_string",
+            "error": null | "error message"
+        }
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        if not isinstance(data, dict):
+            return bad_request("Request body is required")
+
+        settings = Settings.get_settings()
+
+        provider_format = data.get("ai_provider_format") or settings.ai_provider_format or "openai"
+        api_base = (data.get("api_base_url") or "").strip() or settings.api_base_url
+        api_key = data.get("api_key")
+        if api_key == "use-saved-key" or api_key is None:
+            api_key = settings.api_key or ""
+        api_key = (str(api_key).strip() if api_key else "") or ""
+
+        image_model = (data.get("image_model") or "").strip()
+        if not image_model:
+            return bad_request("image_model is required for testing")
+
+        if not api_key:
+            return bad_request("API Key is required for testing")
+
+        logger.info(f"Testing image model: {image_model}, provider: {provider_format}, base: {api_base}")
+
+        if provider_format == "openai":
+            from services.ai_providers.image.openai_provider import OpenAIImageProvider
+
+            test_base = normalize_openai_api_base(api_base) if api_base else None
+            provider = OpenAIImageProvider(api_key=api_key, api_base=test_base, model=image_model)
+
+            # Use the built-in test method
+            result = provider.test_connection()
+
+            if result["success"]:
+                return success_response({
+                    "success": True,
+                    "model": result["model"],
+                    "image_size": result.get("image_size"),
+                    "response_format": result.get("response_format"),
+                    "message": f"Image model {image_model} test successful! Generated {result.get('image_size')} image."
+                })
+            else:
+                return success_response({
+                    "success": False,
+                    "model": result["model"],
+                    "response_format": result.get("response_format"),
+                    "error": result.get("error"),
+                    "content_preview": result.get("content_preview"),
+                    "message": f"Image model {image_model} test failed: {result.get('error')}"
+                })
+
+        elif provider_format == "gemini":
+            from services.ai_providers.image.genai_provider import GenAIImageProvider
+
+            try:
+                provider = GenAIImageProvider(api_key=api_key, api_base=api_base, model=image_model)
+                test_image = provider.generate_image(
+                    prompt="Generate a simple red circle on white background",
+                    aspect_ratio="1:1"
+                )
+                if test_image:
+                    return success_response({
+                        "success": True,
+                        "model": image_model,
+                        "image_size": f"{test_image.size[0]}x{test_image.size[1]}",
+                        "response_format": "genai_native",
+                        "message": f"Image model {image_model} test successful!"
+                    })
+                else:
+                    return success_response({
+                        "success": False,
+                        "model": image_model,
+                        "error": "No image returned from GenAI provider",
+                        "message": f"Image model {image_model} test failed: No image returned"
+                    })
+            except Exception as e:
+                return success_response({
+                    "success": False,
+                    "model": image_model,
+                    "error": f"{type(e).__name__}: {str(e)}",
+                    "message": f"Image model {image_model} test failed: {str(e)}"
+                })
+
+        else:
+            return bad_request(f"Unsupported provider format: {provider_format}")
+
+    except Exception as e:
+        logger.error(f"Error testing image model: {str(e)}", exc_info=True)
+        return error_response(
+            "TEST_IMAGE_MODEL_ERROR",
+            f"Failed to test image model: {str(e)}",
+            500,
+        )
 
 
 def _sync_settings_to_config(settings: Settings):

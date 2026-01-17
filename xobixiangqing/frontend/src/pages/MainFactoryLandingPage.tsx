@@ -168,7 +168,7 @@ export function MainFactoryLandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-primary flex flex-col" style={{ paddingTop: 'var(--xobi-toolbar-safe-top)' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-primary flex flex-col" style={{ paddingTop: 'var(--xobi-toolbar-safe-top)' }}>
       {/* 主内容区 */}
       <main className="flex-1 flex flex-col items-center justify-center px-4">
         {/* Logo 和标题 */}
@@ -176,10 +176,10 @@ export function MainFactoryLandingPage() {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-cta flex items-center justify-center shadow-glow">
             <Sparkles size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
             Hi，我是你的 AI 设计师
           </h1>
-          <p className="text-text-secondary text-lg">
+          <p className="text-gray-600 dark:text-white/60 text-lg">
             告诉我你想创作什么
           </p>
         </div>
@@ -189,8 +189,8 @@ export function MainFactoryLandingPage() {
           <div
             className={`relative rounded-2xl border transition-all duration-300 ${
               isFocused
-                ? 'border-purple-vibrant bg-dark-secondary shadow-glow'
-                : 'border-white/10 bg-dark-secondary/80 hover:border-white/20'
+                ? 'border-purple-vibrant bg-white dark:bg-dark-secondary shadow-glow'
+                : 'border-gray-200 dark:border-white/10 bg-white/80 dark:bg-dark-secondary/80 hover:border-gray-300 dark:hover:border-white/20'
             }`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -203,7 +203,7 @@ export function MainFactoryLandingPage() {
                     <img
                       src={img.src}
                       alt="参考图"
-                      className="w-16 h-16 object-cover rounded-lg border border-white/10"
+                      className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-white/10"
                     />
                     <button
                       onClick={() => removeReferenceImage(img.id)}
@@ -226,7 +226,7 @@ export function MainFactoryLandingPage() {
               onKeyDown={handleKeyDown}
               placeholder="描述你想要创作的内容..."
               rows={3}
-              className="w-full bg-transparent text-white placeholder:text-text-tertiary resize-none px-5 py-4 pr-14 focus:outline-none text-base"
+              className="w-full bg-transparent text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 resize-none px-5 py-4 pr-14 focus:outline-none text-base"
             />
 
             {/* 底部工具栏 - 紧凑 pill 风格 */}
@@ -236,7 +236,7 @@ export function MainFactoryLandingPage() {
                 {/* 上传参考图按钮 */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 hover:border-purple-vibrant/50 text-white/70 hover:text-white text-xs transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
                 >
                   <Upload size={12} />
                   <span>参考图</span>
@@ -246,18 +246,18 @@ export function MainFactoryLandingPage() {
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => setActiveDropdown(activeDropdown === 'type' ? null : 'type')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 hover:border-purple-vibrant/50 text-white/70 hover:text-white text-xs transition-all"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
                   >
                     <span>{imageType}</span>
                     <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'type' ? 'rotate-180' : ''}`} />
                   </button>
                   {activeDropdown === 'type' && (
-                    <div className="absolute top-full left-0 mt-1 py-1 bg-dark-secondary border border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
+                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
                       {['主图Banner', '详情页', '海报Poster'].map((opt) => (
                         <button
                           key={opt}
                           onClick={() => { setImageType(opt); setActiveDropdown(null); }}
-                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${imageType === opt ? 'text-purple-vibrant' : 'text-white/70'}`}
+                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${imageType === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
                         >
                           {opt}
                         </button>
@@ -267,7 +267,7 @@ export function MainFactoryLandingPage() {
                 </div>
 
                 {/* 模型 pill - 只读显示当前配置的模型 */}
-                <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 text-white/70 text-xs">
+                <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 text-xs">
                   <span>{model || '加载中...'}</span>
                 </div>
 
@@ -275,18 +275,18 @@ export function MainFactoryLandingPage() {
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => setActiveDropdown(activeDropdown === 'ratio' ? null : 'ratio')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 hover:border-purple-vibrant/50 text-white/70 hover:text-white text-xs transition-all"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
                   >
                     <span>{aspectRatio === 'auto' ? '自动比例' : aspectRatio}</span>
                     <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'ratio' ? 'rotate-180' : ''}`} />
                   </button>
                   {activeDropdown === 'ratio' && (
-                    <div className="absolute top-full left-0 mt-1 py-1 bg-dark-secondary border border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
+                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
                       {[{ v: 'auto', l: '自动' }, { v: '1:1', l: '1:1 方形' }, { v: '3:4', l: '3:4 竖版' }, { v: '4:3', l: '4:3 横版' }, { v: '16:9', l: '16:9 宽屏' }].map((opt) => (
                         <button
                           key={opt.v}
                           onClick={() => { setAspectRatio(opt.v); setActiveDropdown(null); }}
-                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${aspectRatio === opt.v ? 'text-purple-vibrant' : 'text-white/70'}`}
+                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${aspectRatio === opt.v ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
                         >
                           {opt.l}
                         </button>
@@ -299,18 +299,18 @@ export function MainFactoryLandingPage() {
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => setActiveDropdown(activeDropdown === 'count' ? null : 'count')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 hover:border-purple-vibrant/50 text-white/70 hover:text-white text-xs transition-all"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
                   >
                     <span>{imageCount}张</span>
                     <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'count' ? 'rotate-180' : ''}`} />
                   </button>
                   {activeDropdown === 'count' && (
-                    <div className="absolute top-full left-0 mt-1 py-1 bg-dark-secondary border border-white/10 rounded-lg shadow-xl z-50 min-w-[80px]">
+                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[80px]">
                       {[1, 2, 4, 6, 8, 10].map((n) => (
                         <button
                           key={n}
                           onClick={() => { setImageCount(n); setActiveDropdown(null); }}
-                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${imageCount === n ? 'text-purple-vibrant' : 'text-white/70'}`}
+                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${imageCount === n ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
                         >
                           {n}张
                         </button>
@@ -322,7 +322,7 @@ export function MainFactoryLandingPage() {
                 {/* 更多选项按钮 */}
                 <button
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 hover:border-purple-vibrant/50 text-white/50 hover:text-white text-xs transition-all"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
                 >
                   <span>更多</span>
                   <ChevronDown size={12} className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
@@ -336,7 +336,7 @@ export function MainFactoryLandingPage() {
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${
                   prompt.trim() && !isSubmitting
                     ? 'bg-gradient-cta text-white hover:shadow-glow'
-                    : 'bg-dark-tertiary text-text-tertiary cursor-not-allowed'
+                    : 'bg-gray-200 text-gray-400 dark:bg-dark-tertiary dark:text-white/30 cursor-not-allowed'
                 }`}
               >
                 {isSubmitting ? (
@@ -349,35 +349,35 @@ export function MainFactoryLandingPage() {
 
             {/* 更多选项展开区 */}
             {showAdvanced && (
-              <div className="px-4 pb-3 pt-1 border-t border-white/5">
+              <div className="px-4 pb-3 pt-1 border-t border-gray-200 dark:border-white/5">
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* 平台 */}
                   <div className="relative" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => setActiveDropdown(activeDropdown === 'platform' ? null : 'platform')}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 hover:border-purple-vibrant/50 text-white/70 hover:text-white text-xs transition-all"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
                     >
                       <span>{platform}</span>
                       <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'platform' ? 'rotate-180' : ''}`} />
                     </button>
                     {activeDropdown === 'platform' && (
-                      <div className="absolute bottom-full left-0 mb-1 py-1 bg-dark-secondary border border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
-                        <div className="px-2 py-1 text-[10px] text-white/40">国内</div>
+                      <div className="absolute bottom-full left-0 mb-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
+                        <div className="px-2 py-1 text-[10px] text-gray-500 dark:text-white/40">国内</div>
                         {['淘宝/天猫', '京东', '拼多多', '抖音', '小红书'].map((opt) => (
                           <button
                             key={opt}
                             onClick={() => { setPlatform(opt); setActiveDropdown(null); }}
-                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${platform === opt ? 'text-purple-vibrant' : 'text-white/70'}`}
+                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${platform === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
                           >
                             {opt}
                           </button>
                         ))}
-                        <div className="px-2 py-1 text-[10px] text-white/40 border-t border-white/5 mt-1">国际</div>
+                        <div className="px-2 py-1 text-[10px] text-gray-500 dark:text-white/40 border-t border-gray-200 dark:border-white/5 mt-1">国际</div>
                         {['Shopee', 'SHEIN', 'Amazon', 'TikTok', 'Temu', 'eBay', 'Shopify'].map((opt) => (
                           <button
                             key={opt}
                             onClick={() => { setPlatform(opt); setActiveDropdown(null); }}
-                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${platform === opt ? 'text-purple-vibrant' : 'text-white/70'}`}
+                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${platform === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
                           >
                             {opt}
                           </button>
@@ -390,18 +390,18 @@ export function MainFactoryLandingPage() {
                   <div className="relative" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => setActiveDropdown(activeDropdown === 'lang' ? null : 'lang')}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-dark-tertiary border border-white/10 hover:border-purple-vibrant/50 text-white/70 hover:text-white text-xs transition-all"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
                     >
                       <span>{language}</span>
                       <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'lang' ? 'rotate-180' : ''}`} />
                     </button>
                     {activeDropdown === 'lang' && (
-                      <div className="absolute bottom-full left-0 mb-1 py-1 bg-dark-secondary border border-white/10 rounded-lg shadow-xl z-50 min-w-[100px]">
+                      <div className="absolute bottom-full left-0 mb-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[100px]">
                         {['简体中文', '繁体中文', 'English', '日本語', '한국어'].map((opt) => (
                           <button
                             key={opt}
                             onClick={() => { setLanguage(opt); setActiveDropdown(null); }}
-                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${language === opt ? 'text-purple-vibrant' : 'text-white/70'}`}
+                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${language === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
                           >
                             {opt}
                           </button>
@@ -426,31 +426,31 @@ export function MainFactoryLandingPage() {
 
           {/* 其他工具 */}
           <div className="mt-4">
-            <h3 className="text-sm text-text-secondary mb-3">其他工具</h3>
+            <h3 className="text-sm text-gray-600 dark:text-white/60 mb-3">其他工具</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <button
                 onClick={() => navigate('/factory/batch')}
-                className="flex items-start gap-3 p-4 rounded-xl bg-dark-secondary border border-white/10 hover:border-purple-vibrant/50 transition-all text-left group"
+                className="flex items-start gap-3 p-4 rounded-xl bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 transition-all text-left group"
               >
                 <div className="w-10 h-10 rounded-lg bg-gradient-cta flex items-center justify-center flex-shrink-0">
                   <Layers className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-white font-medium mb-1 group-hover:text-purple-apple transition-colors">批量工厂</h4>
-                  <p className="text-xs text-text-secondary">批量处理多张图片，支持背景替换、风格迁移等</p>
+                  <h4 className="text-gray-900 dark:text-white font-medium mb-1 group-hover:text-purple-apple transition-colors">批量工厂</h4>
+                  <p className="text-xs text-gray-600 dark:text-white/60">批量处理多张图片，支持背景替换、风格迁移等</p>
                 </div>
               </button>
 
               <button
                 onClick={() => navigate('/factory/detail')}
-                className="flex items-start gap-3 p-4 rounded-xl bg-dark-secondary border border-white/10 hover:border-purple-vibrant/50 transition-all text-left group"
+                className="flex items-start gap-3 p-4 rounded-xl bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 transition-all text-left group"
               >
                 <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center flex-shrink-0">
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-white font-medium mb-1 group-hover:text-purple-apple transition-colors">详情页生成</h4>
-                  <p className="text-xs text-text-secondary">上传商品图片，AI 自动生成电商详情页</p>
+                  <h4 className="text-gray-900 dark:text-white font-medium mb-1 group-hover:text-purple-apple transition-colors">详情页生成</h4>
+                  <p className="text-xs text-gray-600 dark:text-white/60">上传商品图片，AI 自动生成电商详情页</p>
                 </div>
               </button>
             </div>
@@ -460,14 +460,14 @@ export function MainFactoryLandingPage() {
           <div className="mt-6 flex items-center justify-center gap-6">
             <button
               onClick={() => navigate('/projects')}
-              className="text-text-secondary hover:text-white transition-colors text-sm"
+              className="text-gray-600 hover:text-gray-900 dark:text-white/60 dark:hover:text-white transition-colors text-sm"
             >
               历史项目
             </button>
-            <span className="text-text-tertiary">·</span>
+            <span className="text-gray-400 dark:text-white/30">·</span>
             <button
               onClick={() => navigate('/assets')}
-              className="text-text-secondary hover:text-white transition-colors text-sm"
+              className="text-gray-600 hover:text-gray-900 dark:text-white/60 dark:hover:text-white transition-colors text-sm"
             >
               资源库
             </button>
@@ -476,7 +476,7 @@ export function MainFactoryLandingPage() {
       </main>
 
       {/* 底部版权 */}
-      <footer className="py-4 text-center text-text-tertiary text-xs">
+      <footer className="py-4 text-center text-gray-400 dark:text-white/30 text-xs">
         Powered by Xobi AI
       </footer>
     </div>

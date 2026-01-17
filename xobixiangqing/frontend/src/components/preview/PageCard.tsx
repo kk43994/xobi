@@ -37,7 +37,7 @@ export const PageCard: React.FC<PageCardProps> = ({
   return (
     <div
       className={`group cursor-pointer transition-all ${
-        isSelected ? 'ring-2 ring-banana-500' : ''
+        isSelected ? 'ring-2 ring-primary-500' : ''
       }`}
       onClick={onClick}
     >
@@ -62,7 +62,7 @@ export const PageCard: React.FC<PageCardProps> = ({
                   e.stopPropagation();
                   onEdit();
                 }}
-                className="p-2 bg-white rounded-lg hover:bg-banana-50 transition-colors"
+                className="p-2 bg-white dark:bg-dark-secondary rounded-lg hover:bg-primary-50 dark:hover:bg-dark-tertiary transition-colors"
               >
                 <Edit2 size={18} />
               </button>
@@ -75,7 +75,7 @@ export const PageCard: React.FC<PageCardProps> = ({
                     { title: '确认删除', variant: 'danger' }
                   );
                 }}
-                className="p-2 bg-white rounded-lg hover:bg-red-50 transition-colors"
+                className="p-2 bg-white dark:bg-dark-secondary rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
               >
                 <Trash2 size={18} className="text-red-600" />
               </button>
@@ -84,7 +84,7 @@ export const PageCard: React.FC<PageCardProps> = ({
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             <div className="text-center">
-              <div className="text-lg font-extrabold text-banana-600 tracking-tight mb-1">xobi</div>
+              <div className="text-lg font-extrabold text-primary-600 tracking-tight mb-1">xobi</div>
               <div className="text-xs">未生成</div>
             </div>
           </div>
@@ -100,7 +100,7 @@ export const PageCard: React.FC<PageCardProps> = ({
       <div className="flex items-center gap-2">
         <span
           className={`text-sm font-medium ${
-            isSelected ? 'text-banana-600' : 'text-gray-700'
+            isSelected ? 'text-primary-600' : 'text-gray-700'
           }`}
         >
           {index + 1}. {page.outline_content.title}

@@ -186,12 +186,12 @@ export const HelpMenu = () => {
           />
 
           {/* 菜单内容 */}
-          <div className="fixed bottom-24 left-6 w-80 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl p-4 z-40">
+          <div className="fixed bottom-24 left-6 w-80 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl p-4 z-40">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white">快速帮助</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white">快速帮助</h3>
               <button
                 onClick={() => setShowMenu(false)}
-                className="text-white/50 hover:text-white"
+                className="text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white"
               >
                 <X size={16} />
               </button>
@@ -205,8 +205,8 @@ export const HelpMenu = () => {
               >
                 <Sparkles size={20} className="text-purple-vibrant flex-shrink-0" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-white">新手引导</div>
-                  <div className="text-xs text-white/50">交互式功能介绍</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">新手引导</div>
+                  <div className="text-xs text-gray-500 dark:text-white/50">交互式功能介绍</div>
                 </div>
               </button>
 
@@ -218,30 +218,30 @@ export const HelpMenu = () => {
                   const event = new KeyboardEvent('keydown', { key: '?' });
                   window.dispatchEvent(event);
                 }}
-                className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-lg text-left transition-all"
+                className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-left transition-all"
               >
                 <span className="text-xl flex-shrink-0">键盘</span>
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-white">快捷键列表</div>
-                  <div className="text-xs text-white/50">按 ? 键查看</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">快捷键列表</div>
+                  <div className="text-xs text-gray-500 dark:text-white/50">按 ? 键查看</div>
                 </div>
               </button>
 
               {/* 使用技巧 */}
-              <button className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-lg text-left transition-all">
+              <button className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-left transition-all">
                 <span className="text-xl flex-shrink-0">提示</span>
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-white">使用技巧</div>
-                  <div className="text-xs text-white/50">提升工作效率</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">使用技巧</div>
+                  <div className="text-xs text-gray-500 dark:text-white/50">提升工作效率</div>
                 </div>
               </button>
 
               {/* 常见问题 */}
-              <button className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-lg text-left transition-all">
+              <button className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-left transition-all">
                 <span className="text-xl flex-shrink-0">帮助</span>
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-white">常见问题</div>
-                  <div className="text-xs text-white/50">FAQ</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">常见问题</div>
+                  <div className="text-xs text-gray-500 dark:text-white/50">FAQ</div>
                 </div>
               </button>
             </div>

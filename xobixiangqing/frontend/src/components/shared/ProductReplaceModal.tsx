@@ -193,7 +193,7 @@ export const ProductReplaceModal: React.FC<ProductReplaceModalProps> = ({ isOpen
               <img
                 src={previewUrl}
                 alt="生成结果"
-                className="w-full max-h-[520px] object-contain rounded bg-white border border-gray-200"
+                className="w-full max-h-[520px] object-contain rounded bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10"
               />
               <div className="flex justify-end mt-3">
                 <Button variant="secondary" onClick={() => window.open(previewUrl, '_blank')}>
@@ -219,8 +219,8 @@ export const ProductReplaceModal: React.FC<ProductReplaceModalProps> = ({ isOpen
                 type="button"
                 onClick={() => setAspectRatio(r)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${aspectRatio === r
-                    ? 'bg-banana-500 text-black border-banana-500'
-                    : 'bg-white border-gray-200 text-gray-700 hover:bg-banana-50 hover:border-banana-400'
+                    ? 'bg-primary-500 text-white border-primary-500'
+                    : 'bg-white dark:bg-dark-secondary border-gray-200 dark:border-white/20 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-dark-tertiary hover:border-primary-400'
                   }`}
               >
                 {r}
@@ -230,19 +230,19 @@ export const ProductReplaceModal: React.FC<ProductReplaceModalProps> = ({ isOpen
               value={aspectRatio}
               onChange={(e) => setAspectRatio(e.target.value)}
               placeholder="自定义 1:1"
-              className="w-28 px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-banana-500 bg-white"
+              className="w-28 px-2 py-1.5 text-xs border border-gray-300 dark:border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-dark-secondary dark:text-white"
               disabled={isGenerating}
             />
           </div>
         </div>
 
         {/* 参考图 */}
-        <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3">
-          <div className="flex items-center gap-2 text-sm text-gray-700">
+        <div className="bg-gray-50 dark:bg-dark-tertiary rounded-lg border border-gray-200 dark:border-white/10 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <ImageIcon size={16} className="text-gray-500" />
             <span className="font-medium">参考图（必选：构图/风格）</span>
           </div>
-          <label className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center cursor-pointer hover:border-banana-500 transition-colors bg-white relative group overflow-hidden">
+          <label className="w-full h-40 border-2 border-dashed border-gray-300 dark:border-white/20 rounded flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 transition-colors bg-white dark:bg-dark-secondary relative group overflow-hidden">
             {referenceImage ? (
               <>
                 <img
@@ -305,7 +305,7 @@ export const ProductReplaceModal: React.FC<ProductReplaceModalProps> = ({ isOpen
                 </button>
               </div>
             ))}
-            <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center cursor-pointer hover:border-banana-500 transition-colors bg-white">
+            <label className="w-20 h-20 border-2 border-dashed border-gray-300 dark:border-white/20 rounded flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 transition-colors bg-white dark:bg-dark-secondary">
               <Upload size={18} className="text-gray-400 mb-1" />
               <span className="text-[11px] text-gray-500">添加</span>
               <input

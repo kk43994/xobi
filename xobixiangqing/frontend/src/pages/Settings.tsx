@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Key, Image, Zap, Save, RotateCcw, Globe, FileText, Wifi } from 'lucide-react';
+import { Home, Key, Image, Zap, Save, RotateCcw, Globe, FileText, Wifi, FlaskConical } from 'lucide-react';
 import { Button, Input, Card, Loading, useToast, useConfirm } from '@/components/shared';
 import * as api from '@/api/endpoints';
 import type { OutputLanguage } from '@/api/endpoints';
@@ -95,8 +95,8 @@ const settingsSections: SectionConfig[] = [
         key: 'image_model',
         label: '图像生成模型',
         type: 'text',
-        placeholder: '留空使用环境变量配置 (如: imagen-3.0-generate-001)',
-        description: '用于生成页面图片的模型名称',
+        placeholder: '如: gemini-2.0-flash-exp-image-generation',
+        description: '推荐模型：gemini-2.0-flash-exp-image-generation、imagen-3.0-generate-001。如遇500错误，请检查模型名称是否正确',
       },
       {
         key: 'image_caption_model',
@@ -192,6 +192,7 @@ export const Settings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isTestingImageModel, setIsTestingImageModel] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
@@ -342,6 +343,46 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const handleTestImageModel = async () => {
+    // 检查是否有可用的 API Key（表单中输入的或者已保存的）
+    if (!formData.api_key && (!settings?.api_key_length || settings.api_key_length === 0)) {
+      show({ message: '请先输入 API Key', type: 'error' });
+      return;
+    }
+
+    if (!formData.image_model) {
+      show({ message: '请先输入图像生成模型名称', type: 'error' });
+      return;
+    }
+
+    setIsTestingImageModel(true);
+    try {
+      const response = await api.testImageModel({
+        ai_provider_format: formData.ai_provider_format,
+        api_base_url: formData.api_base_url || undefined,
+        api_key: formData.api_key || 'use-saved-key',
+        image_model: formData.image_model,
+      });
+
+      if (response.data?.success) {
+        show({
+          message: `图片模型测试成功！生成了 ${response.data.image_size} 的图片`,
+          type: 'success'
+        });
+      } else {
+        show({
+          message: `图片模型测试失败: ${response.data?.error || '未知错误'}`,
+          type: 'error'
+        });
+      }
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error?.message || error?.message || '测试失败';
+      show({ message: `图片模型测试失败: ${errorMsg}`, type: 'error' });
+    } finally {
+      setIsTestingImageModel(false);
+    }
+  };
+
   const renderField = (field: FieldConfig) => {
     const value = formData[field.key];
 
@@ -357,11 +398,11 @@ export const Settings: React.FC = () => {
                 key={option.value}
                 type="button"
                 onClick={() => handleFieldChange(field.key, option.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${value === option.value
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${value === option.value
                   ? option.value === 'openai'
-                    ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md'
-                    : 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                    ? 'bg-gradient-to-r from-primary-400 to-primary-500 text-white shadow-soft-md'
+                    : 'bg-gradient-to-r from-accent to-accent-dark text-white shadow-soft-md'
+                  : 'bg-white dark:bg-dark-secondary border border-primary-100 dark:border-white/20 text-text-secondary hover:bg-primary-50 dark:hover:bg-dark-tertiary hover:border-primary-200'
                   }`}
               >
                 {option.label}
@@ -384,7 +425,7 @@ export const Settings: React.FC = () => {
           <select
             value={value as string}
             onChange={(e) => handleFieldChange(field.key, e.target.value)}
-            className="w-full h-10 px-4 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-banana-500 focus:border-transparent"
+            className="w-full h-10 px-4 rounded-lg border border-gray-200 dark:border-white/20 bg-white dark:bg-dark-secondary dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
           >
             {field.options.map((option) => (
               <option key={option.value} value={option.value}>
@@ -479,6 +520,22 @@ export const Settings: React.FC = () => {
                     </div>
                   </>
                 )}
+                {section.title === '模型配置' && (
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm text-gray-700 mb-3">
+                      切换图像模型后，建议先测试该模型是否支持图像生成功能
+                    </p>
+                    <Button
+                      variant="secondary"
+                      icon={<FlaskConical size={16} />}
+                      onClick={handleTestImageModel}
+                      loading={isTestingImageModel}
+                      disabled={isTestingImageModel || isSaving || !formData.image_model}
+                    >
+                      {isTestingImageModel ? '测试生图中...' : '测试图片模型'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -513,7 +570,7 @@ export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-banana-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card className="p-6 md:p-8">
           <div className="space-y-8">

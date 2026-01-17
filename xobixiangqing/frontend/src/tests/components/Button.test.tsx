@@ -36,7 +36,7 @@ describe('Button Component', () => {
     render(<Button variant="secondary">Secondary</Button>)
     const button = screen.getByText('Secondary')
     // secondary使用border样式
-    expect(button).toHaveClass('border-banana-500')
+    expect(button).toHaveClass('border-primary-500')
   })
 
   it('shows loading state and disables button', () => {

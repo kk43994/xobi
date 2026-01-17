@@ -31,7 +31,7 @@ export const Toast: React.FC<ToastProps> = ({
   const styles = {
     success: 'bg-green-500 text-white',
     error: 'bg-red-500 text-white',
-    info: 'bg-gray-900 text-white',
+    info: 'bg-black text-white',
   };
 
   return (

@@ -88,11 +88,11 @@ const AiRefineInputComponent: React.FC<AiRefineInputProps> = ({
       
       {/* 历史记录展示 */}
       {showHistory && history.length > 0 && (
-        <div className={`${isCompactMode ? 'mb-2' : 'mb-3'} p-2 bg-white rounded border ${isCompactMode ? 'border-gray-200 shadow-sm' : 'bg-white/60 border-purple-100'} max-h-32 overflow-y-auto`}>
+        <div className={`${isCompactMode ? 'mb-2' : 'mb-3'} p-2 bg-white dark:bg-dark-secondary rounded border ${isCompactMode ? 'border-gray-200 dark:border-white/10 shadow-sm' : 'bg-white/60 dark:bg-dark-secondary/60 border-purple-100 dark:border-white/10'} max-h-32 overflow-y-auto`}>
           <div className="text-xs text-gray-500 mb-1">之前的修改要求：</div>
           <ul className="space-y-1">
             {history.map((req, idx) => (
-              <li key={idx} className="text-xs text-gray-700 flex items-start gap-1">
+              <li key={idx} className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-1">
                 <span className="text-purple-400 flex-shrink-0">{idx + 1}.</span>
                 <span className="break-all">{req}</span>
               </li>
@@ -126,8 +126,8 @@ const AiRefineInputComponent: React.FC<AiRefineInputProps> = ({
             onChange={(e) => setRequirement(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className={`w-full px-3 py-1.5 text-sm border ${isCompactMode ? 'border-gray-200' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all ${
-              isSubmitting ? 'animate-gradient-x bg-gradient-to-r from-purple-100 via-purple-200 to-purple-100 bg-[length:200%_100%]' : 'bg-white'
+            className={`w-full px-3 py-1.5 text-sm border ${isCompactMode ? 'border-gray-200 dark:border-white/10' : 'border-gray-300 dark:border-white/20'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all ${
+              isSubmitting ? 'animate-gradient-x bg-gradient-to-r from-purple-100 via-purple-200 to-purple-100 bg-[length:200%_100%]' : 'bg-white dark:bg-dark-secondary dark:text-white'
             }`}
             disabled={isSubmitting}
           />

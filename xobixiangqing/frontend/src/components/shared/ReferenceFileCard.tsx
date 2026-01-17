@@ -146,8 +146,8 @@ export const ReferenceFileCard: React.FC<ReferenceFileCardProps> = ({
   };
 
   return (
-    <div 
-      className={`flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow ${
+    <div
+      className={`flex items-center gap-3 p-3 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg hover:shadow-sm transition-shadow ${
         onClick ? 'cursor-pointer' : ''
       }`}
       onClick={onClick}

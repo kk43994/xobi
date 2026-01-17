@@ -18,7 +18,11 @@ import time
 material_bp = Blueprint('materials', __name__, url_prefix='/api/projects')
 material_global_bp = Blueprint('materials_global', __name__, url_prefix='/api/materials')
 
-ALLOWED_MATERIAL_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'}
+# Supported image extensions (case-insensitive matching is done in validation)
+ALLOWED_MATERIAL_EXTENSIONS = {
+    '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg',
+    '.tiff', '.tif', '.ico', '.heic', '.heif', '.avif', '.jfif'
+}
 
 
 def _build_material_query(filter_project_id: str):

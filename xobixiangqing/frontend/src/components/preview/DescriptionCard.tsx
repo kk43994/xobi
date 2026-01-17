@@ -92,17 +92,17 @@ export const DescriptionCard: React.FC<DescriptionCardProps> = ({
     <>
       <Card className="p-0 overflow-hidden flex flex-col">
         {/* 标题栏 */}
-        <div className="bg-banana-50 px-4 py-3 border-b border-gray-100">
+        <div className="bg-primary-50 dark:bg-dark-secondary px-4 py-3 border-b border-gray-100 dark:border-white/10">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-gray-900">第 {index + 1} 页</span>
+              <span className="font-semibold text-gray-900 dark:text-white">第 {index + 1} 页</span>
               {page.part && (
-                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded">
                   {page.part}
                 </span>
               )}
               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <span className="text-xs text-gray-500 whitespace-nowrap">比例</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">比例</span>
                 <input
                   value={aspectRatioInput}
                   onChange={(e) => setAspectRatioInput(e.target.value)}
@@ -114,7 +114,7 @@ export const DescriptionCard: React.FC<DescriptionCardProps> = ({
                     }
                   }}
                   placeholder={defaultAspectRatio ? `默认 ${defaultAspectRatio}` : '默认'}
-                  className="w-24 px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-banana-500 bg-white"
+                  className="w-24 px-2 py-1 text-xs border border-gray-300 dark:border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-dark-secondary dark:text-white"
                   disabled={generating}
                 />
               </div>
@@ -130,24 +130,24 @@ export const DescriptionCard: React.FC<DescriptionCardProps> = ({
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
-              <div className="text-center py-4 text-gray-500 text-sm">
+              <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
                 正在生成描述...
               </div>
             </div>
           ) : text ? (
-            <div className="text-sm text-gray-700">
+            <div className="text-sm text-gray-700 dark:text-gray-300">
               <Markdown>{text}</Markdown>
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-400">
-              <div className="flex text-3xl mb-2 justify-center"><FileText className="text-gray-400" size={48} /></div>
+            <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+              <div className="flex text-3xl mb-2 justify-center"><FileText className="text-gray-400 dark:text-gray-500" size={48} /></div>
               <p className="text-sm">尚未生成描述</p>
             </div>
           )}
         </div>
 
         {/* 操作栏 */}
-        <div className="border-t border-gray-100 px-4 py-3 flex justify-end gap-2 mt-auto">
+        <div className="border-t border-gray-100 dark:border-white/10 px-4 py-3 flex justify-end gap-2 mt-auto">
           <Button
             variant="ghost"
             size="sm"

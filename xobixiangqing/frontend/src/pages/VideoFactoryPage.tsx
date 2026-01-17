@@ -182,9 +182,9 @@ export function VideoFactoryPage() {
   }, [tasksLoading, clientHealth, serverHealth]);
 
   return (
-    <div className="h-full w-full bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4">
+    <div className="h-full w-full bg-gray-50 dark:bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4">
       <div className="mx-auto max-w-5xl">
-        <div className="rounded-2xl border border-white/10 bg-dark-secondary/80 backdrop-blur-xl p-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-dark-secondary/80 backdrop-blur-xl p-4">
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Typography.Text strong style={{ fontSize: 16 }}>
             视频工厂

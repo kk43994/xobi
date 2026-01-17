@@ -49,6 +49,8 @@ export function FactoryDetailPage() {
   const [params] = useSearchParams();
 
   const openAgent = usePortalUiStore((s) => s.openAgent);
+  const theme = usePortalUiStore((s) => s.theme);
+  const isDark = theme === 'dark';
 
   // URL 参数
   const datasetId = (params.get('datasetId') || '').trim() || null;
@@ -92,9 +94,9 @@ export function FactoryDetailPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const panelBorder = '1px solid rgba(255,255,255,0.10)';
-  const canvasBg = '#000000';
-  const textSecondary = 'rgba(255,255,255,0.45)';
+  const panelBorder = isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.08)';
+  const canvasBg = isDark ? '#000000' : '#fafafa';
+  const textSecondary = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.55)';
 
   const images = useMemo(() => {
     if (isExcelMode) {
@@ -452,11 +454,11 @@ export function FactoryDetailPage() {
         </Button>
       </Space>
     ),
-  }, [datasetId, isExcelMode, loading, creating, canCreate]);
+  }, [datasetId, isExcelMode, loading, creating, canCreate, isDark]);
 
   return (
-    <div className="h-full w-full bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4 flex gap-4 min-h-0">
-      <div className="w-[420px] shrink-0 rounded-2xl border border-white/10 bg-dark-secondary/80 backdrop-blur-xl p-4 overflow-auto">
+    <div className="h-full w-full bg-gray-50 dark:bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4 flex gap-4 min-h-0">
+      <div className="w-[420px] shrink-0 rounded-2xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-dark-secondary/80 backdrop-blur-xl p-4 overflow-auto">
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Space direction="vertical" size={0} style={{ width: '100%' }}>
             <Typography.Text strong style={{ fontSize: 16 }}>
@@ -498,7 +500,7 @@ export function FactoryDetailPage() {
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 style={{
-                  border: `2px dashed ${uploading ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                  border: `2px dashed ${uploading ? 'rgba(139,92,246,0.6)' : isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}`,
                   borderRadius: 12,
                   padding: 24,
                   textAlign: 'center',
@@ -517,7 +519,7 @@ export function FactoryDetailPage() {
                   </Spin>
                 ) : (
                   <>
-                    <UploadOutlined style={{ fontSize: 32, color: 'rgba(255,255,255,0.45)', marginBottom: 8 }} />
+                    <UploadOutlined style={{ fontSize: 32, color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)', marginBottom: 8 }} />
                     <Typography.Text type="secondary" style={{ color: textSecondary, display: 'block' }}>
                       点击、拖拽或粘贴(Ctrl+V)图片
                     </Typography.Text>
@@ -638,7 +640,7 @@ export function FactoryDetailPage() {
                           border: active ? '2px solid rgba(139,92,246,0.85)' : panelBorder,
                           borderRadius: 12,
                           padding: 4,
-                          background: active ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.02)',
+                          background: active ? 'rgba(139,92,246,0.12)' : isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
                           cursor: 'pointer',
                           position: 'relative',
                           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -744,7 +746,7 @@ export function FactoryDetailPage() {
         </Space>
       </div>
 
-      <div className="flex-1 min-w-0 rounded-2xl border border-white/10 bg-dark-secondary/80 backdrop-blur-xl overflow-hidden flex flex-col">
+      <div className="flex-1 min-w-0 rounded-2xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-dark-secondary/80 backdrop-blur-xl overflow-hidden flex flex-col">
         <div style={{ padding: 12, borderBottom: panelBorder, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <Space direction="vertical" size={0}>
             <Typography.Text strong>预览</Typography.Text>

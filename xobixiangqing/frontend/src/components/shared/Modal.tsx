@@ -38,15 +38,15 @@ export const Modal: React.FC<ModalProps> = ({
       <div className="flex min-h-full items-center justify-center p-4">
         <div
           className={cn(
-            'relative bg-white rounded-panel shadow-xl w-full transition-all duration-200',
+            'relative bg-white dark:bg-dark-secondary rounded-panel shadow-xl w-full transition-all duration-200',
             sizes[size]
           )}
           onClick={(e) => e.stopPropagation()}
         >
           {/* 标题栏 */}
           {title && (
-            <div className="flex items-center justify-between px-8 py-6 bg-banana-50 rounded-t-panel">
-              <h2 className="text-2xl font-semibold text-gray-900">{title}</h2>
+            <div className="flex items-center justify-between px-8 py-6 bg-primary-50 dark:bg-dark-tertiary rounded-t-panel">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{title}</h2>
               <button
                 onClick={onClose}
                 className="text-gray-500 hover:text-gray-700 transition-colors"

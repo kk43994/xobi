@@ -470,7 +470,7 @@ export function ExcelDatasetPage() {
   ];
 
   return (
-    <div className="h-full w-full bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4 flex gap-4 items-start min-h-0">
+    <div className="h-full w-full bg-gray-50 dark:bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4 flex gap-4 items-start min-h-0">
       <div style={{ flex: 1, minWidth: 0 }}>
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Space wrap align="center" style={{ justifyContent: 'space-between', width: '100%' }}>

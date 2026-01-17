@@ -12,8 +12,18 @@ function AppThemeProvider(props: { children: React.ReactNode }) {
   const mode = usePortalUiStore((s) => s.theme);
 
   useEffect(() => {
+    // 添加 theme-switching class 禁用过渡动画
+    document.documentElement.classList.add('theme-switching');
+
     document.documentElement.dataset.theme = mode;
     document.documentElement.classList.toggle('dark', mode === 'dark');
+
+    // 等待下一帧后移除，让样式生效后再恢复过渡
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('theme-switching');
+      });
+    });
   }, [mode]);
 
   return (

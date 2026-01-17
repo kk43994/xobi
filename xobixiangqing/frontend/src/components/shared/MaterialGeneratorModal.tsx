@@ -212,14 +212,14 @@ export const MaterialGeneratorModal: React.FC<MaterialGeneratorModalProps> = ({
       <blockquote className="text-sm text-gray-500 mb-4">生成的素材会保存到素材库</blockquote>
       <div className="space-y-4">
         {/* 顶部：生成结果预览（始终显示最新一次生成） */}
-        <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">生成结果</h4>
+        <div className="bg-gray-50 dark:bg-dark-tertiary rounded-lg border border-gray-200 dark:border-white/10 p-4">
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-white mb-2">生成结果</h4>
           {isGenerating ? (
-            <div className="aspect-video rounded-lg overflow-hidden border border-gray-200">
+            <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
               <Skeleton className="w-full h-full" />
             </div>
           ) : previewUrl ? (
-            <div className="aspect-video bg-white rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
+            <div className="aspect-video bg-white dark:bg-dark-secondary rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 flex items-center justify-center">
               <img
                 src={previewUrl}
                 alt="生成的素材"
@@ -227,7 +227,7 @@ export const MaterialGeneratorModal: React.FC<MaterialGeneratorModalProps> = ({
               />
             </div>
           ) : (
-            <div className="aspect-video bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400 text-sm">
+            <div className="aspect-video bg-gray-100 dark:bg-dark-tertiary rounded-lg flex flex-col items-center justify-center text-gray-400 text-sm">
               <BgColorsOutlined className="text-3xl mb-2" />
               <div>生成的素材会展示在这里</div>
             </div>
@@ -244,7 +244,7 @@ export const MaterialGeneratorModal: React.FC<MaterialGeneratorModalProps> = ({
         />
 
         {/* 参考图上传区 */}
-        <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3">
+        <div className="bg-gray-50 dark:bg-dark-tertiary rounded-lg border border-gray-200 dark:border-white/10 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-gray-700">
               <ImagePlus size={16} className="text-gray-500" />
@@ -262,8 +262,8 @@ export const MaterialGeneratorModal: React.FC<MaterialGeneratorModalProps> = ({
           <div className="flex flex-wrap gap-4">
             {/* 主参考图（可选） */}
             <div className="space-y-2">
-              <div className="text-xs text-gray-600">主参考图（可选）</div>
-              <label className="w-40 h-28 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center cursor-pointer hover:border-banana-500 transition-colors bg-white relative group">
+              <div className="text-xs text-gray-600 dark:text-gray-400">主参考图（可选）</div>
+              <label className="w-40 h-28 border-2 border-dashed border-gray-300 dark:border-white/20 rounded flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 transition-colors bg-white dark:bg-dark-secondary relative group">
                 {refImage ? (
                   <>
                     <img
@@ -317,7 +317,7 @@ export const MaterialGeneratorModal: React.FC<MaterialGeneratorModalProps> = ({
                     </button>
                   </div>
                 ))}
-                <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center cursor-pointer hover:border-banana-500 transition-colors bg-white">
+                <label className="w-20 h-20 border-2 border-dashed border-gray-300 dark:border-white/20 rounded flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 transition-colors bg-white dark:bg-dark-secondary">
                   <Upload size={18} className="text-gray-400 mb-1" />
                   <span className="text-[11px] text-gray-500">添加</span>
                   <input

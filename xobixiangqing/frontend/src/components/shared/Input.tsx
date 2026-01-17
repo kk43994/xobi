@@ -15,16 +15,16 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-text-primary mb-2">
           {label}
         </label>
       )}
       <input
         className={cn(
-          'w-full h-10 px-4 rounded-lg border border-gray-200 bg-white',
-          'focus:outline-none focus:ring-2 focus:ring-banana-500 focus:border-transparent',
-          'placeholder:text-gray-400 transition-all',
-          error && 'border-red-500 focus:ring-red-500',
+          'w-full h-10 px-4 rounded-lg border border-primary-100 dark:border-white/20 bg-white dark:bg-dark-secondary dark:text-white',
+          'focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-300',
+          'placeholder:text-text-muted transition-all duration-200',
+          error && 'border-red-400 focus:ring-red-400',
           className
         )}
         {...props}

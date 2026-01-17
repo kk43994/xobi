@@ -39,7 +39,7 @@ def upload_template(project_id):
         
         # Validate file extension
         if not allowed_file(file.filename, current_app.config['ALLOWED_EXTENSIONS']):
-            return bad_request("Invalid file type. Allowed types: png, jpg, jpeg, gif, webp")
+            return bad_request(f"Invalid file type. Allowed types: {', '.join(sorted(current_app.config['ALLOWED_EXTENSIONS']))}")
         
         # Save template
         file_service = FileService(current_app.config['UPLOAD_FOLDER'])
@@ -129,7 +129,7 @@ def upload_user_template():
         
         # Validate file extension
         if not allowed_file(file.filename, current_app.config['ALLOWED_EXTENSIONS']):
-            return bad_request("Invalid file type. Allowed types: png, jpg, jpeg, gif, webp")
+            return bad_request(f"Invalid file type. Allowed types: {', '.join(sorted(current_app.config['ALLOWED_EXTENSIONS']))}")
         
         # Get optional name
         name = request.form.get('name', None)

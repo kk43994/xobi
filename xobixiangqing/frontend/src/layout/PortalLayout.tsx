@@ -313,16 +313,16 @@ export function PortalLayout() {
                   transition: 'background 120ms ease, color 120ms ease',
                   background: active
                     ? theme === 'dark'
-                      ? 'rgba(139,92,246,0.20)'
-                      : 'rgba(139,92,246,0.14)'
+                      ? 'rgba(124,58,237,0.20)'
+                      : 'rgba(124,58,237,0.12)'
                     : 'transparent',
                   color: active
                     ? theme === 'dark'
-                      ? '#e9d5ff'
-                      : '#6d28d9'
+                      ? '#C4B5FD'
+                      : '#7C3AED'
                     : theme === 'dark'
                       ? 'rgba(255,255,255,0.72)'
-                      : 'rgba(0,0,0,0.72)',
+                      : '#4C4687',
                 }}
               >
                 <span style={{ fontSize: 18, display: 'flex', alignItems: 'center' }}>{item.icon}</span>
@@ -355,8 +355,8 @@ export function PortalLayout() {
         collapsed={leftNavState !== 'expanded'}
         trigger={null}
         style={{
-          background: theme === 'dark' ? '#0f1115' : '#ffffff',
-          borderRight: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f0f0f0',
+          background: theme === 'dark' ? '#000000' : '#FFFFFF',
+          borderRight: theme === 'dark' ? '1px solid rgba(167,139,250,0.12)' : '1px solid #EDE9FE',
           overflow: 'hidden',
           position: 'relative',
         }}
@@ -369,7 +369,7 @@ export function PortalLayout() {
             paddingInline: leftNavState === 'expanded' ? 12 : 0,
             justifyContent: leftNavState === 'expanded' ? 'flex-start' : 'center',
             gap: 10,
-            borderBottom: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f3f4f6',
+            borderBottom: theme === 'dark' ? '1px solid rgba(167,139,250,0.1)' : '1px solid #EDE9FE',
           }}
         >
           <div
@@ -448,23 +448,39 @@ export function PortalLayout() {
       </Sider>
 
       <Content style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
-        {/* 顶部极薄浮动工具条（不占布局高度） */}
+        {/* 顶部浮动工具条 */}
         <div
           style={{
             position: 'fixed',
-            top: 12,
+            top: 8,
             left: floatingLeft,
             right: floatingRight,
             zIndex: 1000,
             pointerEvents: 'none',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <Space style={{ pointerEvents: 'auto' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              padding: '6px 12px',
+              borderRadius: 12,
+              background: theme === 'dark' ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.92)',
+              backdropFilter: 'blur(12px)',
+              border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+              boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.08)',
+              minHeight: 44,
+              flexWrap: 'nowrap',
+              overflow: 'hidden',
+            }}
+          >
+            <Space style={{ pointerEvents: 'auto', flexShrink: 0 }}>
               <Tooltip title="返回">
                 <Button size="small" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} />
               </Tooltip>
-              <Tooltip title="折叠/隐藏侧边栏（expanded → collapsed → hidden）">
+              <Tooltip title="折叠/隐藏侧边栏">
                 <Button
                   size="small"
                   icon={leftNavState === 'expanded' ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
@@ -475,14 +491,24 @@ export function PortalLayout() {
             </Space>
 
             {toolbarSlots.center ? (
-              <div style={{ pointerEvents: 'auto', display: 'flex', justifyContent: 'center', flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  pointerEvents: 'auto',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                }}
+              >
                 {toolbarSlots.center}
               </div>
             ) : (
               <div style={{ flex: 1 }} />
             )}
 
-            <Space style={{ pointerEvents: 'auto' }}>
+            <Space style={{ pointerEvents: 'auto', flexShrink: 0 }}>
               {toolbarSlots.right}
               <Tooltip title="Agent（主图/文案）">
                 <Button size="small" icon={<MessageOutlined />} onClick={() => openPanel('agent')} />
@@ -505,7 +531,7 @@ export function PortalLayout() {
           style={{
             height: '100%',
             overflow: 'auto',
-            background: theme === 'dark' ? '#0b0d10' : '#f5f7fb',
+            background: theme === 'dark' ? '#000000' : '#FFFFFF',
             padding: pageMode === 'workbench' ? 0 : 16,
             paddingTop: pageMode === 'workbench' ? 0 : 44,
             ['--xobi-toolbar-safe-top' as any]: '44px',
@@ -579,7 +605,7 @@ export function PortalLayout() {
                               width: 44,
                               height: 44,
                               borderRadius: 10,
-                              background: theme === 'dark' ? '#111827' : '#f0f0f0',
+                              background: theme === 'dark' ? '#121212' : '#f0f0f0',
                             }}
                           />
                         )
@@ -663,7 +689,7 @@ export function PortalLayout() {
           width={dockWidth}
           theme={theme === 'dark' ? 'dark' : 'light'}
           style={{
-            background: theme === 'dark' ? '#0f1115' : '#ffffff',
+            background: theme === 'dark' ? '#000000' : '#FFFFFF',
             borderLeft: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f0f0f0',
             position: 'relative',
             overflow: 'hidden',

@@ -92,16 +92,16 @@ export const KeyboardShortcutsPanel = () => {
       />
 
       {/* 面板 */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] max-h-[80vh] bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[9999]">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] max-h-[80vh] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[9999]">
         {/* 头部 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-white/10">
           <div>
-            <h2 className="text-white text-xl font-semibold">快捷键列表</h2>
-            <p className="text-white/50 text-sm mt-1">按 ? 键随时打开此面板</p>
+            <h2 className="text-gray-900 dark:text-white text-xl font-semibold">快捷键列表</h2>
+            <p className="text-gray-500 dark:text-white/50 text-sm mt-1">按 ? 键随时打开此面板</p>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
           >
             <X size={20} />
           </button>
@@ -112,19 +112,19 @@ export const KeyboardShortcutsPanel = () => {
           <div className="grid grid-cols-2 gap-6">
             {shortcuts.map((category) => (
               <div key={category.category} className="space-y-3">
-                <h3 className="text-white/70 text-sm font-semibold uppercase tracking-wide">
+                <h3 className="text-gray-600 dark:text-white/70 text-sm font-semibold uppercase tracking-wide">
                   {category.category}
                 </h3>
                 <div className="space-y-2">
                   {category.items.map((shortcut, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-white/5 transition-all"
+                      className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
                     >
-                      <span className="text-white/80 text-sm">
+                      <span className="text-gray-700 dark:text-white/80 text-sm">
                         {shortcut.action}
                       </span>
-                      <kbd className="px-2.5 py-1 bg-white/10 text-white/90 text-xs font-mono rounded border border-white/20 shadow-sm">
+                      <kbd className="px-2.5 py-1 bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-white/90 text-xs font-mono rounded border border-gray-300 dark:border-white/20 shadow-sm">
                         {shortcut.key}
                       </kbd>
                     </div>

@@ -855,6 +855,31 @@ export const testYunwuVideoConnection = async (
   return response.data;
 };
 
+/**
+ * 测试图片模型是否可以正常生成图片
+ */
+export interface TestImageModelResult {
+  success: boolean;
+  model: string;
+  image_size?: string;
+  response_format?: string;
+  error?: string;
+  content_preview?: string;
+  message: string;
+}
+
+export const testImageModel = async (
+  data: {
+    ai_provider_format?: string;
+    api_base_url?: string;
+    api_key?: string;
+    image_model: string;
+  }
+): Promise<ApiResponse<TestImageModelResult>> => {
+  const response = await apiClient.post<ApiResponse<TestImageModelResult>>('/api/settings/test-image-model', data);
+  return response.data;
+};
+
 // ===== Project 级 Settings（覆盖全局默认）=====
 
 export type ProjectSettingsPublic = {

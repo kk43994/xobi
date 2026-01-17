@@ -61,8 +61,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   return (
     <Card
       className={`p-3 md:p-6 transition-all ${
-        isSelected 
-          ? 'border-2 border-banana-500 bg-banana-50' 
+        isSelected
+          ? 'border-2 border-primary-500 bg-primary-50'
           : 'hover:shadow-lg border border-gray-200'
       } ${isBatchMode ? 'cursor-default' : 'cursor-pointer'}`}
       onClick={() => onSelect(project)}
@@ -74,7 +74,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggleSelect(projectId)}
-            className="w-4 h-4 text-banana-600 border-gray-300 rounded focus:ring-banana-500 cursor-pointer"
+            className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 cursor-pointer"
           />
         </div>
         
@@ -89,7 +89,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 onKeyDown={(e) => onTitleKeyDown(e, projectId)}
                 onBlur={() => onSaveEdit(projectId)}
                 autoFocus
-                className="text-base md:text-lg font-semibold text-gray-900 px-2 py-1 border border-banana-500 rounded focus:outline-none focus:ring-2 focus:ring-banana-500 flex-1 min-w-0"
+                className="text-base md:text-lg font-semibold text-gray-900 px-2 py-1 border border-primary-500 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 flex-1 min-w-0"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
@@ -97,7 +97,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 className={`text-base md:text-lg font-semibold text-gray-900 truncate flex-1 min-w-0 ${
                   isBatchMode 
                     ? 'cursor-default' 
-                    : 'cursor-pointer hover:text-banana-600 transition-colors'
+                    : 'cursor-pointer hover:text-primary-600 transition-colors'
                 }`}
                 onClick={(e) => onStartEdit(e, project)}
                 title={isBatchMode ? undefined : "点击编辑名称"}

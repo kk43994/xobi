@@ -51,7 +51,7 @@ export function Dashboard() {
         bordered={false}
         style={{
           borderRadius: 16,
-          background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 55%, #22C55E 120%)',
+          background: 'linear-gradient(135deg, #7C3AED 0%, #A78BFA 50%, #06B6D4 100%)',
         }}
         styles={{ body: { padding: 20 } }}
       >

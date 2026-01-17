@@ -38,13 +38,13 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white dark:bg-dark-secondary rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
         {/* 顶部标题栏 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-xl font-bold text-gray-900">设置</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-white/10 flex-shrink-0">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">设置</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-dark-tertiary rounded-lg transition-colors dark:text-white"
             aria-label="关闭"
           >
             <X size={20} />
@@ -54,14 +54,14 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
         {/* 主内容区 */}
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* 左侧导航栏 */}
-          <aside className="w-64 bg-gray-50 border-r border-gray-200 flex-shrink-0">
+          <aside className="w-64 bg-gray-50 dark:bg-dark-tertiary border-r border-gray-200 dark:border-white/10 flex-shrink-0">
             <nav className="p-4 space-y-2">
               <button
                 onClick={() => setActiveTab('project')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   activeTab === 'project'
-                    ? 'bg-banana-500 text-white shadow-md'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-500 text-white shadow-md'
+                    : 'bg-white dark:bg-dark-secondary text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-elevated'
                 }`}
               >
                 <FileText size={20} />
@@ -71,8 +71,8 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
                 onClick={() => setActiveTab('global')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   activeTab === 'global'
-                    ? 'bg-banana-500 text-white shadow-md'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-500 text-white shadow-md'
+                    : 'bg-white dark:bg-dark-secondary text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-elevated'
                 }`}
               >
                 <SettingsIcon size={20} />
@@ -93,9 +93,9 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
                 </div>
 
                 {/* 额外要求 */}
-                <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                <div className="bg-gray-50 dark:bg-dark-tertiary rounded-lg p-6 space-y-4">
                   <div>
-                    <h4 className="text-base font-semibold text-gray-900 mb-2">额外要求</h4>
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-2">额外要求</h4>
                     <p className="text-sm text-gray-600">
                       在生成每个页面时，AI 会参考这些额外要求
                     </p>
@@ -119,9 +119,9 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
                 </div>
 
                 {/* 风格描述 */}
-                <div className="bg-blue-50 rounded-lg p-6 space-y-4">
+                <div className="bg-blue-50 dark:bg-dark-tertiary rounded-lg p-6 space-y-4">
                   <div>
-                    <h4 className="text-base font-semibold text-gray-900 mb-2">风格描述</h4>
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-2">风格描述</h4>
                     <p className="text-sm text-gray-600">
                       描述您期望的整体风格（配色、字体、模块组件、氛围等），AI 将根据描述生成相应风格的页面
                     </p>

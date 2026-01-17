@@ -81,7 +81,7 @@ export const OutlineCard: React.FC<OutlineCardProps> = ({
   return (
     <Card
       className={`p-4 relative ${
-        isSelected ? 'border-2 border-banana-500 shadow-brand' : ''
+        isSelected ? 'border-2 border-primary-500 shadow-brand' : ''
       }`}
       onClick={!isEditing ? onClick : undefined}
     >
@@ -125,7 +125,7 @@ export const OutlineCard: React.FC<OutlineCardProps> = ({
                   }
                 }}
                 placeholder={defaultAspectRatio ? `默认 ${defaultAspectRatio}` : '默认'}
-                className="w-24 px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-banana-500 bg-white"
+                className="w-24 px-2 py-1 text-xs border border-gray-300 dark:border-white/20 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-dark-secondary dark:text-white"
               />
               <div className="hidden lg:flex items-center gap-1">
                 {ratioPresets.slice(0, 3).map((r) => (
@@ -136,7 +136,7 @@ export const OutlineCard: React.FC<OutlineCardProps> = ({
                       setAspectRatioInput(r);
                       onUpdate({ aspect_ratio: r });
                     }}
-                    className="px-2 py-1 text-[11px] rounded-full border border-gray-200 hover:border-banana-400 hover:bg-banana-50 transition-colors"
+                    className="px-2 py-1 text-[11px] rounded-full border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors"
                   >
                     {r}
                   </button>
@@ -152,14 +152,14 @@ export const OutlineCard: React.FC<OutlineCardProps> = ({
                 type="text"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-banana-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="标题"
               />
               <textarea
                 value={editPoints}
                 onChange={(e) => setEditPoints(e.target.value)}
                 rows={5}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-banana-500 resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                 placeholder="要点（每行一个）"
               />
               <div className="flex justify-end gap-2">
@@ -172,7 +172,7 @@ export const OutlineCard: React.FC<OutlineCardProps> = ({
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-3 py-1.5 text-sm bg-banana-500 text-black rounded-lg hover:bg-banana-600 transition-colors"
+                  className="px-3 py-1.5 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
                 >
                   <Check size={16} className="inline mr-1" />
                   保存
@@ -200,7 +200,7 @@ export const OutlineCard: React.FC<OutlineCardProps> = ({
                 e.stopPropagation();
                 setIsEditing(true);
               }}
-              className="p-1.5 text-gray-500 hover:text-banana-600 hover:bg-banana-50 rounded transition-colors"
+              className="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
             >
               <Edit2 size={16} />
             </button>

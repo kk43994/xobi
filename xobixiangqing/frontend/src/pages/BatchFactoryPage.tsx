@@ -137,13 +137,13 @@ export function BatchFactoryPage() {
   ];
 
   return (
-    <div className="h-full w-full bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4">
+    <div className="h-full w-full bg-gray-50 dark:bg-dark-primary pt-[calc(var(--xobi-toolbar-safe-top,44px)+12px)] px-4 pb-4">
       <div className="mx-auto max-w-6xl h-full min-h-0">
-        <div className="h-full min-h-0 rounded-2xl border border-white/10 bg-dark-secondary/80 backdrop-blur-xl p-4 overflow-hidden flex flex-col gap-4">
+        <div className="h-full min-h-0 rounded-2xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-dark-secondary/80 backdrop-blur-xl p-4 overflow-hidden flex flex-col gap-4">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="min-w-0">
-              <div className="text-white text-lg font-semibold">批量工厂</div>
-              <div className="text-text-secondary text-sm mt-1">
+              <div className="text-gray-900 dark:text-white text-lg font-semibold">批量工厂</div>
+              <div className="text-gray-600 dark:text-white/60 text-sm mt-1">
                 以 `taiyang.xlsx` 作为 v1 导出模板；后续再适配 Shopee/SHEIN/Amazon/TikTok/Temu 的差异字段
               </div>
             </div>

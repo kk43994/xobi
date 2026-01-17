@@ -241,7 +241,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span>{materials.length > 0 ? `共 ${materials.length} 个素材` : '暂无素材'}</span>
               {selectedMaterials.size > 0 && (
-                <span className="ml-2 text-banana-600">
+                <span className="ml-2 text-primary-600">
                   已选择 {selectedMaterials.size} 个
                 </span>
               )}
@@ -262,7 +262,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                   }
                   setFilterProjectId(value);
                 }}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-banana-500 w-40 sm:w-48 max-w-[200px] truncate"
+                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-white/20 rounded-md bg-white dark:bg-dark-secondary dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 w-40 sm:w-48 max-w-[200px] truncate"
               >
                 {/* 固定显示的前三个选项 */}
                 <option value="all">所有素材</option>
@@ -303,7 +303,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
               
               {/* 上传按钮 */}
               <label className="inline-block cursor-pointer">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-secondary border border-gray-300 dark:border-white/20 rounded-md hover:bg-gray-50 dark:hover:bg-dark-tertiary disabled:opacity-50 disabled:cursor-not-allowed">
                   <Upload size={16} />
                   <span>{isUploading ? '上传中...' : '上传'}</span>
                 </div>
@@ -361,8 +361,8 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                   onClick={() => handleSelectMaterial(material)}
                   className={`aspect-video rounded-lg border-2 cursor-pointer transition-all relative group ${
                     isSelected
-                      ? 'border-banana-500 ring-2 ring-banana-200'
-                      : 'border-gray-200 hover:border-banana-300'
+                      ? 'border-primary-500 ring-2 ring-primary-200'
+                      : 'border-gray-200 hover:border-primary-300'
                   }`}
                 >
                   <img
@@ -381,8 +381,8 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                     {isDeleting ? <RefreshCw size={12} className="animate-spin" /> : <X size={12} />}
                   </button>
                   {isSelected && (
-                    <div className="absolute inset-0 bg-banana-500 bg-opacity-20 flex items-center justify-center">
-                      <div className="bg-banana-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                    <div className="absolute inset-0 bg-primary-500 bg-opacity-20 flex items-center justify-center">
+                      <div className="bg-primary-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
                         <CheckOutlined />
                       </div>
                     </div>
@@ -407,7 +407,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                     type="checkbox"
                     checked={saveAsTemplate}
                     onChange={(e) => setSaveAsTemplate(e.target.checked)}
-                    className="w-4 h-4 text-banana-500 border-gray-300 rounded focus:ring-banana-500"
+                    className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
                   />
                   <span className="text-sm text-gray-700">
                     同时保存到我的模板库

@@ -90,7 +90,7 @@ export const HoverTooltip = ({
       <div className="relative">
         {/* 箭头 */}
         <div
-          className={`absolute w-2 h-2 bg-[#1a1a1a] border-white/10 transform rotate-45 ${
+          className={`absolute w-2 h-2 bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-white/10 transform rotate-45 ${
             placement === 'top'
               ? 'bottom-[-4px] left-1/2 -translate-x-1/2 border-r border-b'
               : placement === 'bottom'
@@ -102,16 +102,16 @@ export const HoverTooltip = ({
         />
 
         {/* 内容 */}
-        <div className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl px-3 py-2 max-w-xs">
+        <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-lg shadow-2xl px-3 py-2 max-w-xs">
           {title && (
-            <div className="font-semibold text-white text-sm mb-1">{title}</div>
+            <div className="font-semibold text-gray-900 dark:text-white text-sm mb-1">{title}</div>
           )}
-          <div className="text-white/80 text-xs leading-relaxed">
+          <div className="text-gray-700 dark:text-white/80 text-xs leading-relaxed">
             {content}
           </div>
           {showShortcut && (
-            <div className="mt-2 pt-2 border-t border-white/10">
-              <kbd className="px-2 py-0.5 bg-white/10 text-white/70 text-xs rounded">
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10">
+              <kbd className="px-2 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/70 text-xs rounded">
                 {showShortcut}
               </kbd>
             </div>

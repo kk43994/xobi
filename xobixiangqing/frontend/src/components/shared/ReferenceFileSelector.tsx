@@ -397,7 +397,7 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <span>{files.length > 0 ? `共 ${files.length} 个文件` : '暂无文件'}</span>
             {selectedFiles.size > 0 && (
-              <span className="ml-2 text-banana-600">
+              <span className="ml-2 text-primary-600">
                 已选择 {selectedFiles.size} 个
               </span>
             )}
@@ -410,7 +410,7 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
             <select
               value={filterProjectId}
               onChange={(e) => setFilterProjectId(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-banana-500"
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-white/20 rounded-md bg-white dark:bg-dark-secondary dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="all">所有附件</option>
               <option value="none">未归类附件</option>
@@ -483,7 +483,7 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
                     onClick={() => handleSelectFile(file)}
                     className={`
                       p-4 cursor-pointer transition-colors
-                      ${isSelected ? 'bg-banana-50 border-l-4 border-l-banana-500' : 'hover:bg-gray-50'}
+                      ${isSelected ? 'bg-primary-50 border-l-4 border-l-primary-500' : 'hover:bg-gray-50'}
                       ${file.parse_status === 'failed' ? 'opacity-60' : ''}
                     `}
                   >
@@ -494,7 +494,7 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
                           className={`
                             w-5 h-5 rounded border-2 flex items-center justify-center
                             ${isSelected
-                              ? 'bg-banana-500 border-banana-500'
+                              ? 'bg-primary-500 border-primary-500'
                               : 'border-gray-300'
                             }
                             ${file.parse_status === 'failed' ? 'opacity-50' : ''}

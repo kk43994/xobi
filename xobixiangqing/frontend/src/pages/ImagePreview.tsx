@@ -711,9 +711,9 @@ export const ImagePreview: React.FC = () => {
   const generateNoun = isEcomProject ? '详情图' : '图片';
 
   return (
-    <div data-testid="image-preview" className="image-preview h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div data-testid="image-preview" className="image-preview h-screen bg-gray-50 dark:bg-black flex flex-col overflow-hidden">
       {/* 顶栏 */}
-      <header className="h-14 md:h-16 bg-white shadow-sm border-b border-gray-200 flex items-center justify-between px-3 md:px-6 flex-shrink-0">
+      <header className="h-14 md:h-16 bg-white dark:bg-dark-secondary shadow-sm border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-3 md:px-6 flex-shrink-0">
         <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
           <Button
             variant="ghost"
@@ -740,7 +740,7 @@ export const ImagePreview: React.FC = () => {
             <span className="hidden sm:inline">返回</span>
           </Button>
           <div className="flex items-center gap-1.5 md:gap-2 min-w-0">
-            <span className="text-xl md:text-2xl font-extrabold text-banana-600 tracking-tight">xobi</span>
+            <span className="text-xl md:text-2xl font-extrabold text-primary-600 tracking-tight">xobi</span>
           </div>
           <span className="text-gray-400 hidden md:inline">|</span>
           <span className="text-sm md:text-lg font-semibold truncate hidden sm:inline">预览</span>
@@ -805,16 +805,16 @@ export const ImagePreview: React.FC = () => {
               <span className="sm:hidden">导出</span>
             </Button>
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-white/10 py-2 z-10">
                 <button
                   onClick={() => handleExport('current')}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors text-sm"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-dark-tertiary transition-colors text-sm dark:text-white"
                 >
                   下载当前图片
                 </button>
                 <button
                   onClick={() => handleExport('images')}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors text-sm"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-dark-tertiary transition-colors text-sm dark:text-white"
                 >
                   导出全部图片 ZIP
                 </button>
@@ -827,8 +827,8 @@ export const ImagePreview: React.FC = () => {
       {/* 主内容区 */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-w-0 min-h-0">
         {/* 左侧：缩略图列表 */}
-        <aside className="w-full md:w-80 bg-white border-b md:border-b-0 md:border-r border-gray-200 flex flex-col flex-shrink-0">
-          <div className="p-3 md:p-4 border-b border-gray-200 flex-shrink-0 space-y-2 md:space-y-3">
+        <aside className="w-full md:w-80 bg-white dark:bg-dark-secondary border-b md:border-b-0 md:border-r border-gray-200 dark:border-white/10 flex flex-col flex-shrink-0">
+          <div className="p-3 md:p-4 border-b border-gray-200 dark:border-white/10 flex-shrink-0 space-y-2 md:space-y-3">
             <Button
               variant="primary"
               icon={<Sparkles size={16} className="md:w-[18px] md:h-[18px]" />}
@@ -850,7 +850,7 @@ export const ImagePreview: React.FC = () => {
                     style={{ aspectRatio: toCssAspectRatio(getPageAspectRatio(index)) }}
                     className={`md:hidden w-20 rounded border-2 transition-all ${
                       selectedIndex === index
-                        ? 'border-banana-500 shadow-md'
+                        ? 'border-primary-500 shadow-md'
                         : 'border-gray-200'
                     }`}
                   >
@@ -889,7 +889,7 @@ export const ImagePreview: React.FC = () => {
         </aside>
 
         {/* 右侧：大图预览 */}
-        <main className="flex-1 flex flex-col bg-gradient-to-br from-banana-50 via-white to-gray-50 min-w-0 overflow-hidden">
+        <main className="flex-1 flex flex-col bg-gradient-to-br from-primary-50 via-white to-gray-50 min-w-0 overflow-hidden">
           {currentProject.pages.length === 0 ? (
             <div className="flex-1 flex items-center justify-center overflow-y-auto">
               <div className="text-center">
@@ -915,7 +915,7 @@ export const ImagePreview: React.FC = () => {
               <div className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center p-4 md:p-8">
                 <div className="max-w-5xl w-full">
                   <div
-                    className="relative bg-white rounded-lg shadow-xl overflow-hidden touch-manipulation"
+                    className="relative bg-white dark:bg-dark-secondary rounded-lg shadow-xl overflow-hidden touch-manipulation"
                     style={{ aspectRatio: selectedCssAspectRatio }}
                   >
                     {selectedPage?.generated_image_path ? (
@@ -926,9 +926,9 @@ export const ImagePreview: React.FC = () => {
                         draggable={false}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-dark-tertiary">
                         <div className="text-center">
-                          <div className="text-2xl md:text-3xl font-extrabold text-banana-600 tracking-tight mb-4">xobi</div>
+                          <div className="text-2xl md:text-3xl font-extrabold text-primary-600 tracking-tight mb-4">xobi</div>
                           <p className="text-gray-500 mb-4">
                             {selectedPage?.id && pageGeneratingTasks[selectedPage.id]
                               ? '正在生成中...'
@@ -953,7 +953,7 @@ export const ImagePreview: React.FC = () => {
               </div>
 
               {/* 控制栏 */}
-              <div className="bg-white border-t border-gray-200 px-3 md:px-6 py-3 md:py-4 flex-shrink-0">
+              <div className="bg-white dark:bg-dark-secondary border-t border-gray-200 dark:border-white/10 px-3 md:px-6 py-3 md:py-4 flex-shrink-0">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 max-w-5xl mx-auto">
                   {/* 导航 */}
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
@@ -1030,13 +1030,13 @@ export const ImagePreview: React.FC = () => {
                           <span className="md:hidden">版本</span>
                         </Button>
                         {showVersionMenu && (
-                          <div className="absolute right-0 bottom-full mb-2 w-56 md:w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20 max-h-96 overflow-y-auto">
+                          <div className="absolute right-0 bottom-full mb-2 w-56 md:w-64 bg-white dark:bg-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-white/10 py-2 z-20 max-h-96 overflow-y-auto">
                             {imageVersions.map((version) => (
                               <button
                                 key={version.version_id}
                                 onClick={() => handleSwitchVersion(version.version_id)}
-                                className={`w-full px-3 md:px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center justify-between text-xs md:text-sm ${
-                                  version.is_current ? 'bg-banana-50' : ''
+                                className={`w-full px-3 md:px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-dark-tertiary transition-colors flex items-center justify-between text-xs md:text-sm dark:text-white ${
+                                  version.is_current ? 'bg-primary-50 dark:bg-primary-900/30' : ''
                                 }`}
                               >
                                 <div className="flex items-center gap-2">
@@ -1044,7 +1044,7 @@ export const ImagePreview: React.FC = () => {
                                     版本 {version.version_number}
                                   </span>
                                   {version.is_current && (
-                                    <span className="text-xs text-banana-600 font-medium">
+                                    <span className="text-xs text-primary-600 font-medium">
                                       (当前)
                                     </span>
                                   )}
@@ -1124,7 +1124,7 @@ export const ImagePreview: React.FC = () => {
                     setSelectionRect(null);
                     setIsSelectingRegion(false);
                   }}
-                  className="absolute top-2 left-2 z-10 px-2 py-1 rounded bg-white/80 text-[10px] text-gray-700 hover:bg-banana-50 shadow-sm flex items-center gap-1"
+                  className="absolute top-2 left-2 z-10 px-2 py-1 rounded bg-white/80 text-[10px] text-gray-700 hover:bg-primary-50 shadow-sm flex items-center gap-1"
                 >
                   <Sparkles size={12} />
                   <span>{isRegionSelectionMode ? '结束区域选图' : '区域选图'}</span>
@@ -1140,7 +1140,7 @@ export const ImagePreview: React.FC = () => {
                 />
                 {selectionRect && (
                   <div
-                    className="absolute border-2 border-banana-500 bg-banana-400/10 pointer-events-none"
+                    className="absolute border-2 border-primary-500 bg-primary-400/10 pointer-events-none"
                     style={{
                       left: selectionRect.left,
                       top: selectionRect.top,
@@ -1155,12 +1155,12 @@ export const ImagePreview: React.FC = () => {
 
           {/* 大纲内容 - 可折叠 */}
           {selectedPage?.outline_content && (
-            <div className="bg-gray-50 rounded-lg border border-gray-200">
+            <div className="bg-gray-50 dark:bg-dark-tertiary rounded-lg border border-gray-200 dark:border-white/10">
               <button
                 onClick={() => setIsOutlineExpanded(!isOutlineExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors"
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-dark-elevated transition-colors"
               >
-                <h4 className="text-sm font-semibold text-gray-700">页面大纲</h4>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-white">页面大纲</h4>
                 {isOutlineExpanded ? (
                   <ChevronUp size={18} className="text-gray-500" />
                 ) : (
@@ -1235,7 +1235,7 @@ export const ImagePreview: React.FC = () => {
                       useTemplate: e.target.checked,
                     }))
                   }
-                  className="w-4 h-4 text-banana-600 rounded focus:ring-banana-500"
+                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                 />
                 <label htmlFor="use-template" className="flex items-center gap-2 cursor-pointer">
                   <ImageIcon size={16} className="text-gray-500" />
@@ -1282,8 +1282,8 @@ export const ImagePreview: React.FC = () => {
                           }}
                         />
                         {selectedContextImages.descImageUrls.includes(url) && (
-                          <div className="absolute inset-0 bg-banana-500/20 border-2 border-banana-500 rounded flex items-center justify-center">
-                            <div className="w-6 h-6 bg-banana-500 rounded-full flex items-center justify-center">
+                          <div className="absolute inset-0 bg-primary-500/20 border-2 border-primary-500 rounded flex items-center justify-center">
+                            <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
                               <CheckOutlined className="text-white text-xs" />
                             </div>
                           </div>
@@ -1326,7 +1326,7 @@ export const ImagePreview: React.FC = () => {
                     </button>
                   </div>
                 ))}
-                <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center cursor-pointer hover:border-banana-500 transition-colors">
+                <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 transition-colors">
                   <Upload size={20} className="text-gray-400 mb-1" />
                   <span className="text-xs text-gray-500">上传</span>
                   <input

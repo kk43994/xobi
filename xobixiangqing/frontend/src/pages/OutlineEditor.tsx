@@ -164,9 +164,9 @@ export const OutlineEditor: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
       {/* 顶栏 */}
-      <header className="bg-white shadow-sm border-b border-gray-200 px-3 md:px-6 py-2 md:py-3 flex-shrink-0">
+      <header className="bg-white dark:bg-dark-secondary shadow-sm border-b border-gray-200 dark:border-white/10 px-3 md:px-6 py-2 md:py-3 flex-shrink-0">
         <div className="flex items-center justify-between gap-2 md:gap-4">
           {/* 左侧：Logo 和标题 */}
           <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
@@ -186,7 +186,7 @@ export const OutlineEditor: React.FC = () => {
               <span className="hidden sm:inline">返回</span>
             </Button>
             <div className="flex items-center gap-1.5 md:gap-2">
-              <span className="text-xl md:text-2xl font-extrabold text-banana-600 tracking-tight">xobi</span>
+              <span className="text-xl md:text-2xl font-extrabold text-primary-600 tracking-tight">xobi</span>
             </div>
             <span className="text-gray-400 hidden lg:inline">|</span>
             <span className="text-sm md:text-lg font-semibold hidden lg:inline">编辑大纲</span>
@@ -241,7 +241,7 @@ export const OutlineEditor: React.FC = () => {
       </header>
 
       {/* 上下文栏 */}
-      <div className="bg-banana-50 border-b border-banana-100 px-3 md:px-6 py-2 md:py-3 max-h-32 overflow-y-auto flex-shrink-0">
+      <div className="bg-primary-50 dark:bg-dark-tertiary border-b border-primary-100 dark:border-white/10 px-3 md:px-6 py-2 md:py-3 max-h-32 overflow-y-auto flex-shrink-0">
         <div className="flex items-start gap-1.5 md:gap-2 text-xs md:text-sm">
           {currentProject.creation_type === 'idea' && (
             <span className="font-medium text-gray-700 flex-shrink-0 flex items-center">
@@ -365,8 +365,8 @@ export const OutlineEditor: React.FC = () => {
         </div>
 
         {/* 右侧：预览 */}
-        <div className="hidden md:block w-96 bg-white border-l border-gray-200 p-4 md:p-6 overflow-y-auto flex-shrink-0">
-          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">预览</h3>
+        <div className="hidden md:block w-96 bg-white dark:bg-dark-secondary border-l border-gray-200 dark:border-white/10 p-4 md:p-6 overflow-y-auto flex-shrink-0">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 md:mb-4">预览</h3>
           
           {selectedPage ? (
             <div className="space-y-3 md:space-y-4">
@@ -381,7 +381,7 @@ export const OutlineEditor: React.FC = () => {
                 <ul className="space-y-1.5 md:space-y-2">
                   {selectedPage.outline_content.points.map((point, idx) => (
                     <li key={idx} className="flex items-start text-sm md:text-base text-gray-700">
-                      <span className="mr-2 text-banana-500 flex-shrink-0">•</span>
+                      <span className="mr-2 text-primary-500 flex-shrink-0">•</span>
                       <span>{point}</span>
                     </li>
                   ))}
@@ -398,8 +398,8 @@ export const OutlineEditor: React.FC = () => {
         
         {/* 移动端预览：底部抽屉 */}
         {selectedPage && (
-          <div className="md:hidden fixed inset-x-0 bottom-0 bg-white border-t border-gray-200 p-4 max-h-[50vh] overflow-y-auto shadow-lg z-50">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">预览</h3>
+          <div className="md:hidden fixed inset-x-0 bottom-0 bg-white dark:bg-dark-secondary border-t border-gray-200 dark:border-white/10 p-4 max-h-[50vh] overflow-y-auto shadow-lg z-50">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">预览</h3>
             <div className="space-y-2">
               <div>
                 <div className="text-xs text-gray-500 mb-1">标题</div>
@@ -412,7 +412,7 @@ export const OutlineEditor: React.FC = () => {
                 <ul className="space-y-1">
                   {selectedPage.outline_content.points.map((point, idx) => (
                     <li key={idx} className="flex items-start text-xs text-gray-700">
-                      <span className="mr-1.5 text-banana-500 flex-shrink-0">•</span>
+                      <span className="mr-1.5 text-primary-500 flex-shrink-0">•</span>
                       <span>{point}</span>
                     </li>
                   ))}

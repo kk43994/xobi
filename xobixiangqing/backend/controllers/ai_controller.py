@@ -19,6 +19,7 @@ from __future__ import annotations
 import base64
 import logging
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -34,6 +35,30 @@ from utils import bad_request, error_response, success_response
 logger = logging.getLogger(__name__)
 
 ai_bp = Blueprint("ai", __name__, url_prefix="/api/ai")
+
+# 详情页图片类型变体（用于生成多张不同内容的图片）
+DETAIL_PAGE_VARIANTS = [
+    {"type": "主图/封面", "prompt_suffix": "产品主图，突出产品整体外观，简洁大气的背景，产品居中展示"},
+    {"type": "核心卖点", "prompt_suffix": "展示产品核心卖点和优势，配合醒目的卖点标签和图标"},
+    {"type": "细节特写", "prompt_suffix": "产品细节特写，展示材质、工艺、做工等细节"},
+    {"type": "使用场景", "prompt_suffix": "产品使用场景图，展示产品在实际环境中的使用效果"},
+    {"type": "规格参数", "prompt_suffix": "产品规格参数展示，清晰的尺寸标注和参数信息"},
+    {"type": "对比优势", "prompt_suffix": "产品对比图，突出与竞品的差异化优势"},
+    {"type": "用户好评", "prompt_suffix": "用户评价展示，真实用户反馈和好评截图风格"},
+    {"type": "品牌故事", "prompt_suffix": "品牌故事或产品理念展示，传递品牌价值"},
+    {"type": "售后保障", "prompt_suffix": "售后服务保障展示，包含退换货、质保等信息"},
+    {"type": "促销信息", "prompt_suffix": "促销活动信息，限时优惠、满减等促销内容"},
+]
+
+
+def _get_variant_prompt(base_prompt: str, index: int, total: int) -> str:
+    """为每张图生成不同的 prompt 变体"""
+    if total <= 1:
+        return base_prompt
+
+    # 循环使用变体
+    variant = DETAIL_PAGE_VARIANTS[index % len(DETAIL_PAGE_VARIANTS)]
+    return f"{base_prompt}。这是第{index + 1}张图（{variant['type']}）：{variant['prompt_suffix']}"
 
 
 def _decode_base64_image(base64_str: str) -> Image.Image:
@@ -54,13 +79,12 @@ def _decode_base64_image(base64_str: str) -> Image.Image:
 def chat():
     """
     POST /api/ai/chat
-    Body JSON:
-      - message: string (required)
-      - images: string[] (optional, image URLs or base64 data URLs)
+    Body JSON: { "message": "...", "history": [...] }
 
-    Returns:
-      - response: string (AI回复文本)
-      - generated_images: [{ image_url, width, height }] (optional, 如果AI生成了图片)
+    智能对话接口，支持：
+    - 主动提问澄清需求
+    - 返回选项让用户选择
+    - 上下文记忆
     """
     try:
         payload = request.get_json(silent=True) or {}
@@ -71,102 +95,79 @@ def chat():
         if not message:
             return bad_request("Message is required")
 
-        image_urls = payload.get("images") or []
-        if not isinstance(image_urls, list):
-            image_urls = []
+        history = payload.get("history") or []
+        if not isinstance(history, list):
+            history = []
 
-        logger.info("AI Chat request: %s (with %d images)", message[:120], len(image_urls))
+        logger.info("AI Chat request: %s", message[:120])
 
         ai_service = get_ai_service()
 
-        # 准备系统提示
-        system_prompt = (
-            "你是一个专业的AI设计助手。请遵循以下规则：\n"
-            "1. 回复简洁明了，不超过3句话\n"
-            "2. 直接给出解决方案或下一步建议\n"
-            "3. 使用中文回复\n"
-            "4. 避免废话和过度解释\n"
-            "5. 如果用户要求生成图片，你可以生成图片并返回"
-        )
-        full_prompt = f"{system_prompt}\n\n用户: {message}"
+        # 构建智能对话的系统提示词
+        system_prompt = """你是一个专业的AI电商设计助手。你的任务是帮助用户生成高质量的电商图片（详情页、主图等）。
 
-        # 如果有图片，尝试加载为PIL Image对象
-        ref_images = []
-        if image_urls:
-            for img_url in image_urls[:6]:  # 最多处理6张图片
-                try:
-                    img = _load_image_from_source(img_url)
-                    ref_images.append(img)
-                except Exception as e:
-                    logger.warning(f"Failed to load image {img_url}: {e}")
+请遵循以下规则：
+1. 如果用户的需求不够明确，主动提问澄清（比如：产品类型、目标平台、风格偏好等）
+2. 回复要简洁明了，不超过3句话
+3. 使用中文回复
+4. 在回复中，如果需要用户做选择，请在回复末尾添加 [OPTIONS] 标记，然后列出选项，格式如下：
+   [OPTIONS]
+   - 选项1标签|选项1值|选项1描述
+   - 选项2标签|选项2值|选项2描述
 
-        # 检测是否需要生成图片（简单的关键词检测）
-        should_generate_image = any(keyword in message for keyword in [
-            "生成图片", "生成一张", "画一张", "创作图片", "做一张图", "生成三视图",
-            "生成", "画", "创作", "制作图片", "generate image"
-        ])
+5. 如果用户的需求已经足够明确，可以直接给出建议或确认开始生成
 
-        generated_images = []
+示例对话：
+用户：我想生成详情页
+助手：好的！请问你要生成什么产品的详情页呢？
+[OPTIONS]
+- 服装类|我要生成服装类产品的详情页|T恤、裙子、外套等
+- 数码类|我要生成数码产品的详情页|手机、耳机、充电器等
+- 家居类|我要生成家居产品的详情页|家具、装饰品、厨具等
+- 其他类型|我要生成其他类型产品的详情页|请告诉我具体是什么产品"""
 
-        if should_generate_image and ai_service.image_provider:
-            # 使用图片生成功能
-            try:
-                # 构建生成提示（如果有参考图，则基于参考图生成）
-                if ref_images:
-                    gen_prompt = f"基于提供的参考图片，{message}"
-                else:
-                    gen_prompt = message
+        # 构建对话历史
+        messages_for_ai = []
+        for h in history[-10:]:  # 保留最近10条历史
+            role = h.get("role", "user")
+            content = h.get("content", "")
+            if role in ["user", "assistant"] and content:
+                messages_for_ai.append({"role": role, "content": content})
 
-                # 生成图片
-                result_img = ai_service.image_provider.generate_image(
-                    prompt=gen_prompt,
-                    ref_images=ref_images if ref_images else None,
-                    aspect_ratio="1:1",
-                    resolution="2K",
-                )
+        full_prompt = f"{system_prompt}\n\n对话历史：\n"
+        for m in messages_for_ai:
+            full_prompt += f"{m['role']}: {m['content']}\n"
+        full_prompt += f"\n用户: {message}\n助手:"
 
-                # 保存生成的图片
-                asset_id = str(uuid.uuid4())
-                filename = f"{asset_id}.png"
-                file_path = get_upload_path() / filename
+        response_text = ai_service.text_provider.generate_text(full_prompt)
+        response_text = (response_text or "").strip() or "抱歉，我暂时无法回答这个问题。请稍后再试。"
 
-                result_img.save(str(file_path), format="PNG")
-                width, height = result_img.size
+        # 解析选项
+        options = None
+        if "[OPTIONS]" in response_text:
+            parts = response_text.split("[OPTIONS]")
+            response_text = parts[0].strip()
+            if len(parts) > 1:
+                options_text = parts[1].strip()
+                options = []
+                for line in options_text.split("\n"):
+                    line = line.strip()
+                    if line.startswith("- "):
+                        line = line[2:]
+                        parts = line.split("|")
+                        if len(parts) >= 2:
+                            opt = {
+                                "label": parts[0].strip(),
+                                "value": parts[1].strip(),
+                                "description": parts[2].strip() if len(parts) > 2 else None,
+                            }
+                            options.append(opt)
 
-                # 创建Asset记录
-                asset = Asset(
-                    system="A",
-                    kind="image",
-                    name=filename,
-                    storage="local",
-                )
-                db.session.add(asset)
-                db.session.commit()
-
-                generated_images.append({
-                    "image_url": f"/api/assets/{asset.id}/download",
-                    "width": width,
-                    "height": height,
-                })
-
-                response_text = f"已为你生成图片！{message}"
-
-            except Exception as e:
-                logger.error(f"Image generation failed: {e}", exc_info=True)
-                response_text = f"图片生成失败: {str(e)}"
-
-        else:
-            # 普通对话（可能带图片输入）
-            # 注意：如果使用支持多模态的文本模型（如Gemini），可以传递图片
-            # 但目前的text_provider.generate_text只接受文本，需要扩展
-            response_text = ai_service.text_provider.generate_text(full_prompt)
-            response_text = (response_text or "").strip() or "抱歉，我暂时无法回答这个问题。请稍后再试。"
-
-        result = {"response": response_text}
-        if generated_images:
-            result["generated_images"] = generated_images
-
-        return success_response(result)
+        return success_response({
+            "response": response_text,
+            "options": options,
+            "suggestions": None,
+        })
 
     except Exception as e:
         logger.error("AI Chat error: %s", e, exc_info=True)
@@ -214,7 +215,7 @@ def generate_image():
 
         enhanced_prompt = prompt
         ref_images: List[Image.Image] = []
-        logger.info("Reference images received: %s (type: %s)", reference_images, type(reference_images))
+        logger.info("Reference images received: %s (type: %s)", len(reference_images), type(reference_images))
         if reference_images:
             enhanced_prompt = f"请基于提供的参考图片，生成电商产品图。产品描述：{prompt}"
             for idx, ref_data in enumerate(reference_images[:6]):
@@ -252,65 +253,156 @@ def generate_image():
 
         upload_root = Path(current_app.config["UPLOAD_FOLDER"]).resolve()
 
-        results: List[Dict[str, Any]] = []
+        # 并发生成（默认最多 4 并发，避免同一 Key 瞬时打爆导致 429）
+        max_workers_raw = current_app.config.get("MAX_IMAGE_WORKERS", 4)
+        try:
+            max_workers_cfg = int(max_workers_raw) if max_workers_raw is not None else 4
+        except Exception:
+            max_workers_cfg = 4
+        max_workers = max(1, min(count, max_workers_cfg, 4))
+
+        results_by_index: Dict[int, Dict[str, Any]] = {}
         completed = 0
         failed = 0
-        for i in range(count):
-            try:
-                generated = ai_service.image_provider.generate_image(
-                    prompt=enhanced_prompt,
-                    ref_images=ref_images if ref_images else None,
-                    aspect_ratio=aspect_ratio,
-                    resolution="1K",
-                )
-                if generated is None:
-                    failed += 1
-                    continue
 
-                filename = f"canvas_{uuid.uuid4().hex}.png"
-                asset = Asset(system="A", kind="image", name=filename, storage="local", job_id=job_id)
-                asset.set_meta(
-                    {
-                        "source": "canvas_generate_image",
-                        "aspect_ratio": aspect_ratio,
-                        "prompt": prompt,
-                        "enhanced_prompt": enhanced_prompt,
-                        "reference_images": len(ref_images),
-                    }
-                )
-                db.session.add(asset)
-                db.session.flush()
+        # 为每张图生成不同的 prompt 变体（差异化内容）
+        variant_prompts = [(_get_variant_prompt(enhanced_prompt, i, count)) for i in range(count)]
 
-                asset_dir = (upload_root / "assets" / asset.id).resolve()
-                asset_dir.mkdir(parents=True, exist_ok=True)
+        def _generate_one(i: int) -> Optional[Image.Image]:
+            variant_prompt = variant_prompts[i]
+            logger.info("Generating image %s/%s with variant prompt: %s", i + 1, count, variant_prompt[:100])
+            return ai_service.image_provider.generate_image(
+                prompt=variant_prompt,
+                ref_images=ref_images if ref_images else None,
+                aspect_ratio=aspect_ratio,
+                resolution="1K",
+            )
 
-                file_path = (asset_dir / filename).resolve()
-                generated.save(str(file_path), format="PNG")
-
-                asset.file_path = file_path.relative_to(upload_root).as_posix()
-                asset.content_type = "image/png"
+        if count <= 1 or max_workers <= 1:
+            # 单张图：走同步逻辑，减少线程开销
+            for i in range(count):
                 try:
-                    asset.size_bytes = int(file_path.stat().st_size)
-                except Exception:
-                    asset.size_bytes = None
+                    generated = _generate_one(i)
+                    if generated is None:
+                        failed += 1
+                        continue
 
-                width, height = generated.size
-                results.append(
-                    {
+                    filename = f"canvas_{uuid.uuid4().hex}.png"
+                    asset = Asset(system="A", kind="image", name=filename, storage="local", job_id=job_id)
+                    variant_info = DETAIL_PAGE_VARIANTS[i % len(DETAIL_PAGE_VARIANTS)] if count > 1 else None
+                    asset.set_meta(
+                        {
+                            "source": "canvas_generate_image",
+                            "aspect_ratio": aspect_ratio,
+                            "prompt": prompt,
+                            "enhanced_prompt": variant_prompts[i],
+                            "variant_type": variant_info["type"] if variant_info else None,
+                            "variant_index": i,
+                            "reference_images": len(ref_images),
+                        }
+                    )
+                    db.session.add(asset)
+                    db.session.flush()
+
+                    asset_dir = (upload_root / "assets" / asset.id).resolve()
+                    asset_dir.mkdir(parents=True, exist_ok=True)
+
+                    file_path = (asset_dir / filename).resolve()
+                    generated.save(str(file_path), format="PNG")
+
+                    asset.file_path = file_path.relative_to(upload_root).as_posix()
+                    asset.content_type = "image/png"
+                    try:
+                        asset.size_bytes = int(file_path.stat().st_size)
+                    except Exception:
+                        asset.size_bytes = None
+
+                    width, height = generated.size
+                    results_by_index[i] = {
                         "asset_id": asset.id,
                         "image_url": f"/api/assets/{asset.id}/download",
                         "width": width,
                         "height": height,
                     }
-                )
-                completed += 1
-            except Exception as img_error:
-                logger.error("Canvas image generation error (%s/%s): %s", i + 1, count, img_error, exc_info=True)
-                failed += 1
-                continue
+                    completed += 1
 
+                    job.set_progress({"total": count, "completed": completed, "failed": failed})
+                    db.session.commit()
+                except Exception as img_error:
+                    logger.error("Canvas image generation error (%s/%s): %s", i + 1, count, img_error, exc_info=True)
+                    failed += 1
+                    try:
+                        job.set_progress({"total": count, "completed": completed, "failed": failed})
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+                    continue
+        else:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {executor.submit(_generate_one, i): i for i in range(count)}
+                for future in as_completed(futures):
+                    i = futures[future]
+                    try:
+                        generated = future.result()
+                        if generated is None:
+                            failed += 1
+                            job.set_progress({"total": count, "completed": completed, "failed": failed})
+                            db.session.commit()
+                            continue
+
+                        filename = f"canvas_{uuid.uuid4().hex}.png"
+                        asset = Asset(system="A", kind="image", name=filename, storage="local", job_id=job_id)
+                        variant_info = DETAIL_PAGE_VARIANTS[i % len(DETAIL_PAGE_VARIANTS)] if count > 1 else None
+                        asset.set_meta(
+                            {
+                                "source": "canvas_generate_image",
+                                "aspect_ratio": aspect_ratio,
+                                "prompt": prompt,
+                                "enhanced_prompt": variant_prompts[i],
+                                "variant_type": variant_info["type"] if variant_info else None,
+                                "variant_index": i,
+                                "reference_images": len(ref_images),
+                            }
+                        )
+                        db.session.add(asset)
+                        db.session.flush()
+
+                        asset_dir = (upload_root / "assets" / asset.id).resolve()
+                        asset_dir.mkdir(parents=True, exist_ok=True)
+
+                        file_path = (asset_dir / filename).resolve()
+                        generated.save(str(file_path), format="PNG")
+
+                        asset.file_path = file_path.relative_to(upload_root).as_posix()
+                        asset.content_type = "image/png"
+                        try:
+                            asset.size_bytes = int(file_path.stat().st_size)
+                        except Exception:
+                            asset.size_bytes = None
+
+                        width, height = generated.size
+                        results_by_index[i] = {
+                            "asset_id": asset.id,
+                            "image_url": f"/api/assets/{asset.id}/download",
+                            "width": width,
+                            "height": height,
+                        }
+                        completed += 1
+
+                        job.set_progress({"total": count, "completed": completed, "failed": failed})
+                        db.session.commit()
+                    except Exception as img_error:
+                        logger.error("Canvas image generation error (%s/%s): %s", i + 1, count, img_error, exc_info=True)
+                        failed += 1
+                        try:
+                            job.set_progress({"total": count, "completed": completed, "failed": failed})
+                            db.session.commit()
+                        except Exception:
+                            db.session.rollback()
+                        continue
+
+        results: List[Dict[str, Any]] = [results_by_index[i] for i in sorted(results_by_index.keys())]
         if not results:
-            db.session.rollback()
             if job_id:
                 try:
                     j = Job.query.get(job_id)
@@ -318,7 +410,7 @@ def generate_image():
                         j.status = "failed"
                         j.error_message = "图片生成失败，请重试"
                         j.completed_at = datetime.utcnow()
-                        j.set_progress({"total": count, "completed": 0, "failed": count})
+                        j.set_progress({"total": count, "completed": 0, "failed": failed or count})
                         db.session.commit()
                 except Exception:
                     db.session.rollback()
@@ -520,3 +612,108 @@ def edit_image():
         db.session.rollback()
         logger.error("edit_image failed: %s", e, exc_info=True)
         return error_response("EDIT_ERROR", f"图片编辑失败: {str(e)}", 500)
+
+
+@ai_bp.route("/inpaint", methods=["POST"], strict_slashes=False)
+def inpaint():
+    """
+    POST /api/ai/inpaint - AI Inpainting 涂抹改图
+
+    Body JSON:
+      - image: string (required, base64 data URL of original image)
+      - mask: string (required, base64 data URL of mask - red areas indicate regions to regenerate)
+      - prompt: string (required, description of what to generate in masked area)
+
+    Returns:
+      - image_url: string (URL to download the result)
+      - width: number
+      - height: number
+      - asset_id: string
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        if not isinstance(payload, dict):
+            return bad_request("Request body is required")
+
+        image_data = str(payload.get("image") or "").strip()
+        mask_data = str(payload.get("mask") or "").strip()
+        prompt = str(payload.get("prompt") or "").strip()
+
+        if not image_data:
+            return bad_request("Image is required")
+        if not mask_data:
+            return bad_request("Mask is required")
+        if not prompt:
+            return bad_request("Prompt is required")
+
+        logger.info("Inpaint request: prompt=%s", prompt[:100])
+
+        # Decode images
+        source_image = _decode_base64_image(image_data)
+        source_image.load()
+        mask_image = _decode_base64_image(mask_data)
+        mask_image.load()
+
+        # Get AI service
+        ai_service = get_ai_service()
+        if not getattr(ai_service, "image_provider", None):
+            return error_response("IMAGE_PROVIDER_NOT_CONFIGURED", "图片处理服务未配置，请在设置中配置 API", 500)
+
+        # Prepare composite image with mask overlay for context
+        # We'll create a prompt that describes the inpainting task
+        inpaint_prompt = (
+            f"Inpaint/regenerate the marked red area in this image. "
+            f"The red semi-transparent overlay indicates the region to be regenerated. "
+            f"Generate the following content in that area: {prompt}. "
+            f"Seamlessly blend the new content with the surrounding image, "
+            f"maintaining consistent lighting, style, and perspective."
+        )
+
+        # Create a composite image showing original with mask overlay
+        # This helps the AI understand what area to modify
+        composite = source_image.copy()
+        if composite.mode != 'RGBA':
+            composite = composite.convert('RGBA')
+
+        # Ensure mask is RGBA
+        if mask_image.mode != 'RGBA':
+            mask_image = mask_image.convert('RGBA')
+
+        # Resize mask to match source if needed
+        if mask_image.size != composite.size:
+            mask_image = mask_image.resize(composite.size, Image.Resampling.LANCZOS)
+
+        # Blend mask onto composite
+        composite = Image.alpha_composite(composite, mask_image)
+
+        # Generate using the composite as reference
+        result = ai_service.image_provider.generate_image(
+            prompt=inpaint_prompt,
+            ref_images=[source_image, composite],  # Provide both original and masked version
+            aspect_ratio="1:1",
+            resolution="1K"
+        )
+
+        if result is None:
+            return error_response("INPAINT_FAILED", "涂抹改图失败，请重试", 500)
+
+        # Resize result to match original if needed
+        if result.size != source_image.size:
+            result = result.resize(source_image.size, Image.Resampling.LANCZOS)
+
+        # Save as asset
+        asset_info = _save_image_as_asset(
+            result,
+            None,
+            "inpaint",
+            {"source": "inpaint", "prompt": prompt}
+        )
+        db.session.commit()
+
+        logger.info("Inpaint successful: asset_id=%s", asset_info.get("asset_id"))
+        return success_response(asset_info)
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error("inpaint failed: %s", e, exc_info=True)
+        return error_response("INPAINT_ERROR", f"涂抹改图失败: {str(e)}", 500)

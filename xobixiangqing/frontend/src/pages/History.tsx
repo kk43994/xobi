@@ -328,7 +328,7 @@ export const History: React.FC = () => {
                     type="checkbox"
                     checked={selectedProjects.size === projects.length && projects.length > 0}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 text-banana-600 border-gray-300 rounded focus:ring-banana-500"
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                   />
                   <span className={`text-sm ${subTitleStrongCls}`}>
                     {selectedProjects.size === projects.length ? '取消全选' : '全选'}

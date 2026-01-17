@@ -195,7 +195,7 @@ export const ProjectResourcesList: React.FC<ProjectResourcesListProps> = ({
                   onClick={() => onImageClick?.(material)}
                 >
                   {/* 图片容器 */}
-                  <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-banana-400 transition-colors">
+                  <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-primary-400 transition-colors">
                     {failedImageUrls.has(material.url) ? (
                       <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center p-2">
                         图片加载失败
