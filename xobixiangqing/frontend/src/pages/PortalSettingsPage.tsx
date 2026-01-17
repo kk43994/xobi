@@ -585,6 +585,65 @@ export function PortalSettingsPage() {
     <div style={{ padding: 12, height: '100%', overflow: 'auto' }}>
       <div style={{ border: panelBorder, background: panelBg, borderRadius: 14, padding: 14 }}>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          {/* 新手指引面板 - 优化设计 */}
+          <div style={{
+            background: theme === 'dark'
+              ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
+              : 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 50%, #f3e8ff 100%)',
+            border: theme === 'dark' ? '1px solid #475569' : '1px solid #93c5fd',
+            borderRadius: 16,
+            padding: 20,
+            boxShadow: theme === 'dark'
+              ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
+              : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Typography.Text strong style={{
+                fontSize: 16,
+                color: theme === 'dark' ? '#e2e8f0' : '#1e293b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <span style={{ fontSize: 20 }}>📖</span>
+                快速配置指南
+              </Typography.Text>
+            </div>
+            <div style={{
+              background: theme === 'dark'
+                ? 'rgba(30, 41, 59, 0.6)'
+                : 'rgba(255, 255, 255, 0.7)',
+              backdropFilter: 'blur(12px)',
+              borderRadius: 12,
+              padding: 16,
+              border: theme === 'dark' ? '1px solid #334155' : '1px solid #bfdbfe',
+              fontSize: 13,
+              lineHeight: 2
+            }}>
+              {[
+                { step: '第一步', text: '选择 AI 提供商格式（OpenAI 或 Gemini）' },
+                { step: '第二步', text: '填写 API Base URL 和 API Key（点击下方链接获取）' },
+                { step: '第三步', text: '配置模型名称（可留空使用默认值）' },
+                { step: '第四步', text: '点击"测试 AI"验证配置是否正确' },
+                { step: '第五步', text: '点击"保存"完成配置' }
+              ].map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: idx < 4 ? 8 : 0 }}>
+                  <span style={{
+                    color: theme === 'dark' ? '#60a5fa' : '#2563eb',
+                    fontWeight: 600,
+                    minWidth: 70,
+                    display: 'inline-block'
+                  }}>
+                    {item.step}：
+                  </span>
+                  <span style={{ color: theme === 'dark' ? '#cbd5e1' : '#334155', flex: 1 }}>
+                    {item.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <Space direction="vertical" size={8} style={{ width: '100%' }}>
             <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
               <Space direction="vertical" size={0}>
@@ -649,7 +708,12 @@ export function PortalSettingsPage() {
                       <div>
                         <Typography.Text strong>AI 配置</Typography.Text>
                         <Divider style={{ margin: '8px 0' }} />
-                        <Form.Item name="ai_provider_format" label="AI 提供商格式" required>
+                        <Form.Item
+                          name="ai_provider_format"
+                          label="AI 提供商格式"
+                          required
+                          tooltip="选择 API 请求格式，影响后端如何构造和发送请求。OpenAI 格式：适用于 OpenAI、酷可、AIHubmix 等兼容 OpenAI API 的服务；Gemini 格式：适用于 Google Gemini 官方 API。保存设置后生效。"
+                        >
                           <Radio.Group
                             optionType="button"
                             buttonStyle="solid"
@@ -659,25 +723,86 @@ export function PortalSettingsPage() {
                             ]}
                           />
                         </Form.Item>
-                        <Form.Item name="api_base_url" label="API Base URL" tooltip="OpenAI 格式通常需要以 /v1 结尾（如 https://api.kk666.online/v1）">
+                        <Form.Item
+                          name="api_base_url"
+                          label="API Base URL"
+                          tooltip="设置大模型提供商 API 的基础 URL。OpenAI 格式示例：https://api.kk666.online/v1（需要以 /v1 结尾）；Gemini 格式示例：https://generativelanguage.googleapis.com。如果使用云雾 AI，填写：https://yunwu.ai/v1"
+                        >
                           <Input placeholder="https://api.kk666.online/v1" />
                         </Form.Item>
-                        <Form.Item name="api_key" label="API Key">
+                        <Form.Item
+                          name="api_key"
+                          label="API Key"
+                          tooltip="从 API 提供商处获取的密钥。留空则保持当前设置不变，输入新值则更新。获取方式：在下方链接注册账号后，进入控制台/API 管理页面创建新的 API Key。"
+                        >
                           <Input.Password placeholder={apiKeyPlaceholder} />
                         </Form.Item>
+                        {/* API 密钥获取链接 */}
+                        <div style={{
+                          background: theme === 'dark'
+                            ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
+                            : 'linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%)',
+                          border: theme === 'dark' ? '1px solid #475569' : '1px solid #bfdbfe',
+                          borderRadius: 12,
+                          padding: 16,
+                          marginTop: 8
+                        }}>
+                          <Typography.Text strong style={{
+                            fontSize: 13,
+                            marginBottom: 12,
+                            display: 'block',
+                            color: theme === 'dark' ? '#e2e8f0' : undefined
+                          }}>
+                            🔑 API 密钥获取
+                          </Typography.Text>
+                          <Space wrap size="small" style={{ marginBottom: 12 }}>
+                            <Button
+                              type="primary"
+                              size="small"
+                              href="https://api.kk666.online"
+                              target="_blank"
+                              style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)', border: 'none' }}
+                            >
+                              ⭐ 酷可 (推荐)
+                            </Button>
+                          </Space>
+                          <div style={{
+                            background: theme === 'dark' ? 'rgba(30, 41, 59, 0.6)' : 'rgba(255,255,255,0.6)',
+                            backdropFilter: 'blur(8px)',
+                            borderRadius: 8,
+                            padding: 10,
+                            border: theme === 'dark' ? '1px solid #334155' : '1px solid #bfdbfe',
+                            fontSize: 12,
+                            color: theme === 'dark' ? '#cbd5e1' : undefined
+                          }}>
+                            💡 <strong>提示：</strong>注册后进入控制台/API 管理页面，创建新的 API Key 并复制到上方输入框
+                          </div>
+                        </div>
                       </div>
 
                       <div>
                         <Typography.Text strong>模型配置</Typography.Text>
                         <Divider style={{ margin: '8px 0' }} />
-                        <Form.Item name="text_model" label="多模态模型（Agent/识图/聊天/分析）">
+                        <Form.Item
+                          name="text_model"
+                          label="多模态模型（Agent/识图/聊天/分析）"
+                          tooltip="用于生成大纲、描述等文本内容的模型名称。推荐模型：gemini-2.0-flash-exp（Gemini 格式）、gpt-4o、gpt-4o-mini（OpenAI 格式）。留空则使用后端环境变量中配置的默认模型。"
+                        >
                           <Input placeholder="如：gpt-4o / gpt-4o-mini / gemini-3-flash-preview" />
                         </Form.Item>
-                        <Form.Item name="image_model" label="生图模型（主图/详情图）">
+                        <Form.Item
+                          name="image_model"
+                          label="生图模型（主图/详情图）"
+                          tooltip="用于生成商品主图的模型。推荐模型：gemini-2.0-flash-exp-image-generation、imagen-3.0-generate-001（Gemini 格式）、dall-e-3（OpenAI 格式）。如遇 500 错误，请检查模型名称是否正确，或使用下方测试按钮验证。"
+                        >
                           <Input placeholder="如：gemini-3-pro-image-preview" />
                         </Form.Item>
                         {advancedMode ? (
-                          <Form.Item name="image_caption_model" label="图片分析模型（高级，可与多模态分开）">
+                          <Form.Item
+                            name="image_caption_model"
+                            label="图片分析模型（高级，可与多模态分开）"
+                            tooltip="用于识别参考文件中的图片并生成描述。推荐模型：gemini-2.0-flash-exp（Gemini 格式）、gpt-4o、gpt-4o-mini（OpenAI 格式）。该模型需要支持视觉理解功能。"
+                          >
                             <Input placeholder="留空则默认复用多模态模型" />
                           </Form.Item>
                         ) : null}
@@ -687,10 +812,18 @@ export function PortalSettingsPage() {
                         <div>
                           <Typography.Text strong>MinerU</Typography.Text>
                           <Divider style={{ margin: '8px 0' }} />
-                          <Form.Item name="mineru_api_base" label="MinerU API Base">
+                          <Form.Item
+                            name="mineru_api_base"
+                            label="MinerU API Base"
+                            tooltip="MinerU 服务地址，用于解析 PDF、Word 等参考文件。如果您有自己的 MinerU 服务，请填写服务地址；否则留空使用默认配置。"
+                          >
                             <Input placeholder="https://mineru.net" />
                           </Form.Item>
-                          <Form.Item name="mineru_token" label="MinerU Token">
+                          <Form.Item
+                            name="mineru_token"
+                            label="MinerU Token"
+                            tooltip="MinerU 服务的访问令牌。如果您使用的 MinerU 服务需要认证，请填写 Token；否则留空。留空则保持当前设置不变，输入新值则更新。"
+                          >
                             <Input.Password placeholder={mineruTokenPlaceholder} />
                           </Form.Item>
                         </div>
@@ -700,18 +833,36 @@ export function PortalSettingsPage() {
                         <div>
                           <Typography.Text strong>图像/并发/语言</Typography.Text>
                           <Divider style={{ margin: '8px 0' }} />
-                          <Form.Item name="image_resolution" label="图像清晰度">
+                          <Form.Item
+                            name="image_resolution"
+                            label="图像清晰度"
+                            tooltip="设置生成图像的分辨率。更高的清晰度会生成更详细的图像，但需要更长时间和更多费用。推荐：2K（平衡质量和速度）。注意：某些 OpenAI 格式的中转服务可能不支持此参数。"
+                          >
                             <Select options={RESOLUTION_OPTIONS} style={{ maxWidth: 320 }} />
                           </Form.Item>
                           <Space wrap>
-                            <Form.Item name="max_description_workers" label="文本并发" style={{ marginBottom: 0 }}>
+                            <Form.Item
+                              name="max_description_workers"
+                              label="文本并发"
+                              style={{ marginBottom: 0 }}
+                              tooltip="同时生成描述的最大工作线程数 (1-20)。数值越大，批量生成速度越快，但会消耗更多 API 配额。推荐：5（适合大多数场景）。如果 API 有并发限制，请适当降低此值。"
+                            >
                               <InputNumber min={1} max={20} style={{ width: 180 }} />
                             </Form.Item>
-                            <Form.Item name="max_image_workers" label="图片并发" style={{ marginBottom: 0 }}>
+                            <Form.Item
+                              name="max_image_workers"
+                              label="图片并发"
+                              style={{ marginBottom: 0 }}
+                              tooltip="同时生成图像的最大工作线程数 (1-20)。数值越大，批量生成速度越快，但会消耗更多 API 配额和费用。推荐：8（适合大多数场景）。如果 API 有并发限制或费用较高，请适当降低此值。"
+                            >
                               <InputNumber min={1} max={20} style={{ width: 180 }} />
                             </Form.Item>
                           </Space>
-                          <Form.Item name="output_language" label="默认输出语言">
+                          <Form.Item
+                            name="output_language"
+                            label="默认输出语言"
+                            tooltip="AI 生成商品描述、大纲等内容时使用的默认语言。可以在创建项目时单独指定语言，此处设置的是全局默认值。"
+                          >
                             <Radio.Group
                               optionType="button"
                               buttonStyle="solid"
