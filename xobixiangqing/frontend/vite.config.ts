@@ -31,6 +31,10 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: true, // 监听所有地址
+      allowedHosts: [
+        'xobi.kk666.online',
+        '.xobi.kk666.online', // 允许所有子域名
+      ],
       watch: {
         usePolling: true, // WSL 环境下需要启用轮询
       },

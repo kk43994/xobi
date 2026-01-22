@@ -41,7 +41,11 @@ async function fetchVideoJson<T>(baseUrl: string, path: string, init?: RequestIn
 }
 
 export function VideoFactoryPage() {
-  const videoClientUrl = 'http://localhost:5173';
+  // 在生产环境使用域名子路径，开发环境使用 localhost
+  const isProduction = window.location.hostname !== 'localhost';
+  const videoClientUrl = isProduction
+    ? window.location.origin + '/video/'
+    : 'http://localhost:5173';
   const videoServerBaseUrl = 'http://localhost:4000';
   const videoServerHealthUrl = `${videoServerBaseUrl}/api/health`;
 
