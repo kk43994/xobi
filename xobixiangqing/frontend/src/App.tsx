@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Home } from './pages/Home';
 import { History } from './pages/History';
 import { OutlineEditor } from './pages/OutlineEditor';
@@ -25,8 +25,29 @@ import { EditorPage } from './pages/EditorPage';
 import { BatchFactoryPage } from './pages/BatchFactoryPage';
 import { VideoFactoryPage } from './pages/VideoFactoryPage';
 import { LogsPage } from './pages/LogsPage';
+import { LoginPage } from './pages/LoginPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 import { useProjectStore } from './store/useProjectStore';
+import { useAuthStore } from './store/useAuthStore';
 import { useToast } from './components/shared';
+
+// 路由守卫：需要登录
+function RequireAuth() {
+  const { token, user, fetchMe } = useAuthStore();
+
+  // 尝试恢复登录状态
+  useEffect(() => {
+    if (token && !user) {
+      fetchMe();
+    }
+  }, [token, user, fetchMe]);
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
+}
 
 function App() {
   const { currentProject, syncProject, error, setError } = useProjectStore();
@@ -51,52 +72,61 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<PortalLayout />}>
-          <Route index element={<Dashboard />} />
+        {/* 登录页（无需登录） */}
+        <Route path="/login" element={<LoginPage />} />
 
-          <Route path="projects">
-            <Route index element={<History />} />
-            {/* 兼容旧入口：详情图工厂已迁移到 /factory/detail */}
-            <Route path="new" element={<Navigate to="/factory/detail" replace />} />
-            <Route path=":projectId" element={<ProjectArchivePage />} />
-            <Route path=":projectId/workbench" element={<ProjectWorkbenchPage />} />
-            <Route path=":projectId/outline" element={<OutlineEditor />} />
-            <Route path=":projectId/detail" element={<DetailEditor />} />
-            <Route path=":projectId/preview" element={<ImagePreview />} />
+        {/* 需要登录的路由 */}
+        <Route element={<RequireAuth />}>
+          <Route path="/" element={<PortalLayout />}>
+            <Route index element={<Dashboard />} />
+
+            <Route path="projects">
+              <Route index element={<History />} />
+              {/* 兼容旧入口：详情图工厂已迁移到 /factory/detail */}
+              <Route path="new" element={<Navigate to="/factory/detail" replace />} />
+              <Route path=":projectId" element={<ProjectArchivePage />} />
+              <Route path=":projectId/workbench" element={<ProjectWorkbenchPage />} />
+              <Route path=":projectId/outline" element={<OutlineEditor />} />
+              <Route path=":projectId/detail" element={<DetailEditor />} />
+              <Route path=":projectId/preview" element={<ImagePreview />} />
+            </Route>
+
+            <Route path="excel">
+              <Route index element={<ExcelDatasetsPage />} />
+              <Route path="legacy" element={<Navigate to="/excel" replace />} />
+              <Route path=":datasetId" element={<ExcelDatasetPage />} />
+            </Route>
+
+            <Route path="factory/single" element={<MainFactoryLandingPage />} />
+            <Route path="factory/canvas" element={<MainFactoryCanvasPage />} />
+            <Route path="factory/single-tool" element={<FactorySinglePage />} />
+            <Route path="factory/single-lite" element={<Navigate to="/factory/single-tool" replace />} />
+            <Route path="factory/single-legacy" element={<Navigate to="/factory/single-tool" replace />} />
+            {/* 详情图工厂（沉浸式，独立页面，不再使用 iframe） */}
+            <Route path="factory/detail" element={<Home />} />
+            {/* Excel/批量桥接：从某一行/某张图进入详情页工作流 */}
+            <Route path="factory/detail-bridge" element={<FactoryDetailPage />} />
+            <Route
+              path="factory/batch"
+              element={<BatchFactoryPage />}
+            />
+
+            <Route path="canvas" element={<Navigate to="/factory/canvas" replace />} />
+
+            <Route path="video" element={<VideoFactoryPage />} />
+
+            <Route path="editor" element={<EditorPage />} />
+
+            <Route path="assets" element={<AssetsPage />} />
+            <Route path="jobs" element={<JobsPage />} />
+            <Route path="agent" element={<AgentPage />} />
+
+            <Route path="settings" element={<PortalSettingsPage />} />
+            <Route path="logs" element={<LogsPage />} />
+
+            {/* 管理员页面 */}
+            <Route path="admin/users" element={<AdminUsersPage />} />
           </Route>
-
-          <Route path="excel">
-            <Route index element={<ExcelDatasetsPage />} />
-            <Route path="legacy" element={<Navigate to="/excel" replace />} />
-            <Route path=":datasetId" element={<ExcelDatasetPage />} />
-          </Route>
-
-          <Route path="factory/single" element={<MainFactoryLandingPage />} />
-          <Route path="factory/canvas" element={<MainFactoryCanvasPage />} />
-          <Route path="factory/single-tool" element={<FactorySinglePage />} />
-          <Route path="factory/single-lite" element={<Navigate to="/factory/single-tool" replace />} />
-          <Route path="factory/single-legacy" element={<Navigate to="/factory/single-tool" replace />} />
-          {/* 详情图工厂（沉浸式，独立页面，不再使用 iframe） */}
-          <Route path="factory/detail" element={<Home />} />
-          {/* Excel/批量桥接：从某一行/某张图进入详情页工作流 */}
-          <Route path="factory/detail-bridge" element={<FactoryDetailPage />} />
-          <Route
-            path="factory/batch"
-            element={<BatchFactoryPage />}
-          />
-
-          <Route path="canvas" element={<Navigate to="/factory/canvas" replace />} />
-
-          <Route path="video" element={<VideoFactoryPage />} />
-
-          <Route path="editor" element={<EditorPage />} />
-
-          <Route path="assets" element={<AssetsPage />} />
-          <Route path="jobs" element={<JobsPage />} />
-          <Route path="agent" element={<AgentPage />} />
-
-          <Route path="settings" element={<PortalSettingsPage />} />
-          <Route path="logs" element={<LogsPage />} />
         </Route>
 
         {/* 兼容旧路由（避免你们现有书签/跳转失效） */}
@@ -113,4 +143,3 @@ function App() {
 }
 
 export default App;
-

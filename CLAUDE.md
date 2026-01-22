@@ -80,3 +80,11 @@ python3 E:/kkxobi/UI/.claude/skills/ui-ux-pro-max/scripts/search.py "form layout
 ```
 
 然后根据返回的设计建议修改代码。
+
+## 工作记录（人工整理）
+
+- Vercel 登录并部署 `license-server`，设置环境变量 `SUPABASE_URL`、`SUPABASE_KEY`、`ADMIN_SECRET`，多次调整 `license-server/vercel.json` 路由与静态资源配置。
+- 更新 `license-server/public/admin.html` 默认服务器地址为 `https://license-server-tawny.vercel.app` 并重新部署。
+- 需求调整为直接部署 `xobi` 平台到自建服务器。
+- 服务器 `70.39.205.233` 已完成：`apt update`、Docker 安装与启动、创建 `/opt/xobi`，`docker --version` 显示 `29.1.5`。
+- 本地 `scp` 上传项目时提示 `/opt/xobi` 不存在（需确认服务器目录已创建并可写），待重新上传 `xobixiangqing`、`tupian-de-tu`、`video-workstation`。

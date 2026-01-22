@@ -25,7 +25,7 @@ from controllers.material_controller import material_bp, material_global_bp
 from controllers.reference_file_controller import reference_file_bp
 from controllers.settings_controller import settings_bp
 from controllers.logs_controller import logs_bp
-from controllers import project_bp, project_settings_bp, module_settings_bp, page_bp, template_bp, user_template_bp, export_bp, file_bp, assets_bp, jobs_bp, dataset_bp, tools_bp, agent_bp, ai_bp
+from controllers import project_bp, project_settings_bp, module_settings_bp, page_bp, template_bp, user_template_bp, export_bp, file_bp, assets_bp, jobs_bp, dataset_bp, tools_bp, agent_bp, ai_bp, auth_bp, admin_bp
 
 
 # Enable SQLite WAL mode for all connections
@@ -144,12 +144,16 @@ def create_app():
     app.register_blueprint(reference_file_bp, url_prefix='/api/reference-files')
     app.register_blueprint(settings_bp)
     app.register_blueprint(logs_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
 
     with app.app_context():
         # Create all database tables if they don't exist
         db.create_all()
         # Load settings from database and sync to app.config
         _load_settings_to_config(app)
+        # Initialize default admin user if not exists
+        _init_default_admin()
 
     # Health check endpoint
     @app.route('/health')
@@ -232,6 +236,37 @@ def _load_settings_to_config(app):
 
     except Exception as e:
         logging.warning(f"Could not load settings from database: {e}")
+
+
+def _init_default_admin():
+    """Initialize default admin user if not exists"""
+    from models import User
+    from utils.auth import hash_password
+
+    try:
+        # 检查是否已有用户
+        if User.query.first() is not None:
+            return
+
+        # 从环境变量获取默认管理员账号，如果未设置则使用默认值
+        default_username = os.getenv('DEFAULT_ADMIN_USERNAME', 'admin')
+        default_password = os.getenv('DEFAULT_ADMIN_PASSWORD', 'admin123')
+
+        admin = User(
+            username=default_username,
+            password_hash=hash_password(default_password),
+            role='admin',
+            status='active',
+        )
+        db.session.add(admin)
+        db.session.commit()
+
+        logging.info(f"Created default admin user: {default_username}")
+        logging.warning(f"⚠️  默认管理员账号: {default_username} / {default_password}")
+        logging.warning("⚠️  请登录后立即修改密码！")
+
+    except Exception as e:
+        logging.error(f"Could not create default admin user: {e}")
 
 
 # Create app instance

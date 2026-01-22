@@ -27,6 +27,7 @@ from .asset import Asset
 from .job import Job
 from .dataset import Dataset
 from .dataset_item import DatasetItem
+from .user import User
 
 __all__ = [
     'db',
@@ -44,5 +45,6 @@ __all__ = [
     'Job',
     'Dataset',
     'DatasetItem',
+    'User',
 ]
 

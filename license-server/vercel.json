@@ -1,17 +1,8 @@
 {
   "version": 2,
-  "routes": [
-    {
-      "src": "/admin",
-      "dest": "/public/admin.html"
-    },
-    {
-      "src": "/",
-      "dest": "/public/admin.html"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    }
+  "public": true,
+  "rewrites": [
+    { "source": "/", "destination": "/public/admin.html" },
+    { "source": "/admin", "destination": "/public/admin.html" }
   ]
 }

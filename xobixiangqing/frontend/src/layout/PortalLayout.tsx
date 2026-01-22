@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Button, Drawer, Image, Layout, List, Skeleton, Space, Tag, Tooltip, Typography } from 'antd';
+import { Button, Drawer, Dropdown, Image, Layout, List, Skeleton, Space, Tag, Tooltip, Typography } from 'antd';
 import {
   AppstoreOutlined,
   ArrowLeftOutlined,
@@ -9,6 +9,7 @@ import {
   DatabaseOutlined,
   EditOutlined,
   ExperimentOutlined,
+  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MessageOutlined,
@@ -18,11 +19,14 @@ import {
   ProjectOutlined,
   SettingOutlined,
   SunOutlined,
+  TeamOutlined,
   UnorderedListOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import type { UnifiedAsset, UnifiedJob } from '@/types';
 import { listAssets, listJobs, getSettings } from '@/api/endpoints';
 import { usePortalUiStore } from '@/store/usePortalUiStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { WorkbenchToolbarContext, type WorkbenchToolbarSlots } from './workbenchToolbar';
 import { AgentPanel } from '@/components/agent/AgentPanel';
 import { AgentBridgeContext, type AgentBridgeSlots } from './agentBridge';
@@ -132,6 +136,7 @@ const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(ma
 export function PortalLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout, isAdmin } = useAuthStore();
 
   const {
     leftNavState,
@@ -546,6 +551,50 @@ export function PortalLayout() {
               <Tooltip title={theme === 'dark' ? '切换浅色主题' : '切换深色主题'}>
                 <Button size="small" icon={theme === 'dark' ? <SunOutlined /> : <MoonOutlined />} onClick={toggleTheme} />
               </Tooltip>
+              {/* 用户菜单 */}
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'profile',
+                      icon: <UserOutlined />,
+                      label: user?.username || '用户',
+                      disabled: true,
+                    },
+                    { type: 'divider' },
+                    ...(isAdmin() ? [{
+                      key: 'admin-users',
+                      icon: <TeamOutlined />,
+                      label: '用户管理',
+                      onClick: () => navigate('/admin/users'),
+                    }] : []),
+                    {
+                      key: 'logout',
+                      icon: <LogoutOutlined />,
+                      label: '退出登录',
+                      onClick: () => {
+                        logout();
+                        navigate('/login', { replace: true });
+                      },
+                    },
+                  ],
+                }}
+                placement="bottomRight"
+              >
+                <Button
+                  size="small"
+                  icon={<UserOutlined />}
+                  style={{
+                    background: user?.role === 'admin'
+                      ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'
+                      : undefined,
+                    color: user?.role === 'admin' ? '#fff' : undefined,
+                    border: user?.role === 'admin' ? 'none' : undefined,
+                  }}
+                >
+                  {user?.username}
+                </Button>
+              </Dropdown>
             </Space>
           </div>
         </div>
