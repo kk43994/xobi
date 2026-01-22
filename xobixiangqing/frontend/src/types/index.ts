@@ -139,6 +139,10 @@ export interface Settings {
   video_multimodal_api_base?: string;
   video_multimodal_model?: string;
   video_multimodal_enabled: boolean;
+  // Excel 工作台配置
+  title_rewrite_model?: string;
+  // 调试模式
+  debug_mode: boolean;
   created_at?: string;
   updated_at?: string;
 }

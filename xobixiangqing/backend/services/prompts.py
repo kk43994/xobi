@@ -311,7 +311,7 @@ def get_page_description_prompt(project_context: 'ProjectContext', outline: list
 # 电商图片生成
 # ============================================================================
 
-def get_image_generation_prompt(page_desc: str, outline_text: str, 
+def get_image_generation_prompt(page_desc: str, outline_text: str,
                                 current_section: str,
                                 has_material_images: bool = False,
                                 extra_requirements: str = None,
@@ -321,100 +321,103 @@ def get_image_generation_prompt(page_desc: str, outline_text: str,
                                 aspect_ratio: str = "3:4") -> str:
     """
     生成电商图片的 prompt
-    
-    Args:
-        page_desc: 页面描述文本
-        outline_text: 大纲文本
-        current_section: 当前章节
-        has_material_images: 是否有素材图片
-        extra_requirements: 额外的要求
-        language: 输出语言
-        has_template: 是否有模板图片
-        page_index: 页面编号
-        aspect_ratio: 图片比例
-        
-    Returns:
-        格式化后的 prompt 字符串
+
+    区分主图和详情图：
+    - 主图(page_index=1): 单一产品、白底、居中、无文字
+    - 详情图(page_index>1): 可以有文字、图标、场景
     """
-    # 素材图片提示
+    # 产品参考图说明
     material_note = ""
     if has_material_images:
         material_note = """
 
-【产品参考图说明】
-已提供商品/产品参考图片。生成图中的产品主体必须来自这些参考图：
-- 保持外观一致（外形/颜色/材质/纹理/包装/Logo/文字）
-- 不要擅自改动包装文字或商标
-- 不要替换成别的产品
-- 产品主体必须是写实照片级质感，禁止画成插画/卡通/3D
+【产品参考图 - 必须严格遵循】
+已提供产品实拍参考图，生成的图片必须：
+- 产品外观与参考图完全一致（形状/颜色/材质/纹理/Logo）
+- 不要修改、美化或替换产品
+- 保持真实商品摄影质感，禁止画成插画/卡通/3D渲染风格
 """
 
     # 额外要求
     extra_note = ""
     if extra_requirements and extra_requirements.strip():
-        extra_note = f"\n\n【额外要求（务必遵循）】\n{extra_requirements}\n"
+        extra_note = f"\n\n【额外要求】\n{extra_requirements}\n"
 
-    # 模板/风格指引
-    if has_template:
-        style_guide = "配色与设计语言与模板参考图严格相似。"
-        template_text_rule = "只参考模板的风格设计，禁止出现模板中的原始文字/品牌/Logo。"
-    else:
-        style_guide = "严格按风格描述进行设计。"
-        template_text_rule = ""
-
-    # 封面特别提示
-    cover_note = ""
+    # ========== 主图（第1张）：电商标准主图 ==========
     if page_index == 1:
-        cover_note = """
+        prompt = f"""\
+你是一位专业电商产品摄影师，负责生成一张标准的【电商产品主图】。
 
-【封面/主图特别要求】
-这是第 1 张图（主图/封面），要求：
-- 突出产品名称、核心卖点
-- 信息层级清晰，第一眼抓住注意力
-- 采用专业的电商主图设计美学
+【核心任务】
+生成一张可直接用于电商平台商品列表、搜索结果的产品主图。
+
+【主图铁律 - 必须严格遵守】
+1. 单张完整图片：绝对禁止生成拼接图、九宫格、多视角组合图、产品目录图
+2. 单一产品：画面中只有一个产品（或一组套装作为整体），不要放多个独立产品
+3. 产品居中：产品置于画面正中央，占据画面 60-80% 的面积
+4. 纯净背景：纯白色背景（#FFFFFF）或浅灰渐变，不要场景、不要装饰物
+5. 无文字：主图上不放任何文字、标题、卖点、水印、Logo
+6. 专业光影：柔和的产品摄影布光，自然的阴影，突出产品质感
+7. 高清锐利：产品边缘清晰，细节可见，专业商业摄影级别
+
+【产品展示角度】
+- 正面 45 度角或正面直视，最能展示产品全貌的角度
+- 产品完整展示，不要裁切产品边缘
+
+【禁止事项】
+- 禁止：多图拼接、九宫格、多视角展示
+- 禁止：添加文字、标题、卖点文案、价格标签
+- 禁止：场景布置、装饰物、模特、手持展示
+- 禁止：插画风格、卡通风格、3D 渲染风格
+- 禁止：添加产品不具备的功能（LED/USB/充电等）
+
+【技术参数】
+- 比例：{aspect_ratio}
+- 背景：纯白 #FFFFFF
+- 风格：专业电商产品摄影
+{material_note}{extra_note}
+{get_image_text_language_instruction(language)}
 """
 
-    # 产品替换规则
-    replace_rule = ""
-    if has_template and has_material_images:
-        replace_rule = """
-【产品替换规则】
-同时提供了模板参考图 + 产品图时：
-- 必须在模板构图中用产品图替换原产品主体
-- 保持透视、尺寸比例、投影与光照一致
-- 不保留模板里的旧产品
-"""
+    # ========== 详情图（第2张及以后）==========
+    else:
+        template_style_guideline = "参考模板的配色与设计语言。" if has_template else ""
 
-    prompt = f"""\
-你是一位专业电商视觉设计师，负责生成"一张可直接用于电商平台的图片"。
+        prompt = f"""\
+你是一位专业电商视觉设计师，负责生成一张【电商详情页图片】。
+
+【核心任务】
+生成一张用于商品详情页的展示图，突出产品卖点。
+
+【重要约束】
+1. 单张完整图片：绝对禁��生成拼接图、九宫格、多视角组合图
+2. 这是一张独立完整的图片，不是多图拼贴
+3. 主视觉商品必须是真实商品摄影质感
 
 <page_description>
 {page_desc}
 </page_description>
 
-<reference_information>
-整套图集目录：
-{outline_text}
+<context>
+当前是第 {page_index} 张图，位于：{current_section}
+</context>
 
-当前图所在位置：{current_section}
-</reference_information>
+【设计要求】
+- 画面比例：{aspect_ratio}
+- 产品为真实摄影质感，禁止插画/卡通/3D风格
+- 文字清晰易读，排版专业
+- {template_style_guideline}
+- 可适当添加：卖点文字、图标、场景元素
+- 画面不要过于拥挤，保持呼吸感
 
-<design_guidelines>
-- 文字清晰锐利、排版专业
-- 画面为高分辨率，比例为 {aspect_ratio}
-- 主视觉商品必须保持真实商品摄影质感
-- {style_guide}
-- 严格把"页面描述"中的页面文字渲染到图片上，不重不漏
-- 禁止出现 markdown 符号（如 # * - 等）
-- {template_text_rule}
-- 适当使用电商常见元素：卖点 icon、对比条、参数表、场景小卡片
-- 不要让画面过于拥挤
-- 禁止擅自添加 LED/USB/充电/电池/智能传感 等电子功能
-</design_guidelines>
-
-{get_image_text_language_instruction(language)}{material_note}{extra_note}{replace_rule}{cover_note}
+【禁止事项】
+- 禁止：多图拼接、九宫格、多视角组合
+- 禁止：markdown 符号（# * - 等）
+- 禁止：添加产品不具备的电子功能
+{material_note}{extra_note}
+{get_image_text_language_instruction(language)}
 """
-    
+
     logger.debug(f"[get_image_generation_prompt] Final prompt:\n{prompt}")
     return prompt
 

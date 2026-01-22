@@ -5,6 +5,7 @@ import { Button, Drawer, Image, Layout, List, Skeleton, Space, Tag, Tooltip, Typ
 import {
   AppstoreOutlined,
   ArrowLeftOutlined,
+  BugOutlined,
   DatabaseOutlined,
   EditOutlined,
   ExperimentOutlined,
@@ -20,7 +21,7 @@ import {
   UnorderedListOutlined,
 } from '@ant-design/icons';
 import type { UnifiedAsset, UnifiedJob } from '@/types';
-import { listAssets, listJobs } from '@/api/endpoints';
+import { listAssets, listJobs, getSettings } from '@/api/endpoints';
 import { usePortalUiStore } from '@/store/usePortalUiStore';
 import { WorkbenchToolbarContext, type WorkbenchToolbarSlots } from './workbenchToolbar';
 import { AgentPanel } from '@/components/agent/AgentPanel';
@@ -42,7 +43,8 @@ type MenuKey =
   | 'editor'
   | 'assets'
   | 'jobs'
-  | 'settings';
+  | 'settings'
+  | 'logs';
 
 const menuKeyToPath: Record<MenuKey, string> = {
   dashboard: '/',
@@ -56,6 +58,7 @@ const menuKeyToPath: Record<MenuKey, string> = {
   assets: '/assets',
   jobs: '/jobs',
   settings: '/settings',
+  logs: '/logs',
 };
 
 interface NavItem {
@@ -93,6 +96,7 @@ const resolveSelectedMenuKey = (pathname: string): MenuKey => {
   if (pathname.startsWith('/assets')) return 'assets';
   if (pathname.startsWith('/jobs')) return 'jobs';
   if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname.startsWith('/logs')) return 'logs';
   return 'dashboard';
 };
 
@@ -146,6 +150,7 @@ export function PortalLayout() {
 
   const [aHealth, setAHealth] = useState<HealthStatus>('checking');
   const [bHealth, setBHealth] = useState<HealthStatus>('checking');
+  const [debugMode, setDebugMode] = useState(false);
 
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [jobsLoading, setJobsLoading] = useState(false);
@@ -223,6 +228,24 @@ export function PortalLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panels.jobs.open]);
 
+  // 加载调试模式设置
+  useEffect(() => {
+    getSettings().then((res) => {
+      if (res.success && res.data) {
+        setDebugMode(res.data.debug_mode ?? false);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // 动态导航项（根据调试模式决定是否显示日志入口）
+  const navItems = useMemo(() => {
+    const items = [...NAV_ITEMS];
+    if (debugMode) {
+      items.push({ key: 'logs', icon: <BugOutlined />, label: '日志', group: '管理' });
+    }
+    return items;
+  }, [debugMode]);
+
   const leftNavPixelWidth = useMemo(() => {
     if (leftNavState === 'hidden') return 0;
     if (leftNavState === 'collapsed') return 64;
@@ -278,7 +301,7 @@ export function PortalLayout() {
   };
 
   const renderNavGroup = (group: NavItem['group']) => {
-    const items = NAV_ITEMS.filter((x) => x.group === group);
+    const items = navItems.filter((x) => x.group === group);
     return (
       <div style={{ marginTop: group === '管理' ? 14 : 0 }}>
         {leftNavState === 'expanded' ? (
@@ -541,12 +564,13 @@ export function PortalLayout() {
           <Outlet />
         </div>
 
-        {/* 右侧面板（默认 Drawer；点“固定”后会 Dock 到右侧） */}
+        {/* 右侧面板（默认 Drawer；点"固定"后会 Dock 到右侧） */}
         <Drawer
           title="Agent（主图/文案）"
           open={panels.agent.open && !panels.agent.pinned}
           width="90vw"
           onClose={() => closePanel('agent')}
+          destroyOnClose
           extra={<Button size="small" type="primary" onClick={() => pinExclusive('agent')}>固定</Button>}
           styles={{ body: { padding: 12, display: 'flex', flexDirection: 'column', height: '100%' } }}
         >
@@ -560,6 +584,7 @@ export function PortalLayout() {
           open={panels.assets.open && !panels.assets.pinned}
           width={panels.assets.width}
           onClose={() => closePanel('assets')}
+          destroyOnClose
           extra={<Button size="small" type="primary" onClick={() => pinExclusive('assets')}>固定</Button>}
         >
           <Space direction="vertical" style={{ width: '100%' }}>
@@ -633,6 +658,7 @@ export function PortalLayout() {
           open={panels.jobs.open && !panels.jobs.pinned}
           width={panels.jobs.width}
           onClose={() => closePanel('jobs')}
+          destroyOnClose
           extra={<Button size="small" type="primary" onClick={() => pinExclusive('jobs')}>固定</Button>}
         >
           <Space direction="vertical" style={{ width: '100%' }}>

@@ -96,14 +96,24 @@ def run_title_rewrite_job(
                         requirements=requirements,
                         max_length=max_length,
                     )
+
+                    # 详细日志：查看 B 服务返回的完整响应
+                    logger.info(f"[TitleRewrite] B service response for item {item_id}: {resp}")
+
                     new_title = str(resp.get("new_title") or "").strip()
+                    raw_response = resp.get("raw_response", "")
+                    if raw_response:
+                        logger.info(f"[TitleRewrite] Raw AI response: {raw_response[:200]}")
+
                     if not new_title:
-                        raise RuntimeError(resp.get("detail") or resp.get("message") or "标题改写失败")
+                        detail = resp.get("detail") or resp.get("error") or resp.get("message") or "标题改写返回空结果"
+                        if str(detail).strip() == "标题改写成功":
+                            detail = "标题改写返回空结果"
+                        raise RuntimeError(detail)
 
                     row.new_title = new_title
-                    # Keep item status conservative: only upgrade from pending -> done
-                    if row.status in ("pending", "processing"):
-                        row.status = "done"
+                    row.status = "done"
+                    row.set_errors([])
                 except Exception as e:
                     failed += 1
                     errors = row.get_errors()
@@ -166,4 +176,3 @@ def start_title_rewrite_job(
         daemon=True,
     )
     t.start()
-

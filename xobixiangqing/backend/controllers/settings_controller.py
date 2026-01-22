@@ -73,7 +73,9 @@ def update_settings():
                 settings.api_base_url = value if value != "" else None
 
         if "api_key" in data:
-            settings.api_key = data["api_key"]
+            # Strip whitespace to avoid "Invalid token" errors from extra spaces
+            api_key_value = data["api_key"]
+            settings.api_key = str(api_key_value).strip() if api_key_value else None
 
         # Update image generation configuration
         if "image_resolution" in data:
@@ -114,7 +116,8 @@ def update_settings():
             settings.mineru_api_base = (data["mineru_api_base"] or "").strip() or None
 
         if "mineru_token" in data:
-            settings.mineru_token = data["mineru_token"]
+            token_value = data["mineru_token"]
+            settings.mineru_token = str(token_value).strip() if token_value else None
 
         if "image_caption_model" in data:
             settings.image_caption_model = (data["image_caption_model"] or "").strip() or None
@@ -128,7 +131,8 @@ def update_settings():
 
         # Update video factory settings
         if "yunwu_api_key" in data:
-            settings.yunwu_api_key = data["yunwu_api_key"]
+            key_value = data["yunwu_api_key"]
+            settings.yunwu_api_key = str(key_value).strip() if key_value else None
 
         if "yunwu_api_base" in data:
             base = (data["yunwu_api_base"] or "").strip().rstrip("/")
@@ -141,7 +145,8 @@ def update_settings():
             settings.yunwu_video_model = (data["yunwu_video_model"] or "").strip() or None
 
         if "video_multimodal_api_key" in data:
-            settings.video_multimodal_api_key = data["video_multimodal_api_key"]
+            key_value = data["video_multimodal_api_key"]
+            settings.video_multimodal_api_key = str(key_value).strip() if key_value else None
 
         if "video_multimodal_api_base" in data:
             mm_base = (data["video_multimodal_api_base"] or "").strip()
@@ -153,6 +158,10 @@ def update_settings():
 
         if "video_multimodal_enabled" in data:
             settings.video_multimodal_enabled = bool(data["video_multimodal_enabled"])
+
+        # Excel 工作台相关配置
+        if "title_rewrite_model" in data:
+            settings.title_rewrite_model = (data["title_rewrite_model"] or "").strip() or None
 
         # Normalize OpenAI base URL to ensure OpenAI SDK hits the JSON API (usually requires /v1).
         if (settings.ai_provider_format or "").lower() == "openai" and settings.api_base_url:
@@ -222,6 +231,8 @@ def reset_settings():
         settings.video_multimodal_api_base = 'https://api.kk666.online/v1'
         settings.video_multimodal_model = 'gpt-4o'
         settings.video_multimodal_enabled = True
+        # Excel 工作台相关配置
+        settings.title_rewrite_model = 'gemini-2.0-flash'
         settings.updated_at = datetime.now(timezone.utc)
 
         db.session.commit()

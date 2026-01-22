@@ -5,8 +5,11 @@ from typing import List, Dict, Any, Optional
 import httpx
 import traceback
 import re
+import logging
 from ..config import config
 from ..core.batch_replacer import BATCH_JOBS
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["Agent Chat"])
 
@@ -51,11 +54,8 @@ BASE_PROMPT_TEMPLATE = (
 @router.post("/", response_model=ChatResponse)
 async def chat_with_agent(request: ChatRequest):
     """Chat with the Xobi Agent utilizing Dual-Layer Prompt Architecture"""
-    
-    # ========== 日志：请求入口 ==========
-    print(f"\n{'='*20} 收到对话请求 (双层引擎) {'='*20}")
-    print(f"用户消息: {request.message[:100]}...")
-    print(f"Final Trigger: {request.final_trigger}")
+
+    logger.info(f"收到对话请求 - 用户消息: {request.message[:100]}... | Final Trigger: {request.final_trigger}")
     
     # ========== 参数解析 ==========
     quality = request.quality or '1K'
@@ -105,7 +105,7 @@ async def chat_with_agent(request: ChatRequest):
         # 显式 Timeout 设置: 60s 读超时, 10s 连接超时
         custom_timeout = httpx.Timeout(60.0, connect=10.0)
         
-        print(f"DEBUG: [LINK] 正在连接 AI 大脑 (API: {config.GEMINI_FLASH_MODEL})...")
+        logger.debug(f"[LINK] 正在连接 AI 大脑 (API: {config.GEMINI_FLASH_MODEL})...")
         
         async with httpx.AsyncClient(timeout=custom_timeout) as client:
             for attempt in range(2): # 最多尝试 2 次
@@ -115,16 +115,16 @@ async def chat_with_agent(request: ChatRequest):
                         ai_data = response.json()
                         # OpenAI 兼容格式的响应解析
                         ai_reply = ai_data["choices"][0]["message"]["content"].strip()
-                        print(f"DEBUG: [LINK] AI 响应成功 (Attempt {attempt+1})")
+                        logger.debug(f"[LINK] AI 响应成功 (Attempt {attempt+1})")
                         break
                     else:
-                        print(f"WARNING: AI 返回状态码 {response.status_code}, 正在尝试重试...")
+                        logger.warning(f"AI 返回状态码 {response.status_code}, 正在尝试重试...")
                 except (httpx.ReadTimeout, httpx.ConnectTimeout) as e:
-                    print(f"WARNING: AI 连接超时 ({str(e)}), 第 {attempt+1} 次尝试中...")
+                    logger.warning(f"AI 连接超时 ({str(e)}), 第 {attempt+1} 次尝试中...")
                     if attempt == 1: # 最后一次尝试也失败
                         ai_reply = "抱歉，AI 大脑目前排队人数较多。您可以点击下方按钮直接开始生成，或稍后重试。"
                 except Exception as e:
-                    print(f"ERROR: 发生非预期错误: {str(e)}")
+                    logger.error(f"发生非预期错误: {str(e)}")
                     break
             
             if not ai_reply: ai_reply = "好的，正在为您深度构思中，由于云端连接稍慢，请稍后..."
@@ -154,7 +154,7 @@ async def chat_with_agent(request: ChatRequest):
         action_data = None
 
         if is_final_confirmation:
-            print("DEBUG: [静默生成] 确认生图，正在执行深度清洗...")
+            logger.debug("[静默生成] 确认生图，正在执行深度清洗...")
             
             # --- 精准提取逻辑 ---
             # 向前回溯历史，寻找第一个非 UI 指令的长句作为视觉描述
@@ -196,7 +196,7 @@ async def chat_with_agent(request: ChatRequest):
                 f"Goal: High-end brand visual."
             )
             
-            print(f"--- [SECURE] Final Prompt Built: {final_prompt} ---")
+            logger.debug(f"Final Prompt Built: {final_prompt}")
 
             # 强制脱敏：返回给前端的 message 必须简短且无代码
             ai_reply = "⚡ 视觉方案已锁定，正在为您打造大师级渲染图..."
@@ -248,18 +248,15 @@ async def chat_with_agent(request: ChatRequest):
         return ChatResponse(response=ai_reply, action=action_response, data=action_data)
 
     except httpx.TimeoutException:
-        print("!!! 后端报错详情如下 !!!")
-        print("错误类型: API 请求超时")
-        traceback.print_exc()
+        logger.exception("API 请求超时")
         return ChatResponse(
             response="AI 响应超时，酷可 API 可能繁忙，请稍后重试",
             action=None,
             data=None
         )
-        
+
     except Exception as e:
-        print("!!! 后端报错详情如下 !!!")
-        traceback.print_exc()
+        logger.exception("后端处理错误")
         # 返回错误信息给前端，而不是抛出 500
         return ChatResponse(
             response=f"服务器内部错误: {str(e)}",
@@ -280,8 +277,7 @@ async def expand_prompt(request: ExpandPromptRequest):
         包含扩展后完整描述的响应对象
     """
 
-    print(f"\n{'='*20} 收到 Prompt 扩展请求 {'='*20}")
-    print(f"简短描述: {request.brief}")
+    logger.info(f"收到 Prompt 扩展请求 - 简短描述: {request.brief}")
 
     try:
         # ========== System Prompt: Prompt 扩展专用 ==========
@@ -332,7 +328,7 @@ async def expand_prompt(request: ExpandPromptRequest):
             "max_tokens": 200    # 足够生成 50-80 字的中文描述
         }
 
-        print(f"DEBUG: 正在调用 Gemini Flash 扩展 Prompt...")
+        logger.debug("正在调用 Gemini Flash 扩展 Prompt...")
 
         # 设置超时: 30s 读超时, 10s 连接超时
         custom_timeout = httpx.Timeout(30.0, connect=10.0)
@@ -342,25 +338,23 @@ async def expand_prompt(request: ExpandPromptRequest):
 
             if response.status_code != 200:
                 error_msg = f"API 返回错误状态码: {response.status_code}"
-                print(f"ERROR: {error_msg}")
+                logger.error(error_msg)
                 raise Exception(error_msg)
 
             ai_data = response.json()
             expanded = ai_data["choices"][0]["message"]["content"].strip()
 
-            print(f"DEBUG: 扩展成功")
-            print(f"扩展后描述: {expanded}")
+            logger.debug("扩展成功")
+            logger.debug(f"扩展后描述: {expanded}")
 
             return ExpandPromptResponse(expanded_prompt=expanded)
 
     except httpx.TimeoutException:
-        print("ERROR: API 请求超时")
-        traceback.print_exc()
+        logger.exception("API 请求超时")
         raise Exception("AI 响应超时，请稍后重试")
 
     except Exception as e:
-        print(f"ERROR: Prompt 扩展失败: {str(e)}")
-        traceback.print_exc()
+        logger.exception(f"Prompt 扩展失败: {str(e)}")
         raise Exception(f"Prompt 扩展失败: {str(e)}")
 
 

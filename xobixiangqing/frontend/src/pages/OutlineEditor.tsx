@@ -283,17 +283,19 @@ export const OutlineEditor: React.FC = () => {
                 <Button
                   variant="secondary"
                   onClick={handleGenerateOutline}
+                  loading={isGlobalLoading}
                   className="w-full sm:w-auto text-sm md:text-base"
                 >
-                  {currentProject.creation_type === 'outline' ? '解析大纲' : '自动生成大纲'}
+                  {isGlobalLoading ? '生成中...' : (currentProject.creation_type === 'outline' ? '解析大纲' : '自动生成大纲')}
                 </Button>
               ) : (
                 <Button
                   variant="secondary"
                   onClick={handleGenerateOutline}
+                  loading={isGlobalLoading}
                   className="w-full sm:w-auto text-sm md:text-base"
                 >
-                  {currentProject.creation_type === 'outline' ? '重新解析大纲' : '重新生成大纲'}
+                  {isGlobalLoading ? '生成中...' : (currentProject.creation_type === 'outline' ? '重新解析大纲' : '重新生成大纲')}
                 </Button>
               )}
               {/* 手机端：保存按钮 */}

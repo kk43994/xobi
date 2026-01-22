@@ -15,6 +15,7 @@ from .tools_controller import tools_bp
 from .agent_controller import agent_bp
 from .ai_controller import ai_bp
 from .stats_controller import stats_bp
+from .logs_controller import logs_bp
 
 __all__ = [
     'project_bp',
@@ -34,5 +35,6 @@ __all__ = [
     'agent_bp',
     'ai_bp',
     'stats_bp',
+    'logs_bp',
 ]
 

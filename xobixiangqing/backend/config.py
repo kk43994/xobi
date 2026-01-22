@@ -14,17 +14,27 @@ PROJECT_ROOT = os.path.dirname(BASE_DIR)
 # Flask配置
 class Config:
     """Base configuration"""
-    # WARNING: 生产环境必须设置 SECRET_KEY 环境变量
+    # SECRET_KEY 安全配置
+    # - 开发环境：未设置时自动生成随机密钥（会在重启后失效）
+    # - 生产环境：必须设置 SECRET_KEY 环境变量
     _secret_key = os.getenv('SECRET_KEY', '')
+    _is_production = os.getenv('FLASK_ENV', '').lower() == 'production' or os.getenv('PRODUCTION', '').lower() in ('1', 'true')
+
     if not _secret_key:
-        import warnings
-        warnings.warn(
-            "SECRET_KEY 未设置！生产环境请务必设置 SECRET_KEY 环境变量。"
-            "当前使用随机生成的临时密钥，服务重启后 session 将失效。",
-            RuntimeWarning
-        )
-        import secrets
-        _secret_key = secrets.token_hex(32)
+        if _is_production:
+            # 生产环境必须设置 SECRET_KEY
+            print("❌ 错误: 生产环境必须设置 SECRET_KEY 环境变量！")
+            print("   请在 .env 文件或环境变量中设置: SECRET_KEY=你的密钥")
+            print("   可以用以下命令生成: python -c \"import secrets; print(secrets.token_hex(32))\"")
+            sys.exit(1)
+        else:
+            import warnings
+            warnings.warn(
+                "SECRET_KEY 未设置！开发环境使用随机生成的临时密钥，服务重启后 session 将失效。",
+                RuntimeWarning
+            )
+            import secrets
+            _secret_key = secrets.token_hex(32)
     SECRET_KEY = _secret_key
     
     # 数据库配置
@@ -77,15 +87,15 @@ class Config:
 
     
     # AI 模型配置
-    TEXT_MODEL = os.getenv('TEXT_MODEL', 'gemini-2.0-flash-exp')
-    IMAGE_MODEL = os.getenv('IMAGE_MODEL', 'gemini-2.0-flash-exp-image-generation')
+    TEXT_MODEL = os.getenv('TEXT_MODEL', 'gemini-3-flash-preview')
+    IMAGE_MODEL = os.getenv('IMAGE_MODEL', 'gemini-3-pro-image-preview')
 
     # MinerU 文件解析服务配置
     MINERU_TOKEN = os.getenv('MINERU_TOKEN', '')
     MINERU_API_BASE = os.getenv('MINERU_API_BASE', 'https://mineru.net')
-    
+
     # 图片识别模型配置
-    IMAGE_CAPTION_MODEL = os.getenv('IMAGE_CAPTION_MODEL', 'gemini-2.0-flash-exp')
+    IMAGE_CAPTION_MODEL = os.getenv('IMAGE_CAPTION_MODEL', 'gemini-3-flash-preview')
     
     # 并发配置
     MAX_DESCRIPTION_WORKERS = int(os.getenv('MAX_DESCRIPTION_WORKERS', '5'))

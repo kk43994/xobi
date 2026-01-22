@@ -66,8 +66,8 @@ if exist "%VIDEO_WS_DIR%\package.json" (
 )
 
 rem Wait a bit and open the portal.
-echo Waiting for services to be ready (5 seconds)...
-timeout /t 5 /nobreak >nul
+echo Waiting for services to be ready (10 seconds)...
+timeout /t 10 /nobreak >nul
 echo Opening: http://localhost:3000
 start http://localhost:3000
 

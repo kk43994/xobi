@@ -12,11 +12,37 @@ via request headers (so users configure API Key once in the portal).
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit, urlunsplit
 from typing import Any, Dict, Optional
 
 import httpx
 
 from models import ProjectSettings, Settings
+
+
+def _normalize_legacy_base_url(value: Optional[str]) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+
+    raw = raw.rstrip("/")
+    try:
+        parts = urlsplit(raw)
+        if not parts.scheme or not parts.netloc:
+            return raw
+
+        segments = [seg for seg in (parts.path or "").split("/") if seg]
+        lower_segments = [seg.lower() for seg in segments]
+        if "v1" in lower_segments:
+            idx = lower_segments.index("v1")
+            segments = segments[:idx]
+
+        normalized_path = "/" + "/".join(segments) if segments else ""
+        return urlunsplit((parts.scheme, parts.netloc, normalized_path, "", ""))
+    except Exception:
+        while raw.lower().endswith("/v1"):
+            raw = raw[:-3].rstrip("/")
+        return raw
 
 
 def legacy_b_base_url() -> str:
@@ -26,7 +52,7 @@ def legacy_b_base_url() -> str:
     return v.rstrip("/")
 
 
-def legacy_b_headers_from_settings(project_id: Optional[str] = None) -> Dict[str, str]:
+def legacy_b_headers_from_settings(project_id: Optional[str] = None, *, use_multimodal_model: bool = False, use_title_rewrite_model: bool = False) -> Dict[str, str]:
     settings = Settings.get_settings()
     project_id = (project_id or "").strip() or None
     project_settings = ProjectSettings.query.get(project_id) if project_id else None
@@ -35,9 +61,9 @@ def legacy_b_headers_from_settings(project_id: Optional[str] = None) -> Dict[str
         if project_settings is not None:
             v = getattr(project_settings, field, None)
             if v is not None and str(v).strip() != "":
-                return str(v)
+                return str(v).strip()  # Return stripped value
         v = getattr(settings, field, None)
-        return str(v) if v is not None and str(v).strip() != "" else None
+        return str(v).strip() if v is not None and str(v).strip() != "" else None
 
     headers: Dict[str, str] = {}
 
@@ -46,11 +72,20 @@ def legacy_b_headers_from_settings(project_id: Optional[str] = None) -> Dict[str
     api_base = pick("api_base_url")
     if api_key:
         headers["X-Yunwu-Api-Key"] = api_key
-    if api_base:
-        headers["X-Yunwu-Base-Url"] = api_base
+    normalized_base = _normalize_legacy_base_url(api_base)
+    if normalized_base:
+        headers["X-Yunwu-Base-Url"] = normalized_base
 
-    # Model overrides
+    # Model overrides - 优先级: title_rewrite_model > multimodal_model > text_model
     text_model = pick("text_model")
+    if use_title_rewrite_model:
+        title_model = pick("title_rewrite_model")
+        if title_model:
+            text_model = title_model
+    elif use_multimodal_model:
+        multimodal_model = pick("video_multimodal_model")
+        if multimodal_model:
+            text_model = multimodal_model
     image_model = pick("image_model")
     if text_model:
         headers["X-Gemini-Flash-Model"] = text_model
@@ -60,10 +95,23 @@ def legacy_b_headers_from_settings(project_id: Optional[str] = None) -> Dict[str
     return headers
 
 
-def _request_json(method: str, path: str, *, payload: Optional[dict] = None, timeout: float = 30.0, project_id: Optional[str] = None) -> Any:
+def _request_json(
+    method: str,
+    path: str,
+    *,
+    payload: Optional[dict] = None,
+    timeout: float = 30.0,
+    project_id: Optional[str] = None,
+    use_multimodal_model: bool = False,
+    use_title_rewrite_model: bool = False,
+) -> Any:
     base = legacy_b_base_url()
     url = f"{base}{path}"
-    headers = legacy_b_headers_from_settings(project_id=project_id)
+    headers = legacy_b_headers_from_settings(
+        project_id=project_id,
+        use_multimodal_model=use_multimodal_model,
+        use_title_rewrite_model=use_title_rewrite_model,
+    )
 
     timeout_cfg = httpx.Timeout(timeout, connect=min(5.0, float(timeout)))
     with httpx.Client(timeout=timeout_cfg) as client:
@@ -125,5 +173,20 @@ def rewrite_title(
         "requirements": requirements or "",
         "max_length": int(max_length or 100),
     }
-    data = _request_json("POST", "/api/title/rewrite", payload=payload, timeout=60.0, project_id=project_id)
-    return data if isinstance(data, dict) else {"raw": data}
+    data = _request_json(
+        "POST",
+        "/api/title/rewrite",
+        payload=payload,
+        timeout=60.0,
+        project_id=project_id,
+        use_title_rewrite_model=True,  # 使用专门的标题仿写模型
+    )
+    if isinstance(data, dict):
+        nested = data.get("data")
+        if isinstance(nested, dict):
+            merged = dict(nested)
+            if "message" in data and "message" not in merged:
+                merged["message"] = data["message"]
+            return merged
+        return data
+    return {"raw": data}

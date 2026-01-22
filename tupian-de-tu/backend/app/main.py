@@ -1,13 +1,44 @@
 """
 Xobi - 表格驱动的电商图像自动化流水线
 FastAPI 主入口
+# Reload: 2026-01-19
 """
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
+
+# 日志目录
+_backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_log_dir = os.path.join(_backend_dir, 'logs')
+os.makedirs(_log_dir, exist_ok=True)
+_log_file = os.path.join(_log_dir, 'xobi_b.log')
+
+# 配置日志 - 输出到控制台和文件
+log_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+log_level = logging.DEBUG if os.getenv("DEBUG", "").lower() in ("1", "true") else logging.INFO
+
+root_logger = logging.getLogger()
+root_logger.setLevel(log_level)
+
+# 控制台输出
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter(log_format))
+root_logger.addHandler(console_handler)
+
+# 文件输出（带日志轮转，最大 10MB，保留 5 个备份）
+file_handler = RotatingFileHandler(
+    _log_file, maxBytes=10*1024*1024, backupCount=5, encoding='utf-8'
+)
+file_handler.setFormatter(logging.Formatter(log_format))
+root_logger.addHandler(file_handler)
+
+logger = logging.getLogger(__name__)
+logger.info(f"日志文件: {_log_file}")
 
 from .api import (
     agent,
@@ -37,11 +68,11 @@ async def lifespan(app: FastAPI):
     # 启动时创建必要目录
     os.makedirs(os.path.abspath(config.INPUT_DIR), exist_ok=True)
     os.makedirs(os.path.abspath(config.OUTPUT_DIR), exist_ok=True)
-    print(f"[Xobi] 输入目录: {os.path.abspath(config.INPUT_DIR)}")
-    print(f"[Xobi] 输出目录: {os.path.abspath(config.OUTPUT_DIR)}")
-    print("[Xobi] 服务已启动 [OK]")
+    logger.info(f"输入目录: {os.path.abspath(config.INPUT_DIR)}")
+    logger.info(f"输出目录: {os.path.abspath(config.OUTPUT_DIR)}")
+    logger.info("Xobi 服务已启动")
     yield
-    print("[Xobi] 服务已关闭")
+    logger.info("Xobi 服务已关闭")
 
 
 # 创建 FastAPI 应用

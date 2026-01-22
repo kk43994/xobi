@@ -386,6 +386,7 @@ async function generateImage(
     referenceImages?: string[];
     count?: number;
     projectId?: string;
+    variations?: string[]; // 新增：每张图的变化要求
   }
 ): Promise<{
   job_id?: string;
@@ -401,14 +402,21 @@ async function generateImage(
 
   // 构建完整 prompt，包含上下文信息
   let fullPrompt = prompt;
+
+  // 添加上下文信息
+  const contextParts: string[] = [];
   if (options?.imageType) {
-    fullPrompt = `[${options.imageType}] ${fullPrompt}`;
+    contextParts.push(`图片类型: ${options.imageType}`);
   }
-  if (options?.platform) {
-    fullPrompt = `${fullPrompt} (适用于${options.platform}平台)`;
+  if (options?.platform && options.platform !== '无') {
+    contextParts.push(`适用于${options.platform}平台，可以在图片合适的位置添加${options.platform}平台logo`);
   }
-  if (options?.language && options.language !== '简体中文') {
-    fullPrompt = `${fullPrompt} [${options.language}]`;
+  if (options?.language && options.language !== '无') {
+    contextParts.push(`图片上的文字语言: ${options.language}`);
+  }
+
+  if (contextParts.length > 0) {
+    fullPrompt = `${fullPrompt}\n\n[${contextParts.join('。')}]`;
   }
 
   const response = await fetch('/api/ai/generate-image', {
@@ -420,6 +428,7 @@ async function generateImage(
       reference_images: options?.referenceImages || [],
       count: options?.count || 1,
       project_id: options?.projectId || null,
+      variations: options?.variations || [], // 传递变化要求
     }),
   });
 
@@ -1556,6 +1565,7 @@ function AIChatSidebar({
           referenceImages: allReferenceImages,
           count: imageCount,
           projectId: initialConfig?.projectId,
+          variations: initialConfig?.variations || [], // 传递变化要求
         };
 
         const result = await generateImage(prompt, aspectRatio, options);

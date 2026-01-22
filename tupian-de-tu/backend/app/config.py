@@ -3,6 +3,7 @@ Xobi Configuration - Settings
 """
 
 import os
+from urllib.parse import urlsplit, urlunsplit
 from dataclasses import dataclass
 from typing import Optional
 from contextvars import ContextVar
@@ -92,11 +93,48 @@ class Config:
             return self.GEMINI_IMAGE_MODEL
 
     def get_base_url(self) -> str:
-        """获取 Base URL，优先使用运行时配置，否则回退到环境变量"""
-        runtime = _runtime_config.get()
-        if runtime and 'yunwu_base_url' in runtime:
-            return runtime['yunwu_base_url']
-        return self.YUNWU_BASE_URL
+        """获取 Base URL，优先使用运行时配置，否则回退到环境变量
+
+        注意：返回的 URL 不包含 /v1 后缀，调用者需要自行添加 /v1/chat/completions 等路径
+        如果传入的 URL 已包含 /v1，会自动去掉以避免重复
+        """
+        runtime = _runtime_config.get() or {}
+        candidates = [
+            runtime.get('yunwu_base_url'),
+            self.YUNWU_BASE_URL,
+        ]
+
+        for raw in candidates:
+            normalized = _normalize_yunwu_base_url(raw)
+            if normalized:
+                return normalized
+        return ""
+
+
+def _normalize_yunwu_base_url(raw: Optional[str]) -> str:
+    base_url = (raw or "").strip()
+    if not base_url:
+        return ""
+
+    base_url = base_url.rstrip("/")
+    try:
+        parts = urlsplit(base_url)
+        if not parts.scheme or not parts.netloc:
+            return ""
+
+        segments = [seg for seg in (parts.path or "").split("/") if seg]
+        lower_segments = [seg.lower() for seg in segments]
+        if "v1" in lower_segments:
+            idx = lower_segments.index("v1")
+            segments = segments[:idx]
+
+        normalized_path = "/" + "/".join(segments) if segments else ""
+        return urlunsplit((parts.scheme, parts.netloc, normalized_path, "", ""))
+    except Exception:
+        # Fallback for non-standard inputs.
+        while base_url.lower().endswith("/v1"):
+            base_url = base_url[:-3].rstrip("/")
+        return base_url
 
 
 config = Config()

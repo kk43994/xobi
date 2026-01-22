@@ -833,10 +833,17 @@ export const ImagePreview: React.FC = () => {
               variant="primary"
               icon={<Sparkles size={16} className="md:w-[18px] md:h-[18px]" />}
               onClick={handleGenerateAll}
+              loading={isGlobalLoading}
               className="w-full text-sm md:text-base"
             >
-              批量生成{generateNoun} ({currentProject.pages.length})
+              {isGlobalLoading ? '生成中...' : `批量生成${generateNoun} (${currentProject.pages.length})`}
             </Button>
+            {/* 显示正在生成的页面数量 */}
+            {Object.keys(pageGeneratingTasks).length > 0 && (
+              <div className="text-xs text-center text-primary-600 dark:text-primary-400">
+                {Object.keys(pageGeneratingTasks).length} 页正在生成中...
+              </div>
+            )}
           </div>
           
           {/* 缩略图列表：桌面端垂直，移动端横向滚动 */}

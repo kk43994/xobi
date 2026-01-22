@@ -95,6 +95,8 @@ export function ProjectWorkbenchPage() {
     generatePageImage,
     exportImagesZip,
     isGlobalLoading,
+    pageDescriptionGeneratingTasks,
+    pageGeneratingTasks,
   } = useProjectStore();
 
   const [pageQuery, setPageQuery] = useState('');
@@ -107,6 +109,10 @@ export function ProjectWorkbenchPage() {
 
   const currentProjectId = currentProject?.id || currentProject?.project_id || '';
   const isOnThisProject = Boolean(projectId && currentProjectId === projectId);
+
+  // 计算各个生成任务的加载状态
+  const isGeneratingDescriptions = Object.keys(pageDescriptionGeneratingTasks).length > 0;
+  const isGeneratingImages = Object.keys(pageGeneratingTasks).length > 0;
 
   useEffect(() => {
     if (!projectId) return;
@@ -358,14 +364,14 @@ export function ProjectWorkbenchPage() {
 
         <Divider type="vertical" style={{ margin: '0 4px' }} />
 
-        <Button size="small" onClick={() => generateOutline()} disabled={!isOnThisProject}>
-          生成大纲
+        <Button size="small" onClick={() => generateOutline()} disabled={!isOnThisProject} loading={isGlobalLoading && !isGeneratingDescriptions && !isGeneratingImages}>
+          {isGlobalLoading && !isGeneratingDescriptions && !isGeneratingImages ? '生成中...' : '生成大纲'}
         </Button>
-        <Button size="small" onClick={() => generateDescriptions()} disabled={!isOnThisProject}>
-          生成文案
+        <Button size="small" onClick={() => generateDescriptions()} disabled={!isOnThisProject} loading={isGeneratingDescriptions}>
+          {isGeneratingDescriptions ? `生成文案中 (${Object.keys(pageDescriptionGeneratingTasks).length}页)` : '生成文案'}
         </Button>
-        <Button size="small" onClick={() => generateImages()} disabled={!isOnThisProject}>
-          生成图片
+        <Button size="small" onClick={() => generateImages()} disabled={!isOnThisProject} loading={isGeneratingImages}>
+          {isGeneratingImages ? `生成图片中 (${Object.keys(pageGeneratingTasks).length}页)` : '生成图片'}
         </Button>
         <Button size="small" onClick={() => exportImagesZip()} disabled={!isOnThisProject}>
           导出 ZIP
@@ -376,19 +382,26 @@ export function ProjectWorkbenchPage() {
           size="small"
           disabled={!selectedPage}
           onClick={() => selectedPage && generatePageDescription(pageId(selectedPage))}
+          loading={selectedPage ? !!pageDescriptionGeneratingTasks[pageId(selectedPage)] : false}
         >
-          本页文案
+          {selectedPage && pageDescriptionGeneratingTasks[pageId(selectedPage)] ? '生成中...' : '本页文案'}
         </Button>
         <Tooltip title="快捷键: Ctrl+Enter | ←→ 切换页面">
           <Button
             size="small"
             disabled={!selectedPage}
             onClick={() => selectedPage && generatePageImage(pageId(selectedPage))}
+            loading={selectedPage ? !!pageGeneratingTasks[pageId(selectedPage)] : false}
           >
-            本页图片
+            {selectedPage && pageGeneratingTasks[pageId(selectedPage)] ? '生成中...' : '本页图片'}
           </Button>
         </Tooltip>
-        {isGlobalLoading ? <Typography.Text type="secondary" style={{ color: textSecondary }}>处理中…</Typography.Text> : null}
+        {(isGlobalLoading || isGeneratingDescriptions || isGeneratingImages) && (
+          <Typography.Text type="secondary" style={{ color: textSecondary }}>
+            {isGeneratingDescriptions ? `文案生成中 ${Object.keys(pageDescriptionGeneratingTasks).length}页...` :
+             isGeneratingImages ? `图片生成中 ${Object.keys(pageGeneratingTasks).length}页...` : '处理中…'}
+          </Typography.Text>
+        )}
       </Space>
     ),
     left: (
@@ -396,7 +409,7 @@ export function ProjectWorkbenchPage() {
         项目列表
       </Button>
     ),
-  });
+  }, [isOnThisProject, isGlobalLoading, isGeneratingDescriptions, isGeneratingImages, selectedPage, pageDescriptionGeneratingTasks, pageGeneratingTasks, projectId, textSecondary]);
 
   const outlineTitle = selectedPage?.outline_content?.title || '';
   const outlinePointsText = toOutlinePointsText(selectedPage?.outline_content?.points);

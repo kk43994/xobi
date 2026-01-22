@@ -59,6 +59,24 @@ const SCRIPT_TEMPLATES = {
       benefits: "用了它之后真的可以省很多时间，生活变得更方便...",
       cta: "点击下方链接立即购买！限时优惠，不要错过！"
     }
+  },
+  vi: {
+    name: 'Tiếng Việt',
+    templates: {
+      opening: "Xin chào mọi người! Hôm nay mình giới thiệu đến các bạn một sản phẩm tuyệt vời...",
+      features: "Điều mình yêu thích nhất ở sản phẩm này là chất lượng và sự tỉ mỉ trong từng chi tiết...",
+      benefits: "Sản phẩm này sẽ giúp bạn tiết kiệm rất nhiều thời gian và làm cuộc sống dễ dàng hơn...",
+      cta: "Nhấn vào link bên dưới để mua ngay! Ưu đãi có hạn, đừng bỏ lỡ!"
+    }
+  },
+  id: {
+    name: 'Bahasa Indonesia',
+    templates: {
+      opening: "Halo semuanya! Hari ini saya mau kasih lihat produk luar biasa yang akan mengubah hidup kalian...",
+      features: "Yang paling saya suka dari produk ini adalah kualitasnya yang luar biasa dan perhatian pada detail...",
+      benefits: "Produk ini akan menghemat banyak waktu dan membuat hidup kalian jauh lebih mudah...",
+      cta: "Klik link di bawah untuk dapatkan sekarang! Penawaran terbatas, jangan sampai ketinggalan!"
+    }
   }
 };
 

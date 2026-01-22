@@ -12,6 +12,7 @@ Endpoints:
 - POST /api/ai/expand-image
 - POST /api/ai/mockup
 - POST /api/ai/edit-image
+- POST /api/ai/inpaint
 """
 
 from __future__ import annotations
@@ -34,6 +35,9 @@ from utils import bad_request, error_response, success_response
 logger = logging.getLogger(__name__)
 
 ai_bp = Blueprint("ai", __name__, url_prefix="/api/ai")
+
+# Log registered routes for debugging
+logger.info("[ai_controller] Blueprint registered with routes: /chat, /generate-image, /remove-background, /expand-image, /mockup, /edit-image, /inpaint")
 
 
 def _decode_base64_image(base64_str: str) -> Image.Image:
@@ -212,15 +216,29 @@ def generate_image():
             count = 1
         count = max(1, min(count, 10))
 
+        # 获取变化要求（每张图可以有不同的角度/描述）
+        variations = payload.get("variations")
+        if not isinstance(variations, list):
+            variations = []
+
         ai_service = get_ai_service()
         if not getattr(ai_service, "image_provider", None):
             return error_response("IMAGE_PROVIDER_NOT_CONFIGURED", "图片生成服务未配置，请检查 API 设置", 500)
 
-        enhanced_prompt = prompt
+        # 构建主图工厂的增强提示词（前端已经有详细的风格模板，这里只做简单包装）
+        # 如果用户的 prompt 已经是专业格式（包含【产品】【统一风格】等），直接使用
+        if '【产品】' in prompt or '【统一风格】' in prompt:
+            enhanced_prompt = prompt
+        else:
+            enhanced_prompt = f"生成一张电商产品主图。{prompt}"
+
         ref_images: List[Image.Image] = []
         logger.info("Reference images received: %s (type: %s)", reference_images, type(reference_images))
         if reference_images:
-            enhanced_prompt = f"请基于提供的参考图片，生成电商产品图。产品描述：{prompt}"
+            # 有参考图时，如果用户 prompt 不是专业格式，添加参考图说明
+            if '【产品】' not in prompt and '【统一风格】' not in prompt:
+                enhanced_prompt = f"基于提供的参考图片，生成一张电商产品主图。{prompt}"
+            # 否则保持 enhanced_prompt 不变（已经在上面设置了）
             for idx, ref_data in enumerate(reference_images[:6]):
                 try:
                     ref_str = str(ref_data).strip()
@@ -261,8 +279,19 @@ def generate_image():
         failed = 0
         for i in range(count):
             try:
+                # 为每张图构建不同的 prompt（如果有变化要求）
+                current_prompt = enhanced_prompt
+                if variations and i < len(variations):
+                    variation = str(variations[i]).strip()
+                    if variation:
+                        # 把变化要求放在提示词开头，让 AI 更重视
+                        current_prompt = f"{variation}\n\n{enhanced_prompt}"
+                        logger.info("Image %d/%d using variation: %s", i + 1, count, variation[:80])
+                else:
+                    logger.info("Image %d/%d no variation specified", i + 1, count)
+
                 generated = ai_service.image_provider.generate_image(
-                    prompt=enhanced_prompt,
+                    prompt=current_prompt,
                     ref_images=ref_images if ref_images else None,
                     aspect_ratio=aspect_ratio,
                     resolution="1K",
@@ -524,3 +553,78 @@ def edit_image():
         db.session.rollback()
         logger.error("edit_image failed: %s", e, exc_info=True)
         return error_response("EDIT_ERROR", f"图片编辑失败: {str(e)}", 500)
+
+
+@ai_bp.route("/inpaint", methods=["POST"], strict_slashes=False)
+def inpaint():
+    """
+    POST /api/ai/inpaint - 涂抹改图 (Inpainting)
+
+    Body JSON:
+      - image: string (required, 原图URL或base64)
+      - mask: string (required, 遮罩图base64, 涂抹区域为非透明)
+      - prompt: string (required, 描述要生成的内容)
+
+    Returns:
+      - image_url: string (生成的图片URL)
+      - width: number
+      - height: number
+      - asset_id: string
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+
+        image_data = str(payload.get("image") or "").strip()
+        mask_data = str(payload.get("mask") or "").strip()
+        prompt = str(payload.get("prompt") or "").strip()
+
+        if not image_data:
+            return bad_request("Image is required")
+        if not mask_data:
+            return bad_request("Mask is required")
+        if not prompt:
+            return bad_request("Prompt is required")
+
+        logger.info("Inpaint request: prompt=%s", prompt[:100] if len(prompt) > 100 else prompt)
+
+        # Load source image
+        source_image = _load_image_from_source(image_data)
+        source_image.load()
+
+        # Load mask image (always base64 from canvas)
+        mask_image = _decode_base64_image(mask_data)
+        mask_image.load()
+
+        logger.info("Loaded images - source: %s, mask: %s", source_image.size, mask_image.size)
+
+        ai_service = get_ai_service()
+        if not getattr(ai_service, "image_provider", None):
+            return error_response("IMAGE_PROVIDER_NOT_CONFIGURED", "图片处理服务未配置，请检查 API 设置", 500)
+
+        # Call inpaint method
+        result = ai_service.image_provider.inpaint(
+            image=source_image,
+            mask=mask_image,
+            prompt=prompt,
+            resolution="1K",
+        )
+
+        if result is None:
+            return error_response("INPAINT_FAILED", "涂抹改图失败，请重试", 500)
+
+        # Save result as asset
+        asset_info = _save_image_as_asset(
+            result,
+            None,
+            "inpaint",
+            {"source": "inpaint", "prompt": prompt}
+        )
+        db.session.commit()
+
+        logger.info("Inpaint success: asset_id=%s", asset_info.get("asset_id"))
+        return success_response(asset_info)
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error("inpaint failed: %s", e, exc_info=True)
+        return error_response("INPAINT_ERROR", f"涂抹改图失败: {str(e)}", 500)

@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, FileText, Sparkles } from 'lucide-react';
 import { Button, Loading, useToast, useConfirm, AiRefineInput, FilePreviewModal, ProjectResourcesList } from '@/components/shared';
@@ -18,6 +18,7 @@ export const DetailEditor: React.FC = () => {
     generateDescriptions,
     generatePageDescription,
     pageDescriptionGeneratingTasks,
+    taskProgress,
   } = useProjectStore();
   const { show, ToastContainer } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -117,8 +118,33 @@ export const DetailEditor: React.FC = () => {
     }
   }, [currentProject, projectId, syncProject, show]);
 
+  // 计算是否有任何页面正在生成描述
+  const isGeneratingDescriptions = useMemo(() => {
+    return Object.keys(pageDescriptionGeneratingTasks).length > 0;
+  }, [pageDescriptionGeneratingTasks]);
+
+  // 计算生成进度
+  const generatingProgress = useMemo(() => {
+    if (!currentProject || !isGeneratingDescriptions) return null;
+    const total = currentProject.pages.length;
+    const generating = Object.keys(pageDescriptionGeneratingTasks).length;
+    const completed = total - generating;
+    return { total, completed };
+  }, [currentProject, isGeneratingDescriptions, pageDescriptionGeneratingTasks]);
+
   if (!currentProject) {
     return <Loading fullscreen message="加载项目中..." />;
+  }
+
+  // 如果正在批量生成描述，显示全屏 Loading
+  if (isGeneratingDescriptions && generatingProgress) {
+    return (
+      <Loading
+        fullscreen
+        message="生成描述中..."
+        progress={taskProgress || generatingProgress}
+      />
+    );
   }
 
   const hasAllDescriptions = currentProject.pages.every(
@@ -211,9 +237,10 @@ export const DetailEditor: React.FC = () => {
               variant="primary"
               icon={<Sparkles size={16} className="md:w-[18px] md:h-[18px]" />}
               onClick={handleGenerateAll}
+              loading={isGeneratingDescriptions}
               className="flex-1 sm:flex-initial text-sm md:text-base"
             >
-              批量生成描述
+              {isGeneratingDescriptions ? '生成中...' : '批量生成描述'}
             </Button>
             <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
               {currentProject.pages.filter((p) => p.description_content).length} /{' '}

@@ -464,6 +464,13 @@ def caption_materials():
     """
     POST /api/materials/caption - Generate short captions for material images by URL.
 
+    Supports multiple URL formats:
+    - /api/assets/<asset_id>/download - Asset system URLs
+    - /files/materials/<filename> - Legacy material URLs
+    - /files/<project_id>/materials/<filename> - Project material URLs
+    - https://... or http://... - External URLs (will download)
+    - data:image/...;base64,... - Base64 encoded images
+
     Request body (JSON):
     {
         "material_urls": ["url1", "url2", ...],
@@ -473,113 +480,57 @@ def caption_materials():
     print("\n" + "="*60)
     print("【产品图片识别】开始处理...")
     print("="*60)
-    
+
     try:
-        from urllib.parse import urlparse
-        from PIL import Image
         from config import get_config
         from services.image_caption_service import caption_product_image
+        from utils.image_resolver import resolve_image_from_url
 
         data = request.get_json() or {}
         material_urls = data.get('material_urls') or []
         prompt = data.get('prompt')
-        
+
         print(f"【产品图片识别】收到 {len(material_urls)} 个图片URL:")
         for i, url in enumerate(material_urls):
-            print(f"  [{i+1}] {url}")
+            # 截断显示 base64 和长 URL
+            display_url = url[:80] + '...' if len(str(url)) > 80 else url
+            print(f"  [{i+1}] {display_url}")
 
         if not isinstance(material_urls, list) or not material_urls:
             print("【产品图片识别】❌ 错误: 没有提供有效的图片URL")
             return bad_request("material_urls must be a non-empty array")
 
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
-
-        def _url_to_relative_path(u: str):
-            if not u:
-                print("【产品图片识别】警告: 空URL")
-                return None
-            raw = str(u)
-            print(f"【产品图片识别】解析URL: {raw}")
-            path = urlparse(raw).path if raw.startswith('http') else raw.split('?', 1)[0]
-            parts = [p for p in path.split('/') if p]
-            print(f"【产品图片识别】URL parts: {parts}")
-            
-            # /files/materials/<filename>
-            if len(parts) >= 3 and parts[0] == 'files' and parts[1] == 'materials':
-                filename = secure_filename(parts[2])
-                result = f"materials/{filename}"
-                print(f"【产品图片识别】匹配 /files/materials/ 模式 -> {result}")
-                return result
-            # /files/<project_id>/materials/<filename>
-            if len(parts) >= 4 and parts[0] == 'files' and parts[2] == 'materials':
-                project_id = parts[1]
-                filename = secure_filename(parts[3])
-                result = f"{project_id}/materials/{filename}"
-                print(f"【产品图片识别】匹配 /files/<project_id>/materials/ 模式 -> {result}")
-                return result
-            # 尝试从路径末尾提取文件名，假设是 materials 文件夹
-            # 这是一个更宽松的匹配策略
-            if 'materials' in parts:
-                idx = parts.index('materials')
-                if idx + 1 < len(parts):
-                    # 检查前面是否有 project_id
-                    if idx > 0 and parts[idx - 1] != 'files':
-                        project_id = parts[idx - 1]
-                        filename = secure_filename(parts[idx + 1])
-                        result = f"{project_id}/materials/{filename}"
-                        print(f"【产品图片识别】匹配灵活materials模式 -> {result}")
-                        return result
-                    else:
-                        filename = secure_filename(parts[idx + 1])
-                        result = f"materials/{filename}"
-                        print(f"【产品图片识别】匹配全局materials模式 -> {result}")
-                        return result
-            
-            print(f"【产品图片识别】⚠️ 无法匹配任何URL模式: {parts}")
-            return None
+        upload_folder = current_app.config['UPLOAD_FOLDER']
 
         provider_format = current_app.config.get('AI_PROVIDER_FORMAT', get_config().AI_PROVIDER_FORMAT)
         model = current_app.config.get('IMAGE_CAPTION_MODEL', get_config().IMAGE_CAPTION_MODEL)
-        
+
         print(f"【产品图片识别】使用 provider_format={provider_format}, model={model}")
 
         google_api_key = current_app.config.get('GOOGLE_API_KEY', '')
         google_api_base = current_app.config.get('GOOGLE_API_BASE', '')
         openai_api_key = current_app.config.get('OPENAI_API_KEY', '')
         openai_api_base = current_app.config.get('OPENAI_API_BASE', '')
-        
+
         print(f"【产品图片识别】API keys - google: {'已设置' if google_api_key else '未设置'}, openai: {'已设置' if openai_api_key else '未设置'}")
 
         captions = []
         combined_parts = []
 
         for url in material_urls:
-            rel_path = _url_to_relative_path(url)
-            if not rel_path:
-                print(f"【产品图片识别】❌ URL解析失败: {url}")
-                captions.append({"url": url, "caption": ""})
-                continue
-            
-            if not file_service.file_exists(rel_path):
-                print(f"【产品图片识别】❌ 文件不存在: {rel_path}")
-                captions.append({"url": url, "caption": ""})
-                continue
-            
-            print(f"【产品图片识别】✓ 文件找到: {rel_path}")
+            # 使用新的图片解析器
+            result = resolve_image_from_url(url, upload_folder, current_app)
 
-            abs_path = file_service.get_absolute_path(rel_path)
-            try:
-                image = Image.open(abs_path)
-                image.load()
-                print(f"【产品图片识别】✓ 图片加载成功: {abs_path}")
-            except Exception as img_err:
-                print(f"【产品图片识别】❌ 图片加载失败: {abs_path}, 错误: {img_err}")
+            if not result.success:
+                print(f"【产品图片识别】❌ 图片解析失败: {result.error}")
                 captions.append({"url": url, "caption": ""})
                 continue
+
+            print(f"【产品图片识别】✓ 图片加载成功 (来源: {result.source_type}, 尺寸: {result.image.size})")
 
             print(f"【产品图片识别】⏳ 正在调用AI识别图片...")
             caption = caption_product_image(
-                image=image,
+                image=result.image,
                 provider_format=provider_format,
                 model=model,
                 google_api_key=google_api_key,
@@ -588,24 +539,24 @@ def caption_materials():
                 openai_api_base=openai_api_base,
                 prompt=prompt,
             )
-            
+
             if caption:
                 print(f"【产品图片识别】✓ AI识别结果: {caption[:100]}...")
             else:
                 print(f"【产品图片识别】❌ AI返回空结果!")
-                
+
             captions.append({"url": url, "caption": caption})
             if caption:
                 combined_parts.append(caption)
 
         print("\n" + "-"*60)
-        print(f"【产品图片识别】完成! 识别了 {len(combined_parts)} 个图片")
+        print(f"【产品图片识别】完成! 识别了 {len(combined_parts)}/{len(material_urls)} 个图片")
         if combined_parts:
             print(f"【产品图片识别】综合识别结果: {';'.join(combined_parts)[:200]}")
         else:
             print("【产品图片识别】⚠️ 警告：没有成功识别任何图片!")
         print("-"*60 + "\n")
-        
+
         return success_response(
             {
                 "captions": captions,

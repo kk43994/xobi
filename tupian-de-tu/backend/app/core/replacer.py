@@ -244,10 +244,26 @@ async def generate_styled_image(
     full_prompt = f"""You are an expert e-commerce image designer.
 
 Use the PRODUCT IMAGE to generate a new e-commerce main image.
-- Keep the product identity, shape, and details consistent. Do not deform the product.
-- Follow the style instructions strictly.
-- If a STYLE REFERENCE IMAGE is provided, mimic its overall look (color, lighting, layout) while keeping the product unchanged.
-- Output strictly as a single data URI (data:image/png;base64,...) with no other text.
+
+【CRITICAL RULES - MUST FOLLOW】
+1. PRESERVE PRODUCT COLOR: The product's original color MUST remain exactly the same. Do NOT change, shift, or alter the product's color in any way (e.g., if the lid is orange, it stays orange; if the bowl is silver, it stays silver).
+2. PRESERVE PRODUCT SHAPE: Keep the product's shape, proportions, and structure exactly as shown. Do not deform, stretch, or modify the product.
+3. PRESERVE PRODUCT DETAILS: All product details (textures, patterns, labels, materials) must remain faithful to the original.
+
+【WHAT YOU CAN CHANGE】
+- Background: Replace with a clean, style-appropriate background
+- Lighting: Adjust lighting direction and intensity for professional look
+- Composition: Reframe the product within the canvas
+- Scene props: Add minimal props that don't obscure the product
+
+【STYLE CONSISTENCY】
+- All images in this batch should have a unified visual style
+- Use consistent lighting direction (soft, front-left lighting recommended)
+- Use consistent background treatment (solid color or subtle gradient)
+- Maintain consistent shadow style and intensity
+
+【OUTPUT FORMAT】
+Output strictly as a single data URI (data:image/png;base64,...) with no other text.
 
 {safe_prompt}
 """
@@ -273,7 +289,7 @@ Use the PRODUCT IMAGE to generate a new e-commerce main image.
         "model": config.get_model("image"),
         "max_tokens": 4096,
         "messages": [{"role": "user", "content": content}],
-        "temperature": 0.8,
+        "temperature": 0.5,  # Lower temperature for more consistent style across batch
     }
 
     try:

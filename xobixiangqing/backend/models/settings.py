@@ -32,8 +32,14 @@ class Settings(db.Model):
     yunwu_video_model = db.Column(db.String(100), nullable=True, default='sora-2-pro')  # 酷可视频模型
     video_multimodal_api_key = db.Column(db.String(500), nullable=True)  # 视频工厂多模态API Key（用于图片分析、脚本生成）
     video_multimodal_api_base = db.Column(db.String(255), nullable=True, default='https://api.kk666.online/v1')  # 多模态API Base
-    video_multimodal_model = db.Column(db.String(100), nullable=True, default='gpt-4o')  # 多模态模型
+    video_multimodal_model = db.Column(db.String(100), nullable=True, default='gemini-3-flash-preview')  # 多模态模型
     video_multimodal_enabled = db.Column(db.Boolean, nullable=False, default=True)  # 是否启用AI功能
+
+    # Excel 工作台相关配置
+    title_rewrite_model = db.Column(db.String(100), nullable=True, default='gemini-2.0-flash')  # 标题仿写模型
+
+    # 调试模式
+    debug_mode = db.Column(db.Boolean, nullable=False, default=False)  # 是否启用调试模式（显示日志面板）
 
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -63,6 +69,10 @@ class Settings(db.Model):
             'video_multimodal_api_base': self.video_multimodal_api_base,
             'video_multimodal_model': self.video_multimodal_model,
             'video_multimodal_enabled': self.video_multimodal_enabled,
+            # Excel 工作台相关配置
+            'title_rewrite_model': self.title_rewrite_model,
+            # 调试模式
+            'debug_mode': self.debug_mode,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -107,7 +117,7 @@ class Settings(db.Model):
                 yunwu_api_base='https://api.kk666.online',
                 yunwu_video_model='sora-2-pro',
                 video_multimodal_api_base='https://api.kk666.online/v1',
-                video_multimodal_model='gpt-4o',
+                video_multimodal_model='gemini-3-flash-preview',  # 使用 gemini-3-flash-preview
                 video_multimodal_enabled=True,
             )
             settings.id = 1

@@ -146,6 +146,8 @@ export function ExcelDatasetPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportSubmitting, setExportSubmitting] = useState(false);
   const [exportForm] = Form.useForm();
+  // 单个商品操作时的目标 item ID
+  const [singleActionItemId, setSingleActionItemId] = useState<string | null>(null);
 
   const refreshDataset = async () => {
     if (!datasetId) return;
@@ -187,6 +189,28 @@ export function ExcelDatasetPage() {
     }
   };
 
+  // 静默刷新 - 不触发 loading 状态，不影响用户操作
+  const silentRefreshItems = async () => {
+    if (!datasetId) return;
+    try {
+      const res = await listDatasetItems(datasetId, { limit: 200, offset: 0, q: keyword || undefined, status });
+      setItems(res.data?.items || []);
+      setTotal(res.data?.total || 0);
+    } catch {
+      // 静默刷新失败不提示
+    }
+  };
+
+  const silentRefreshJobs = async () => {
+    if (!datasetId) return;
+    try {
+      const res = await listJobs({ limit: 50, datasetId, includeLegacy: false, includeDb: true });
+      setJobs(res.data?.jobs || []);
+    } catch {
+      // 静默刷新失败不提示
+    }
+  };
+
   const refreshAll = async () => {
     await Promise.all([refreshDataset(), refreshItems(), refreshJobs()]);
   };
@@ -200,6 +224,44 @@ export function ExcelDatasetPage() {
     refreshItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword, status]);
+
+  // 检测是否有运行中的任务
+  const hasRunningJobs = useMemo(() => {
+    return jobs.some((j) => j.status === 'pending' || j.status === 'running');
+  }, [jobs]);
+
+  // 计算运行中任务的总进度
+  const runningJobsProgress = useMemo(() => {
+    const runningJobs = jobs.filter((j) => j.status === 'pending' || j.status === 'running');
+    if (runningJobs.length === 0) return null;
+
+    let totalItems = 0;
+    let completedItems = 0;
+    runningJobs.forEach((j) => {
+      totalItems += j.progress?.total ?? 0;
+      completedItems += j.progress?.completed ?? 0;
+    });
+
+    return {
+      total: totalItems,
+      completed: completedItems,
+      percent: totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0,
+      jobCount: runningJobs.length,
+    };
+  }, [jobs]);
+
+  // 自动轮询：当有任务运行时，静默刷新数据
+  useEffect(() => {
+    if (!hasRunningJobs) return;
+
+    const intervalId = setInterval(() => {
+      silentRefreshItems();
+      silentRefreshJobs();
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasRunningJobs, datasetId]);
 
   useEffect(() => {
     if (!selectedRowKeys.length) return;
@@ -239,7 +301,8 @@ export function ExcelDatasetPage() {
     onChange: (keys: Key[]) => setSelectedRowKeys(keys),
   };
 
-  const openStyleBatch = () => {
+  const openStyleBatch = (itemId?: string) => {
+    setSingleActionItemId(itemId || null);
     form.setFieldsValue({
       style_preset: 'shein',
       aspect_ratio: '1:1',
@@ -249,7 +312,8 @@ export function ExcelDatasetPage() {
     setActionOpen(true);
   };
 
-  const openTitleRewrite = () => {
+  const openTitleRewrite = (itemId?: string) => {
+    setSingleActionItemId(itemId || null);
     titleForm.setFieldsValue({
       language: 'auto',
       style: 'simple',
@@ -447,7 +511,10 @@ export function ExcelDatasetPage() {
   const handleCreateStyleBatch = async () => {
     if (!datasetId) return;
     const values = await form.validateFields();
-    const itemIds = selectedRowKeys.map((k) => String(k));
+    // 优先使用单个操作的 item ID，否则使用选中的行
+    const itemIds = singleActionItemId
+      ? [singleActionItemId]
+      : selectedRowKeys.map((k) => String(k));
     setActionSubmitting(true);
     try {
       await createDatasetStyleBatchJob(datasetId, {
@@ -457,9 +524,11 @@ export function ExcelDatasetPage() {
         target_language: values.target_language,
         requirements: values.requirements,
       });
-      message.success('已创建风格批量任务（B）');
+      const targetCount = singleActionItemId ? 1 : (itemIds.length || total);
+      message.success(`已创建改图任务，共 ${targetCount} 个商品`);
       setActionOpen(false);
-      setSelectedRowKeys([]);
+      setSingleActionItemId(null);
+      if (!singleActionItemId) setSelectedRowKeys([]);
       await refreshJobs();
       await refreshItems();
     } catch (e: any) {
@@ -472,7 +541,10 @@ export function ExcelDatasetPage() {
   const handleCreateTitleRewrite = async () => {
     if (!datasetId) return;
     const values = await titleForm.validateFields();
-    const itemIds = selectedRowKeys.map((k) => String(k));
+    // 优先使用单个操作的 item ID，否则使用选中的行
+    const itemIds = singleActionItemId
+      ? [singleActionItemId]
+      : selectedRowKeys.map((k) => String(k));
     setTitleSubmitting(true);
     try {
       await createDatasetTitleRewriteJob(datasetId, {
@@ -482,9 +554,11 @@ export function ExcelDatasetPage() {
         requirements: values.requirements,
         max_length: values.max_length,
       });
-      message.success('已创建标题改写任务');
+      const targetCount = singleActionItemId ? 1 : (itemIds.length || total);
+      message.success(`已创建改标题任务，共 ${targetCount} 个商品`);
       setTitleOpen(false);
-      setSelectedRowKeys([]);
+      setSingleActionItemId(null);
+      if (!singleActionItemId) setSelectedRowKeys([]);
       await refreshJobs();
       await refreshItems();
     } catch (e: any) {
@@ -685,9 +759,36 @@ export function ExcelDatasetPage() {
             ) : null}
           </Space>
 
-          <Typography.Text type="secondary" style={{ color: textSecondary }}>
-            💡 提示：AI生成的新标题和新图片会自动保存，并更新到你的表格中。批量改图任务完成后，点击"同步"按钮可以获取最新结果。
-          </Typography.Text>
+          {hasRunningJobs && runningJobsProgress ? (
+            <div
+              style={{
+                padding: '12px 16px',
+                borderRadius: 8,
+                background: theme === 'dark' ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.08)',
+                border: theme === 'dark' ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(139,92,246,0.2)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <SyncOutlined spin style={{ color: '#8b5cf6' }} />
+                <Typography.Text style={{ color: '#8b5cf6', fontWeight: 500 }}>
+                  {runningJobsProgress.jobCount} 个任务运行中，自动刷新...
+                </Typography.Text>
+                <Typography.Text style={{ color: '#8b5cf6' }}>
+                  {runningJobsProgress.completed}/{runningJobsProgress.total}
+                </Typography.Text>
+              </div>
+              <Progress
+                percent={runningJobsProgress.percent}
+                status="active"
+                strokeColor="#8b5cf6"
+                trailColor={theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}
+              />
+            </div>
+          ) : (
+            <Typography.Text type="secondary" style={{ color: textSecondary }}>
+              提示：点击卡片上的「改图」「改标题」可以单独处理某个商品
+            </Typography.Text>
+          )}
 
           <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
             <Space wrap>
@@ -1112,7 +1213,7 @@ export function ExcelDatasetPage() {
                           icon={<EditOutlined />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: 打开编辑标题对话框
+                            openTitleRewrite(item.id);
                           }}
                         >
                           改标题
@@ -1122,7 +1223,7 @@ export function ExcelDatasetPage() {
                           icon={<PictureOutlined />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: 打开改图对话框
+                            openStyleBatch(item.id);
                           }}
                         >
                           改图
@@ -1132,7 +1233,8 @@ export function ExcelDatasetPage() {
                           icon={<ReloadOutlined />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: 重新生成
+                            // 重新生成 = 同时改图
+                            openStyleBatch(item.id);
                           }}
                         >
                           重新生成
@@ -1384,32 +1486,50 @@ export function ExcelDatasetPage() {
                   size="small"
                   dataSource={jobs.slice(0, 8)}
                   locale={{ emptyText: '暂无任务（可先发起一次批量改主图/改标题）' }}
-                  renderItem={(j) => (
-                    <List.Item
-                      actions={[
-                        <Button key="sync" size="small" disabled={!canSync(j)} onClick={() => handleSync(j.id)}>
-                          同步
-                        </Button>,
-                      ]}
-                    >
-                      <List.Item.Meta
-                        title={
-                          <Space size="small" wrap>
-                            <Tag color={j.system === 'B' ? 'purple' : 'geekblue'}>{j.system}</Tag>
-                            <Typography.Text>{j.type}</Typography.Text>
-                            <Tag color={(jobStatusMeta[j.status] || jobStatusMeta.unknown).color}>
-                              {(jobStatusMeta[j.status] || jobStatusMeta.unknown).label}
-                            </Tag>
-                          </Space>
-                        }
-                        description={
-                          <Typography.Text type="secondary" style={{ color: textSecondary }}>
-                            {(j.progress?.completed ?? 0)}/{(j.progress?.total ?? 0)}（failed {j.progress?.failed ?? 0}）
-                          </Typography.Text>
-                        }
-                      />
-                    </List.Item>
-                  )}
+                  renderItem={(j) => {
+                    const total = j.progress?.total ?? 0;
+                    const completed = j.progress?.completed ?? 0;
+                    const failed = j.progress?.failed ?? 0;
+                    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    const isRunning = j.status === 'pending' || j.status === 'running';
+
+                    return (
+                      <List.Item
+                        actions={[
+                          <Button key="sync" size="small" disabled={!canSync(j)} onClick={() => handleSync(j.id)}>
+                            同步
+                          </Button>,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          title={
+                            <Space size="small" wrap>
+                              <Tag color={j.system === 'B' ? 'purple' : 'geekblue'}>{j.system}</Tag>
+                              <Typography.Text>{j.type === 'STYLE_BATCH' ? '改图' : (j.type === 'TITLE_REWRITE_BATCH' ? '改标题' : j.type)}</Typography.Text>
+                              <Tag color={(jobStatusMeta[j.status] || jobStatusMeta.unknown).color}>
+                                {(jobStatusMeta[j.status] || jobStatusMeta.unknown).label}
+                              </Tag>
+                            </Space>
+                          }
+                          description={
+                            <div style={{ marginTop: 4 }}>
+                              <Progress
+                                percent={percent}
+                                size="small"
+                                status={isRunning ? 'active' : (j.status === 'failed' ? 'exception' : 'success')}
+                                format={() => `${completed}/${total}`}
+                              />
+                              {failed > 0 && (
+                                <Typography.Text type="danger" style={{ fontSize: 11 }}>
+                                  失败 {failed} 个
+                                </Typography.Text>
+                              )}
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    );
+                  }}
                 />
               )}
             </Space>
@@ -1418,9 +1538,9 @@ export function ExcelDatasetPage() {
       ) : null}
 
       <Modal
-        title="批量改主图（风格化，B STYLE_BATCH）"
+        title={singleActionItemId ? '改主图（单个商品）' : '批量改主图'}
         open={actionOpen}
-        onCancel={() => setActionOpen(false)}
+        onCancel={() => { setActionOpen(false); setSingleActionItemId(null); }}
         onOk={handleCreateStyleBatch}
         confirmLoading={actionSubmitting}
         okText="创建任务"
@@ -1455,15 +1575,15 @@ export function ExcelDatasetPage() {
           </Form.Item>
 
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            默认作用范围：{selectedRowKeys.length ? `仅选中 ${selectedRowKeys.length} 行` : '全量行'}。
+            作用范围：{singleActionItemId ? '当前选中的 1 个商品' : (selectedRowKeys.length ? `选中的 ${selectedRowKeys.length} 个商品` : `全部 ${total} 个商品`)}
           </Typography.Paragraph>
         </Form>
       </Modal>
 
       <Modal
-        title="批量标题改写（TITLE_REWRITE_BATCH）"
+        title={singleActionItemId ? '改标题（单个商品）' : '批量改标题'}
         open={titleOpen}
-        onCancel={() => setTitleOpen(false)}
+        onCancel={() => { setTitleOpen(false); setSingleActionItemId(null); }}
         onOk={handleCreateTitleRewrite}
         confirmLoading={titleSubmitting}
         okText="创建任务"
@@ -1499,7 +1619,7 @@ export function ExcelDatasetPage() {
           </Form.Item>
 
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            默认作用范围：{selectedRowKeys.length ? `仅选中 ${selectedRowKeys.length} 行` : '全量行'}。
+            作用范围：{singleActionItemId ? '当前选中的 1 个商品' : (selectedRowKeys.length ? `选中的 ${selectedRowKeys.length} 个商品` : `全部 ${total} 个商品`)}
           </Typography.Paragraph>
         </Form>
       </Modal>

@@ -4,6 +4,150 @@ import { Send, Sparkles, Layers, FileText, ChevronDown, Upload, X } from 'lucide
 import { useAgentBridgeSlots } from '@/layout/agentBridge';
 import { uploadAsset, getSettings, createProject } from '@/api/endpoints';
 
+// 预设主图风格模板 - 电商实战风格
+const stylePresets = [
+  {
+    id: 'selling_point',
+    name: '卖点文案',
+    description: '产品+核心卖点文字，最常用',
+    prompt: `你是资深电商视觉设计师，请严格参照我上传的产品参考图生成跨境电商风格的产品主图。
+需要保持产品完整的特征，不能改变产品的形态和产品上的文字。
+根据产品特点，在图片上添加2-4个核心卖点，根据产品布景和布光。
+产品占画面50-60%，简约高级风格。
+高清电商主图，真实商业摄影质感，2K超清。`,
+    variations: [
+      '【场景方向：居家日常使用场景】真实、生活感，产品放在家居环境中使用',
+      '【场景方向：近景质感特写】突出材质/纹理，展示产品细节和做工',
+      '【场景方向：功能证明场景】展示使用动作/使用结果，但不夸张',
+      '【场景方向：对比场景】同画面展示大小/容量/前后效果，真实对比',
+    ],
+  },
+  {
+    id: 'scene_lifestyle',
+    name: '场景实拍',
+    description: '真实使用场景，有代入感',
+    prompt: `你是资深电商视觉设计师，请严格参照我上传的产品参考图生成场景实拍风格的产品主图。
+需要保持产品完整的特征，不能改变产品的形态。
+将产品放入真实的使用场景中，展示产品实际使用的样子，让消费者有代入感。
+产品占画面40-60%，场景道具起衬托作用不能抢戏。
+可以在角落添加1-2个简短卖点文字。
+高清电商主图，真实商业摄影质感，自然光线，2K超清。`,
+    variations: [
+      '【场景：居家使用】产品放在家居环境中正在被使用，温馨的室内光线',
+      '【场景：户外实拍】产品在户外环境中使用，自然光照明',
+      '【场景：工作场景】产品在工作/办公环境中使用，专业感强',
+      '【场景：手持展示】一只手拿着产品使用中，展示产品大小和使用方式',
+    ],
+  },
+  {
+    id: 'promotion',
+    name: '促销爆款',
+    description: '醒目促销标签，刺激购买',
+    prompt: `你是资深电商视觉设计师，请严格参照我上传的产品参考图生成促销爆款风格的产品主图。
+需要保持产品完整的特征，不能改变产品的形态。
+添加醒目的促销元素：价格标签、折扣信息、限时标识、爆款角标等。
+使用红色、橙色等暖色调，营造紧迫感和购买欲。
+产品占画面50%，留出空间放置促销信息，整体视觉冲击力强。
+高清电商促销主图，吸引点击，2K超清。`,
+    variations: [
+      '【促销：爆炸贴价格】产品旁边添加红色爆炸贴样式的大字价格或折扣',
+      '【促销：限时抢购】添加限时特惠、倒计时元素，背景用红橙渐变',
+      '【促销：销量背书】添加月销10万+、爆款推荐等角标，体现产品热销',
+      '【促销：满减凑单】突出第2件半价、满减等优惠信息，刺激多买',
+    ],
+  },
+  {
+    id: 'feature_demo',
+    name: '功能展示',
+    description: '图解产品功能和特点',
+    prompt: `你是资深电商视觉设计师，请严格参照我上传的产品参考图生成功能展示风格的产品主图。
+需要保持产品完整的特征，不能改变产品的形态。
+用图解方式展示产品的核心功能或技术特点，可以用标注线、放大镜效果、分解视图等。
+每个功能点配简短文字说明。
+产品为主体，功能标注清晰不杂乱，整体专业可信。
+高清电商主图，突出产品卖点，2K超清。`,
+    variations: [
+      '【展示：标注式】产品居中，用细线从产品各部位引出，标注功能点',
+      '【展示：放大细节】主图展示产品全貌，角落放放大镜圆圈展示细节特写',
+      '【展示：对比效果】同一画面展示使用前后对比，突出产品优势',
+      '【展示：分解结构】展示产品内部结构或组成部分，体现用料和工艺',
+    ],
+  },
+  {
+    id: 'white_background',
+    name: '白底图',
+    description: '白色背景，只有产品主体',
+    prompt: `【核心要求：绝对不要添加任何文字、标签、装饰】
+
+你是资深电商视觉设计师，请严格参照我上传的产品参考图生成白底风格的电商产品主图。
+
+必须遵守：
+1. 纯白色背景（#FFFFFF）
+2. 只展示产品本身，不添加任何文字、标题、卖点、标语、品牌名、slogan、产品名称
+3. 不添加任何标签、贴纸、角标、水印、logo、图标、符号、装饰元素
+4. 保持产品完整特征，不改变产品形态
+5. 产品占画面60-70%，光影柔和自然
+6. 高清电商主图，真实商业摄影质感，2K超清
+
+这是纯产品图，只要产品本身。`,
+    variations: [
+      '【角度：正面展示】产品正对镜头，白色背景，展示产品正面全貌，无任何文字',
+      '【角度：45度侧面】产品45度角展示，白色背景，展现立体感，无任何文字',
+      '【角度：俯拍视角】从上方45度角俯拍，白色背景，展示产品顶部，无任何文字',
+      '【角度：多角度组合】同一画面展示产品2-3个不同角度，白色背景，无任何文字',
+    ],
+  },
+  {
+    id: 'minimal_clean',
+    name: '白底纯净',
+    description: '纯白背景，无文字，素材图',
+    prompt: `【最高优先级：绝对不要添加任何文字、标签、装饰，即使用户提到平台或语言】
+
+你是资深电商视觉设计师，请严格参照我上传的产品参考图生成纯净白底风格的产品素材图。
+
+铁律（必须100%遵守）：
+1. 纯白色背景（#FFFFFF），无任何装饰元素
+2. 绝对不添加任何文字、标题、卖点、标语、品牌名、slogan、产品名称
+3. 绝对不添加任何标签、贴纸、角标、水印、logo、图标、符号、图形
+4. 这是用于后期加工的纯净素材图，只要产品本身
+5. 保持产品完整特征，不改变产品形态
+6. 产品居中，占画面60-70%，光影柔和自然
+7. 高清产品图，边缘清晰，适合抠图使用，2K超清
+
+只要产品，不要任何额外内容。`,
+    variations: [
+      '【角度：正面】产品正对镜头，展示产品正面全貌，光线均匀，纯白背景，无任何文字',
+      '【角度：45度侧面】产品45度角展示，展现立体感和侧面细节，纯白背景，无任何文字',
+      '【角度：俯拍】从上方45度角俯拍，展示产品顶部，纯白背景，无任何文字',
+      '【角度：特写】近距离拍摄产品局部，展示材质和做工细节，纯白背景，无任何文字',
+    ],
+  },
+  {
+    id: 'exploded_view',
+    name: '爆炸图',
+    description: '产品拆解分解，展示内部结构',
+    prompt: `你是资深电商视觉设计师，请严格参照我上传的产品参考图生成产品爆炸图/分解图。
+将产品各个组件拆解开来，以爆炸视图的形式展示产品的内部结构和组成部件。
+各部件按照组装顺序排列，用虚线或箭头表示组装关系。
+每个部件可以添加简短的名称标注。
+背景简洁干净，突出产品结构。
+高清电商主图，专业技术图风格，2K超清。`,
+    variations: [
+      '【爆炸图：垂直分解】产品从上到下垂直拆解，各层部件依次展开',
+      '【爆炸图：水平分解】产品从左到右水平拆解，展示内部层次',
+      '【爆炸图：中心发散】产品中心为核心部件，其他部件向四周发散展开',
+      '【爆炸图：斜向分解】产品沿45度角方向拆解，立体感强',
+    ],
+  },
+  {
+    id: 'custom',
+    name: '自定义',
+    description: '自己编写提示词',
+    prompt: '',
+    variations: [],
+  },
+];
+
 export function MainFactoryLandingPage() {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
@@ -12,6 +156,7 @@ export function MainFactoryLandingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 配置选项状态
+  const [selectedStyle, setSelectedStyle] = useState('selling_point'); // 默认选中卖点文案风格
   const [imageType, setImageType] = useState('主图Banner');
   const [model, setModel] = useState('');  // 初始为空，从API加载
   const [imageCount, setImageCount] = useState(4);
@@ -63,12 +208,26 @@ export function MainFactoryLandingPage() {
     inputRef.current?.focus();
   }, []);
 
-  // 初次进入时给出更贴合跨境电商主线的默认配置（不覆盖用户手动选择）
+  // 初次进入时加载默认风格的 prompt
   useEffect(() => {
     if (prompt.trim()) return;
-    setPrompt('生成一套电商主图：白底极简风，突出产品主体，质感高级，留白合理，适配跨境平台上架。');
+    const defaultStyle = stylePresets.find((s) => s.id === 'selling_point');
+    if (defaultStyle?.prompt) {
+      setPrompt(defaultStyle.prompt);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 切换风格时更新 prompt
+  const handleStyleChange = (styleId: string) => {
+    setSelectedStyle(styleId);
+    const style = stylePresets.find((s) => s.id === styleId);
+    if (style?.prompt) {
+      setPrompt(style.prompt);
+    } else if (styleId === 'custom') {
+      setPrompt(''); // 自定义模式清空，让用户自己写
+    }
+  };
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -152,7 +311,11 @@ export function MainFactoryLandingPage() {
         }
       }
 
-      // 3. 保存配置到 localStorage（使用上传后的 URL 而不是 base64）
+      // 3. 获取选中风格的变化要求
+      const currentStyle = stylePresets.find((s) => s.id === selectedStyle);
+      const variations = currentStyle?.variations || [];
+
+      // 4. 保存配置到 localStorage（使用上传后的 URL 而不是 base64）
       const config = {
         prompt: prompt.trim(),
         imageType,
@@ -163,6 +326,8 @@ export function MainFactoryLandingPage() {
         aspectRatio,
         referenceImages: uploadedUrls,
         projectId, // 保存项目ID以便画布页面使用
+        selectedStyle, // 保存选中的风格
+        variations, // 保存变化要求，让每张图有不同角度
       };
       localStorage.setItem('canvas_initial_config', JSON.stringify(config));
 
@@ -205,6 +370,32 @@ export function MainFactoryLandingPage() {
 
         {/* 输入框容器 - 支持拖拽上传 */}
         <div className="w-full max-w-3xl">
+          {/* 风格选择器 */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles size={14} className="text-purple-vibrant" />
+              <span className="text-sm text-gray-600 dark:text-white/60">选择主图风格</span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {stylePresets.map((style) => (
+                <button
+                  key={style.id}
+                  onClick={() => handleStyleChange(style.id)}
+                  className={`px-3 py-2 rounded-xl text-sm transition-all ${
+                    selectedStyle === style.id
+                      ? 'bg-purple-vibrant text-white shadow-lg shadow-purple-500/30'
+                      : 'bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 hover:border-purple-vibrant/50'
+                  }`}
+                >
+                  <div className="font-medium">{style.name}</div>
+                  <div className={`text-xs mt-0.5 ${selectedStyle === style.id ? 'text-white/80' : 'text-gray-500 dark:text-white/40'}`}>
+                    {style.description}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div
             className={`relative rounded-2xl border transition-all duration-300 ${
               isFocused
@@ -285,9 +476,76 @@ export function MainFactoryLandingPage() {
                   )}
                 </div>
 
-                {/* 模型 pill - 只读显示当前配置的模型 */}
-                <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 text-xs">
-                  <span>{model || '加载中...'}</span>
+                {/* 平台 pill */}
+                <div className="relative" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => setActiveDropdown(activeDropdown === 'platform' ? null : 'platform')}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
+                  >
+                    <span>{platform}</span>
+                    <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'platform' ? 'rotate-180' : ''}`} />
+                  </button>
+                  {activeDropdown === 'platform' && (
+                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
+                      {['无', 'Shopee', 'Lazada', 'TikTok Shop', 'Amazon', 'eBay', '淘宝', '京东', '拼多多', '小红书'].map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => { setPlatform(opt); setActiveDropdown(null); }}
+                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${platform === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 语言 pill */}
+                <div className="relative" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => setActiveDropdown(activeDropdown === 'language' ? null : 'language')}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
+                  >
+                    <span>{language}</span>
+                    <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'language' ? 'rotate-180' : ''}`} />
+                  </button>
+                  {activeDropdown === 'language' && (
+                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
+                      {['无', '简体中文', '繁體中文', 'English', '日本語', 'ภาษาไทย', 'Tiếng Việt', 'Bahasa Indonesia', 'Bahasa Melayu'].map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => { setLanguage(opt); setActiveDropdown(null); }}
+                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${language === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 数量 pill */}
+                <div className="relative" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => setActiveDropdown(activeDropdown === 'count' ? null : 'count')}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
+                  >
+                    <span>{imageCount}张</span>
+                    <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'count' ? 'rotate-180' : ''}`} />
+                  </button>
+                  {activeDropdown === 'count' && (
+                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[80px]">
+                      {[1, 2, 3, 4, 5, 6, 8].map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => { setImageCount(opt); setActiveDropdown(null); }}
+                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${imageCount === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
+                        >
+                          {opt}张
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* 比例 pill */}
@@ -300,137 +558,45 @@ export function MainFactoryLandingPage() {
                     <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'ratio' ? 'rotate-180' : ''}`} />
                   </button>
                   {activeDropdown === 'ratio' && (
-                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
-                      {[{ v: 'auto', l: '自动' }, { v: '1:1', l: '1:1 方形' }, { v: '3:4', l: '3:4 竖版' }, { v: '4:3', l: '4:3 横版' }, { v: '16:9', l: '16:9 宽屏' }].map((opt) => (
+                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[100px]">
+                      {[
+                        { value: 'auto', label: '自动比例' },
+                        { value: '1:1', label: '1:1 正方形' },
+                        { value: '3:4', label: '3:4 竖版' },
+                        { value: '4:3', label: '4:3 横版' },
+                        { value: '16:9', label: '16:9 宽屏' },
+                        { value: '9:16', label: '9:16 手机屏' },
+                      ].map((opt) => (
                         <button
-                          key={opt.v}
-                          onClick={() => { setAspectRatio(opt.v); setActiveDropdown(null); }}
-                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${aspectRatio === opt.v ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
+                          key={opt.value}
+                          onClick={() => { setAspectRatio(opt.value); setActiveDropdown(null); }}
+                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${aspectRatio === opt.value ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
                         >
-                          {opt.l}
+                          {opt.label}
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-
-                {/* 张数 pill */}
-                <div className="relative" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={() => setActiveDropdown(activeDropdown === 'count' ? null : 'count')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
-                  >
-                    <span>{imageCount}张</span>
-                    <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'count' ? 'rotate-180' : ''}`} />
-                  </button>
-                  {activeDropdown === 'count' && (
-                    <div className="absolute top-full left-0 mt-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[80px]">
-                      {[1, 2, 4, 6, 8, 10].map((n) => (
-                        <button
-                          key={n}
-                          onClick={() => { setImageCount(n); setActiveDropdown(null); }}
-                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${imageCount === n ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
-                        >
-                          {n}张
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 更多选项按钮 */}
-                <button
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
-                >
-                  <span>更多</span>
-                  <ChevronDown size={12} className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-                </button>
               </div>
 
-              {/* 发送按钮 */}
+              {/* 右侧：发送按钮 */}
               <button
                 onClick={handleSubmit}
                 disabled={!prompt.trim() || isSubmitting}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${
+                className={`flex items-center justify-center w-10 h-10 rounded-full transition-all ${
                   prompt.trim() && !isSubmitting
-                    ? 'bg-gradient-cta text-white hover:shadow-glow'
-                    : 'bg-gray-200 text-gray-400 dark:bg-dark-tertiary dark:text-white/30 cursor-not-allowed'
+                    ? 'bg-purple-vibrant text-white hover:bg-purple-600 shadow-lg shadow-purple-500/30'
+                    : 'bg-gray-200 dark:bg-dark-tertiary text-gray-400 dark:text-white/30 cursor-not-allowed'
                 }`}
               >
                 {isSubmitting ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <Send size={18} />
                 )}
               </button>
             </div>
-
-            {/* 更多选项展开区 */}
-            {showAdvanced && (
-              <div className="px-4 pb-3 pt-1 border-t border-gray-200 dark:border-white/5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* 平台 */}
-                  <div className="relative" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => setActiveDropdown(activeDropdown === 'platform' ? null : 'platform')}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
-                    >
-                      <span>{platform}</span>
-                      <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'platform' ? 'rotate-180' : ''}`} />
-                    </button>
-                    {activeDropdown === 'platform' && (
-                      <div className="absolute bottom-full left-0 mb-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[120px]">
-                        <div className="px-2 py-1 text-[10px] text-gray-500 dark:text-white/40">国内</div>
-                        {['淘宝/天猫', '京东', '拼多多', '抖音', '小红书'].map((opt) => (
-                          <button
-                            key={opt}
-                            onClick={() => { setPlatform(opt); setActiveDropdown(null); }}
-                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${platform === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                        <div className="px-2 py-1 text-[10px] text-gray-500 dark:text-white/40 border-t border-gray-200 dark:border-white/5 mt-1">国际</div>
-                        {['Shopee', 'SHEIN', 'Amazon', 'TikTok', 'Temu', 'eBay', 'Shopify'].map((opt) => (
-                          <button
-                            key={opt}
-                            onClick={() => { setPlatform(opt); setActiveDropdown(null); }}
-                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${platform === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 语言 */}
-                  <div className="relative" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => setActiveDropdown(activeDropdown === 'lang' ? null : 'lang')}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-dark-tertiary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white text-xs transition-all"
-                    >
-                      <span>{language}</span>
-                      <ChevronDown size={12} className={`transition-transform ${activeDropdown === 'lang' ? 'rotate-180' : ''}`} />
-                    </button>
-                    {activeDropdown === 'lang' && (
-                      <div className="absolute bottom-full left-0 mb-1 py-1 bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[100px]">
-                        {['简体中文', '繁体中文', 'English', '日本語', '한국어'].map((opt) => (
-                          <button
-                            key={opt}
-                            onClick={() => { setLanguage(opt); setActiveDropdown(null); }}
-                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-purple-vibrant/20 ${language === opt ? 'text-purple-vibrant' : 'text-gray-700 dark:text-white/70'}`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* 隐藏的文件输入 */}
@@ -439,65 +605,27 @@ export function MainFactoryLandingPage() {
             type="file"
             accept="image/*"
             multiple
-            className="hidden"
             onChange={handleImageUpload}
+            className="hidden"
           />
 
-          {/* 其他工具 */}
-          <div className="mt-4">
-            <h3 className="text-sm text-gray-600 dark:text-white/60 mb-3">其他工具</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <button
-                onClick={() => navigate('/factory/batch')}
-                className="flex items-start gap-3 p-4 rounded-xl bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 transition-all text-left group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-gradient-cta flex items-center justify-center flex-shrink-0">
-                  <Layers className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-gray-900 dark:text-white font-medium mb-1 group-hover:text-purple-apple transition-colors">批量工厂</h4>
-                  <p className="text-xs text-gray-600 dark:text-white/60">批量处理多张图片，支持背景替换、风格迁移等</p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => navigate('/factory/detail')}
-                className="flex items-start gap-3 p-4 rounded-xl bg-white dark:bg-dark-secondary border border-gray-200 dark:border-white/10 hover:border-purple-vibrant/50 transition-all text-left group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-gradient-accent flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-gray-900 dark:text-white font-medium mb-1 group-hover:text-purple-apple transition-colors">详情页生成</h4>
-                  <p className="text-xs text-gray-600 dark:text-white/60">上传商品图片，AI 自动生成电商详情页</p>
-                </div>
-              </button>
+          {/* 功能说明 */}
+          <div className="mt-6 flex items-center justify-center gap-6 text-xs text-gray-500 dark:text-white/40">
+            <div className="flex items-center gap-1.5">
+              <Sparkles size={12} />
+              <span>AI 智能生成</span>
             </div>
-          </div>
-
-          {/* 底部快捷入口 */}
-          <div className="mt-6 flex items-center justify-center gap-6">
-            <button
-              onClick={() => navigate('/projects')}
-              className="text-gray-600 hover:text-gray-900 dark:text-white/60 dark:hover:text-white transition-colors text-sm"
-            >
-              历史项目
-            </button>
-            <span className="text-gray-400 dark:text-white/30">·</span>
-            <button
-              onClick={() => navigate('/assets')}
-              className="text-gray-600 hover:text-gray-900 dark:text-white/60 dark:hover:text-white transition-colors text-sm"
-            >
-              资源库
-            </button>
+            <div className="flex items-center gap-1.5">
+              <Layers size={12} />
+              <span>无限画布编辑</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <FileText size={12} />
+              <span>多格式导出</span>
+            </div>
           </div>
         </div>
       </main>
-
-      {/* 底部版权 */}
-      <footer className="py-4 text-center text-gray-400 dark:text-white/30 text-xs">
-        Powered by Xobi AI
-      </footer>
     </div>
   );
 }

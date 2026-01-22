@@ -160,6 +160,7 @@ export function PortalSettingsPage() {
           text_model: s.text_model || '',
           image_model: s.image_model || '',
           image_caption_model: s.image_caption_model || '',
+          title_rewrite_model: s.title_rewrite_model || 'gemini-2.0-flash',
           mineru_api_base: s.mineru_api_base || '',
           mineru_token: '',
           image_resolution: s.image_resolution || '2K',
@@ -173,6 +174,7 @@ export function PortalSettingsPage() {
           video_multimodal_api_key: '',
           video_multimodal_model: s.video_multimodal_model || 'gpt-4o',
           video_multimodal_enabled: s.video_multimodal_enabled ?? true,
+          debug_mode: s.debug_mode ?? false,
         });
       }
     } catch (e: any) {
@@ -199,6 +201,7 @@ export function PortalSettingsPage() {
         text_model: overrides?.text_model || '',
         image_model: overrides?.image_model || '',
         image_caption_model: overrides?.image_caption_model || '',
+        title_rewrite_model: overrides?.title_rewrite_model || '',
         mineru_api_base: overrides?.mineru_api_base || '',
         mineru_token: '',
         yunwu_api_base: overrides?.yunwu_api_base || '',
@@ -289,6 +292,7 @@ export function PortalSettingsPage() {
         text_model: values.text_model || '',
         image_model: values.image_model || '',
         image_caption_model: captionModel,
+        title_rewrite_model: values.title_rewrite_model || '',
         mineru_api_base: values.mineru_api_base || '',
         image_resolution: values.image_resolution || '2K',
         max_description_workers: values.max_description_workers,
@@ -299,6 +303,7 @@ export function PortalSettingsPage() {
         video_multimodal_api_base: values.video_multimodal_api_base || '',
         video_multimodal_model: values.video_multimodal_model || '',
         video_multimodal_enabled: values.video_multimodal_enabled,
+        debug_mode: values.debug_mode ?? false,
       };
       if (values.api_key) payload.api_key = values.api_key;
       if (values.mineru_token) payload.mineru_token = values.mineru_token;
@@ -335,6 +340,7 @@ export function PortalSettingsPage() {
         text_model: values.text_model || '',
         image_model: values.image_model || '',
         image_caption_model: values.image_caption_model || '',
+        title_rewrite_model: values.title_rewrite_model || '',
         mineru_api_base: values.mineru_api_base || '',
         yunwu_api_base: values.yunwu_api_base || '',
         yunwu_video_model: values.yunwu_video_model || '',
@@ -806,6 +812,15 @@ export function PortalSettingsPage() {
                             <Input placeholder="留空则默认复用多模态模型" />
                           </Form.Item>
                         ) : null}
+                        {advancedMode ? (
+                          <Form.Item
+                            name="title_rewrite_model"
+                            label="标题仿写模型（Excel工作台）"
+                            tooltip="用于 Excel 工作台中的标题仿写功能。推荐模型：gemini-2.0-flash（输出稳定，不会过度推理）。注意：不建议使用 thinking 类模型如 gemini-3-flash-preview，因为它们会消耗大量 token 进行推理，导致输出内容过短。"
+                          >
+                            <Input placeholder="如：gemini-2.0-flash（推荐）" />
+                          </Form.Item>
+                        ) : null}
                       </div>
 
                       {advancedMode ? (
@@ -905,6 +920,19 @@ export function PortalSettingsPage() {
                           </>
                         ) : null}
                       </div>
+
+                      <div>
+                        <Typography.Text strong>开发调试</Typography.Text>
+                        <Divider style={{ margin: '8px 0' }} />
+                        <Form.Item
+                          name="debug_mode"
+                          label="调试模式"
+                          valuePropName="checked"
+                          tooltip="开启后导航栏会显示「日志」入口，可以查看后端实时日志，方便排查问题。"
+                        >
+                          <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+                        </Form.Item>
+                      </div>
                     </Space>
                   </Form>
                 ),
@@ -1000,6 +1028,13 @@ export function PortalSettingsPage() {
                               }
                             />
                           </Form.Item>
+                          <Form.Item name="title_rewrite_model" label="标题仿写模型（Excel工作台）">
+                            <Input
+                              placeholder={
+                                moduleEffective?.title_rewrite_model ? `当前有效：${moduleEffective.title_rewrite_model}` : '如：gemini-2.0-flash（推荐）'
+                              }
+                            />
+                          </Form.Item>
                         </div>
 
                         <div>
@@ -1085,6 +1120,9 @@ export function PortalSettingsPage() {
                             </Typography.Text>
                             <Typography.Text type="secondary" style={{ color: textSecondary }}>
                               图片分析：{String(moduleEffective?.image_caption_model || '')}
+                            </Typography.Text>
+                            <Typography.Text type="secondary" style={{ color: textSecondary }}>
+                              标题仿写：{String(moduleEffective?.title_rewrite_model || '')}
                             </Typography.Text>
                             <Typography.Text type="secondary" style={{ color: textSecondary }}>
                               MinerU：{String(moduleEffective?.mineru_api_base || '')}（Token 长度：{Number(moduleEffective?.mineru_token_length || 0)}）

@@ -24,6 +24,7 @@ from config import Config
 from controllers.material_controller import material_bp, material_global_bp
 from controllers.reference_file_controller import reference_file_bp
 from controllers.settings_controller import settings_bp
+from controllers.logs_controller import logs_bp
 from controllers import project_bp, project_settings_bp, module_settings_bp, page_bp, template_bp, user_template_bp, export_bp, file_bp, assets_bp, jobs_bp, dataset_bp, tools_bp, agent_bp, ai_bp
 
 
@@ -82,13 +83,33 @@ def create_app():
         cors_origins = [o.strip() for o in raw_cors.split(',') if o.strip()]
     app.config['CORS_ORIGINS'] = cors_origins
     
-    # Initialize logging (log to stdout so Docker can capture it)
+    # Initialize logging (log to stdout and file)
     log_level = getattr(logging, app.config['LOG_LEVEL'], logging.INFO)
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout)],
+    log_format = "%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+
+    # 日志文件路径
+    log_dir = os.path.join(backend_dir, 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, 'xobi_a.log')
+
+    # 配置根日志器
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    # 控制台输出
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(logging.Formatter(log_format))
+    root_logger.addHandler(console_handler)
+
+    # 文件输出（带日志轮转，最大 10MB，保留 5 个备份）
+    from logging.handlers import RotatingFileHandler
+    file_handler = RotatingFileHandler(
+        log_file, maxBytes=10*1024*1024, backupCount=5, encoding='utf-8'
     )
+    file_handler.setFormatter(logging.Formatter(log_format))
+    root_logger.addHandler(file_handler)
+
+    logging.info(f"日志文件: {log_file}")
     
     # 设置第三方库的日志级别，避免过多的DEBUG日志
     logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
@@ -122,6 +143,7 @@ def create_app():
     app.register_blueprint(material_global_bp)
     app.register_blueprint(reference_file_bp, url_prefix='/api/reference-files')
     app.register_blueprint(settings_bp)
+    app.register_blueprint(logs_bp)
 
     with app.app_context():
         # Create all database tables if they don't exist

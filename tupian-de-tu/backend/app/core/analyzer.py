@@ -8,14 +8,17 @@ import json
 import os
 import re
 import asyncio
+import logging
 from typing import Dict, Any, Optional
 from ..config import config
+
+logger = logging.getLogger(__name__)
 
 
 async def analyze_reference_image(image_path: str) -> Dict[str, Any]:
     """分析参考主图，提取构图、风格、场景信息"""
     abs_path = os.path.abspath(image_path)
-    print(f"DEBUG: Analyzer checking reference path: {abs_path}")
+    logger.debug(f"Analyzer checking reference path: {abs_path}")
     
     prompt = """请深度解析这张参考主图，严格返回JSON（只输出JSON，不要解释、不要Markdown）。需要覆盖多维度反向提炼：
 {
@@ -81,7 +84,7 @@ async def analyze_reference_image(image_path: str) -> Dict[str, Any]:
 async def analyze_product_image(image_path: str) -> Dict[str, Any]:
     """分析产品图，识别产品信息和特征"""
     abs_path = os.path.abspath(image_path)
-    print(f"DEBUG: Analyzer checking product path: {abs_path}")
+    logger.debug(f"Analyzer checking product path: {abs_path}")
     
     prompt = """请深度解析这张产品图，严格返回JSON（只输出JSON，不要解释、不要Markdown），多维度提炼：
 {
@@ -205,10 +208,10 @@ async def _analyze_image_with_gemini(image_path: str, prompt: str) -> Dict[str, 
     """
     # 读取图片并转为 base64
     abs_path = os.path.abspath(image_path)
-    print(f"[Analyzer] 尝试读取图片: {abs_path}")
-    
+    logger.debug(f"尝试读取图片: {abs_path}")
+
     if not os.path.exists(abs_path):
-        print(f"[Analyzer] !!! 图片不存在: {abs_path}")
+        logger.warning(f"图片不存在: {abs_path}")
         return {"error": f"图片不存在: {abs_path}"}
     
     with open(image_path, "rb") as f:
@@ -255,10 +258,10 @@ async def _analyze_image_with_gemini(image_path: str, prompt: str) -> Dict[str, 
     for attempt in range(attempts):
         try:
             async with httpx.AsyncClient(timeout=90) as client:
-                print(f"[Analyzer] 分析图片(尝试 {attempt + 1}/{attempts}): {os.path.basename(image_path)} -> {url}")
+                logger.debug(f"分析图片(尝试 {attempt + 1}/{attempts}): {os.path.basename(image_path)} -> {url}")
                 response = await client.post(url, headers=headers, json=payload)
                 if response.status_code != 200:
-                    print(f"[Analyzer][HTTP {response.status_code}] {response.text[:500]}")
+                    logger.warning(f"HTTP {response.status_code}: {response.text[:500]}")
                     response.raise_for_status()
                 
                 result = response.json()
@@ -268,24 +271,22 @@ async def _analyze_image_with_gemini(image_path: str, prompt: str) -> Dict[str, 
                     content = result["choices"][0]["message"]["content"]
                     # 宽松返回：直接把 content 回传给上层，避免因格式差异报错
                     if isinstance(content, dict):
-                        print(f"[Analyzer] 分析完成(dict): {list(content.keys())}")
+                        logger.debug(f"分析完成(dict): {list(content.keys())}")
                         return content
                     else:
-                        print(f"[Analyzer] 分析完成(raw str), len={len(str(content))}")
+                        logger.debug(f"分析完成(raw str), len={len(str(content))}")
                         return {"raw": str(content)}
                 
                 return {"error": "无有效choices返回", "raw": str(result)[:500]}
             
         except httpx.TimeoutException as e:
-            print(f"[Analyzer] 超时，尝试 {attempt + 1}/{attempts}: {e}")
+            logger.warning(f"超时，尝试 {attempt + 1}/{attempts}: {e}")
             if attempt < attempts - 1:
                 await asyncio.sleep(1 * (attempt + 1))
                 continue
             return {"error": f"分析超时({attempts}次): {e}"}
         except Exception as e:
-            import traceback
-            print(f"[Analyzer] 分析失败: {e}")
-            traceback.print_exc()
+            logger.exception(f"分析失败: {e}")
             if attempt < attempts - 1:
                 await asyncio.sleep(1 * (attempt + 1))
                 continue

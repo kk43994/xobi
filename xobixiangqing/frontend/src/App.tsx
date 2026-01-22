@@ -24,6 +24,7 @@ import { AgentPage } from './pages/AgentPage';
 import { EditorPage } from './pages/EditorPage';
 import { BatchFactoryPage } from './pages/BatchFactoryPage';
 import { VideoFactoryPage } from './pages/VideoFactoryPage';
+import { LogsPage } from './pages/LogsPage';
 import { useProjectStore } from './store/useProjectStore';
 import { useToast } from './components/shared';
 
@@ -95,6 +96,7 @@ function App() {
           <Route path="agent" element={<AgentPage />} />
 
           <Route path="settings" element={<PortalSettingsPage />} />
+          <Route path="logs" element={<LogsPage />} />
         </Route>
 
         {/* 兼容旧路由（避免你们现有书签/跳转失效） */}

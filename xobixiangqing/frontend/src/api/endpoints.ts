@@ -1376,3 +1376,57 @@ export const agentChat = async (payload: {
   >('/api/agent/chat', payload);
   return response.data;
 };
+
+// ===== 日志 API =====
+
+export interface LogEntry {
+  line: string;
+}
+
+export interface LogsResponse {
+  service: string;
+  file: string;
+  lines: string[];
+  total: number;
+}
+
+export interface LogServiceInfo {
+  id: string;
+  name: string;
+  file: string;
+  exists: boolean;
+  size: number;
+  size_mb: number;
+  error?: string;
+}
+
+/**
+ * 获取日志
+ */
+export const getLogs = async (opts?: {
+  service?: 'a' | 'b';
+  lines?: number;
+  search?: string;
+  level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
+}): Promise<ApiResponse<LogsResponse>> => {
+  const response = await apiClient.get<ApiResponse<LogsResponse>>('/api/logs', {
+    params: opts,
+  });
+  return response.data;
+};
+
+/**
+ * 获取所有服务的日志状态
+ */
+export const getLogServices = async (): Promise<ApiResponse<{ services: LogServiceInfo[] }>> => {
+  const response = await apiClient.get<ApiResponse<{ services: LogServiceInfo[] }>>('/api/logs/services');
+  return response.data;
+};
+
+/**
+ * 清空日志
+ */
+export const clearLogs = async (service: 'a' | 'b'): Promise<ApiResponse<{ message: string }>> => {
+  const response = await apiClient.post<ApiResponse<{ message: string }>>('/api/logs/clear', { service });
+  return response.data;
+};
