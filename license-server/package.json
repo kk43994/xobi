@@ -1,0 +1,14 @@
+{
+  "name": "xobi-license-server",
+  "version": "1.0.0",
+  "description": "Xobi License Verification Server",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "crypto-js": "^4.2.0"
+  }
+}
