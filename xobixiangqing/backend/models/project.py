@@ -11,8 +11,9 @@ class Project(db.Model):
     Project model - represents an e-commerce image generation project
     """
     __tablename__ = 'projects'
-    
+
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)  # 关联用户
     idea_prompt = db.Column(db.Text, nullable=True)
     outline_text = db.Column(db.Text, nullable=True)  # 用户输入的大纲文本（用于outline类型）
     description_text = db.Column(db.Text, nullable=True)  # 用户输入的描述文本（用于description类型）
@@ -52,6 +53,7 @@ class Project(db.Model):
 
         data = {
             'project_id': self.id,
+            'user_id': self.user_id,
             'idea_prompt': self.idea_prompt,
             'outline_text': self.outline_text,
             'description_text': self.description_text,

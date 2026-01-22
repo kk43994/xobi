@@ -4,7 +4,7 @@ Material Controller - handles standalone material image generation
 from flask import Blueprint, request, current_app
 from models import db, Project, Material, Task
 from utils import success_response, error_response, not_found, bad_request
-from services import FileService
+from services import get_file_service
 from services.ai_service_manager import get_ai_service, get_ai_service_for_project
 from services.task_manager import task_manager, generate_material_image_task
 from pathlib import Path
@@ -108,7 +108,7 @@ def _save_material_file(file, target_project_id: Optional[str]):
     if file_ext not in ALLOWED_MATERIAL_EXTENSIONS:
         return None, bad_request(f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_MATERIAL_EXTENSIONS))}")
 
-    file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+    file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
     if target_project_id:
         materials_dir = file_service._get_materials_dir(target_project_id)
     else:
@@ -217,7 +217,7 @@ def generate_material_image(project_id):
 
         # Initialize services (project-scoped AI overrides when available)
         ai_service = get_ai_service() if task_project_id == 'global' else get_ai_service_for_project(task_project_id)
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
 
         # 创建临时目录保存参考图片（后台任务会清理）
         temp_dir = Path(tempfile.mkdtemp(dir=current_app.config['UPLOAD_FOLDER']))
@@ -386,7 +386,7 @@ def delete_material(material_id):
         if not material:
             return not_found('Material')
 
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         material_path = Path(file_service.get_absolute_path(material.relative_path))
 
         # First, delete the database record to ensure data consistency

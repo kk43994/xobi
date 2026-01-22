@@ -115,11 +115,23 @@ export function AdminUsersPage() {
   // 提交表单
   const handleSubmit = async (values: UserFormData) => {
     try {
+      // 处理到期时间：如果用户只选了日期没选时间，设置为当天结束（23:59:59）
+      let expiresAt = null;
+      if (values.expires_at) {
+        const exp = values.expires_at;
+        // 如果时间是 00:00:00，说明用户可能只选了日期，设置为当天结束
+        if (exp.hour() === 0 && exp.minute() === 0 && exp.second() === 0) {
+          expiresAt = exp.endOf('day').toISOString();
+        } else {
+          expiresAt = exp.toISOString();
+        }
+      }
+
       const data: any = {
         role: values.role,
         status: values.status,
         quota: values.quota,
-        expires_at: values.expires_at?.toISOString() || null,
+        expires_at: expiresAt,
       };
 
       if (modalMode === 'create') {

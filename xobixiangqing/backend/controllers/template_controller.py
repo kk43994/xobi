@@ -5,7 +5,7 @@ import logging
 from flask import Blueprint, request, current_app
 from models import db, Project, UserTemplate
 from utils import success_response, error_response, not_found, bad_request, allowed_file
-from services import FileService
+from services import get_file_service
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ def upload_template(project_id):
             return bad_request(f"Invalid file type. Allowed types: {', '.join(sorted(current_app.config['ALLOWED_EXTENSIONS']))}")
         
         # Save template
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         file_path = file_service.save_template_image(file, project_id)
         
         # Update project
@@ -75,7 +75,7 @@ def delete_template(project_id):
             return bad_request("No template to delete")
         
         # Delete template file
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         file_service.delete_template(project_id)
         
         # Update project
@@ -144,7 +144,7 @@ def upload_user_template():
         template_id = str(uuid.uuid4())
         
         # Save template file first (using the generated ID)
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         file_path = file_service.save_user_template(file, template_id)
         
         # Create template record with file_path already set
@@ -199,7 +199,7 @@ def delete_user_template(template_id):
             return not_found('UserTemplate')
         
         # Delete template file
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         file_service.delete_user_template(template_id)
         
         # Delete template record

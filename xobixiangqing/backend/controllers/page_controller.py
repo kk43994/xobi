@@ -5,7 +5,7 @@ import logging
 from flask import Blueprint, request, current_app
 from models import db, Project, Page, PageImageVersion, Task
 from utils import success_response, error_response, not_found, bad_request
-from services import FileService, ProjectContext
+from services import get_file_service, ProjectContext
 from services.ai_service_manager import get_ai_service, get_ai_service_for_project
 from services.task_manager import task_manager, generate_single_page_image_task, edit_page_image_task
 from datetime import datetime
@@ -150,7 +150,7 @@ def delete_page(project_id, page_id):
             return not_found('Page')
         
         # Delete page image if exists
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         file_service.delete_page_image(project_id, page_id)
         
         # Delete page
@@ -420,7 +420,7 @@ def generate_page_image(project_id, page_id):
         # Project-scoped AI service (supports per-project API overrides)
         ai_service = get_ai_service_for_project(project_id)
         
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         
         # Get template path
         ref_image_path = None
@@ -550,7 +550,7 @@ def edit_page_image(project_id, page_id):
         # Project-scoped AI service (supports per-project API overrides)
         ai_service = get_ai_service_for_project(project_id)
         
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         
         # Parse request data (support both JSON and multipart/form-data)
         if request.is_json:

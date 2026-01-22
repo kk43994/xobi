@@ -38,23 +38,49 @@ class Config:
     SECRET_KEY = _secret_key
     
     # 数据库配置
-    # Use absolute path to avoid WSL path issues
+    # 支持 PostgreSQL (Supabase) 或 SQLite
+    # DATABASE_URL 格式示例:
+    #   PostgreSQL: postgresql://user:pass@host:5432/dbname
+    #   SQLite: sqlite:///path/to/database.db
     db_path = os.path.join(BASE_DIR, 'instance', 'database.db')
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        'DATABASE_URL', 
-        f'sqlite:///{db_path}'
-    )
+    DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite:///{db_path}')
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
-    # SQLite线程安全配置 - 关键修复
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'connect_args': {
-            'check_same_thread': False,  # 允许跨线程使用（仅SQLite）
-            'timeout': 30  # 增加超时时间
-        },
-        'pool_pre_ping': True,  # 连接前检查
-        'pool_recycle': 3600,  # 1小时回收连接
-    }
+
+    # 数据库连接池配置
+    # 根据数据库类型自动配置
+    @staticmethod
+    def get_engine_options():
+        """Get SQLAlchemy engine options based on database type"""
+        db_url = os.getenv('DATABASE_URL', '')
+        if db_url.startswith('postgresql'):
+            # PostgreSQL 配置
+            return {
+                'pool_pre_ping': True,
+                'pool_recycle': 300,
+                'pool_size': 5,
+                'max_overflow': 10,
+            }
+        else:
+            # SQLite 配置
+            return {
+                'connect_args': {
+                    'check_same_thread': False,
+                    'timeout': 30
+                },
+                'pool_pre_ping': True,
+                'pool_recycle': 3600,
+            }
+
+    SQLALCHEMY_ENGINE_OPTIONS = property(lambda self: Config.get_engine_options())
+
+    # Cloudflare R2 对象存储配置
+    R2_ENABLED = os.getenv('R2_ENABLED', 'false').lower() in ('1', 'true', 'yes')
+    R2_ACCOUNT_ID = os.getenv('R2_ACCOUNT_ID', '')
+    R2_ACCESS_KEY_ID = os.getenv('R2_ACCESS_KEY_ID', '')
+    R2_SECRET_ACCESS_KEY = os.getenv('R2_SECRET_ACCESS_KEY', '')
+    R2_BUCKET_NAME = os.getenv('R2_BUCKET_NAME', 'xobi-files')
+    R2_PUBLIC_URL = os.getenv('R2_PUBLIC_URL', '')  # 例如: https://files.yourdomain.com
     
     # 文件存储配置
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')

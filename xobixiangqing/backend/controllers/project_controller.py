@@ -2,15 +2,16 @@
 Project Controller - handles project-related endpoints
 """
 import logging
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, g
 from werkzeug.exceptions import BadRequest
 from models import db, Project, Page, Task, ReferenceFile, Material
 from utils import success_response, error_response, not_found, bad_request
 from utils.text_sanitize import sanitize_prompt_text
+from utils.auth import login_required, get_current_user
 from services import ProjectContext
 from services.ai_service_manager import get_ai_service, get_ai_service_for_project
 from services.task_manager import task_manager, generate_descriptions_task, generate_images_task
-from services import FileService
+from services import get_file_service
 import json
 import traceback
 from datetime import datetime
@@ -18,6 +19,23 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 project_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
+
+
+def _check_project_access(project, current_user):
+    """
+    Check if user has access to a project.
+    Returns True if user can access, False otherwise.
+
+    Access rules:
+    - Admin can access all projects
+    - User can access their own projects
+    - User can access projects with user_id=None (legacy/shared projects)
+    """
+    if current_user.is_admin():
+        return True
+    if project.user_id is None:
+        return True
+    return project.user_id == current_user.id
 
 
 def _get_project_reference_files_content(project_id: str) -> list:
@@ -147,7 +165,7 @@ def debug_generation_plan(project_id):
         raw_use_template = (request.args.get('use_template') or 'true').strip().lower()
         use_template = raw_use_template in ('1', 'true', 'yes', 'y', 'on')
 
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
 
         template_path = file_service.get_template_path(project_id) if use_template else None
         template_exists = bool(template_path)
@@ -233,26 +251,36 @@ def debug_generation_plan(project_id):
 
 
 @project_bp.route('', methods=['GET'])
+@login_required
 def list_projects():
     """
-    GET /api/projects - Get all projects (for history)
-    
+    GET /api/projects - Get all projects for current user
+
     Query params:
     - limit: number of projects to return (default: 50)
     - offset: offset for pagination (default: 0)
     """
     try:
         from sqlalchemy import desc
-        
+
+        current_user = get_current_user()
         limit = request.args.get('limit', 50, type=int)
         offset = request.args.get('offset', 0, type=int)
-        
+
+        # 只查询当前用户的项目（管理员可以看到所有项目）
+        query = Project.query
+        if not current_user.is_admin():
+            query = query.filter(
+                (Project.user_id == current_user.id) | (Project.user_id.is_(None))
+            )
+
         # Get projects ordered by updated_at descending
-        projects = Project.query.order_by(desc(Project.updated_at)).limit(limit).offset(offset).all()
-        
+        projects = query.order_by(desc(Project.updated_at)).limit(limit).offset(offset).all()
+        total = query.count()
+
         return success_response({
             'projects': [project.to_dict(include_pages=True) for project in projects],
-            'total': Project.query.count()
+            'total': total
         })
     
     except Exception as e:
@@ -261,10 +289,11 @@ def list_projects():
 
 
 @project_bp.route('', methods=['POST'])
+@login_required
 def create_project():
     """
     POST /api/projects - Create a new project
-    
+
     Request body:
     {
         "creation_type": "idea|outline|descriptions",
@@ -278,17 +307,18 @@ def create_project():
     }
     """
     try:
+        current_user = get_current_user()
         data = request.get_json()
-        
+
         if not data:
             return bad_request("Request body is required")
-        
+
         # creation_type is required
         if 'creation_type' not in data:
             return bad_request("creation_type is required")
-        
+
         creation_type = data.get('creation_type')
-        
+
         if creation_type not in ['idea', 'outline', 'descriptions']:
             return bad_request("Invalid creation_type")
 
@@ -312,9 +342,10 @@ def create_project():
             return bad_request("Invalid page_aspect_ratio")
         if not _is_valid_ratio(cover_aspect_ratio):
             return bad_request("Invalid cover_aspect_ratio")
-        
-        # Create project
+
+        # Create project with user_id
         project = Project(
+            user_id=current_user.id,  # 关联当前用户
             creation_type=creation_type,
             project_type=project_type,
             page_aspect_ratio=page_aspect_ratio,
@@ -325,10 +356,10 @@ def create_project():
             template_style=data.get('template_style'),
             status='DRAFT'
         )
-        
+
         db.session.add(project)
         db.session.commit()
-        
+
         return success_response({
             'project_id': project.id,
             'status': project.status,
@@ -349,28 +380,35 @@ def create_project():
 
 
 @project_bp.route('/<project_id>', methods=['GET'])
+@login_required
 def get_project(project_id):
     """
     GET /api/projects/{project_id} - Get project details
     """
     try:
+        current_user = get_current_user()
         project = Project.query.get(project_id)
-        
+
         if not project:
             return not_found('Project')
-        
+
+        # 检查访问权限
+        if not _check_project_access(project, current_user):
+            return error_response('FORBIDDEN', '无权访问此项目', 403)
+
         return success_response(project.to_dict(include_pages=True))
-    
+
     except Exception as e:
         logger.error(f"get_project failed: {str(e)}", exc_info=True)
         return error_response('SERVER_ERROR', str(e), 500)
 
 
 @project_bp.route('/<project_id>', methods=['PUT'])
+@login_required
 def update_project(project_id):
     """
     PUT /api/projects/{project_id} - Update project
-    
+
     Request body:
     {
         "idea_prompt": "...",
@@ -378,11 +416,16 @@ def update_project(project_id):
     }
     """
     try:
+        current_user = get_current_user()
         project = Project.query.get(project_id)
-        
+
         if not project:
             return not_found('Project')
-        
+
+        # 检查访问权限
+        if not _check_project_access(project, current_user):
+            return error_response('FORBIDDEN', '无权访问此项目', 403)
+
         data = request.get_json()
         
         # Update idea_prompt if provided
@@ -440,24 +483,30 @@ def update_project(project_id):
 
 
 @project_bp.route('/<project_id>', methods=['DELETE'])
+@login_required
 def delete_project(project_id):
     """
     DELETE /api/projects/{project_id} - Delete project
     """
     try:
+        current_user = get_current_user()
         project = Project.query.get(project_id)
-        
+
         if not project:
             return not_found('Project')
-        
+
+        # 检查访问权限
+        if not _check_project_access(project, current_user):
+            return error_response('FORBIDDEN', '无权删除此项目', 403)
+
         # Delete project files
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         file_service.delete_project_files(project_id)
-        
+
         # Delete project from database (cascade will delete pages and tasks)
         db.session.delete(project)
         db.session.commit()
-        
+
         return success_response(message="Project deleted successfully")
     
     except Exception as e:
@@ -467,13 +516,14 @@ def delete_project(project_id):
 
 
 @project_bp.route('/<project_id>/generate/outline', methods=['POST'])
+@login_required
 def generate_outline(project_id):
     """
     POST /api/projects/{project_id}/generate/outline - Generate outline
-    
+
     For 'idea' type: Generate outline from idea_prompt
     For 'outline' type: Parse outline_text into structured format
-    
+
     Request body (optional):
     {
         "idea_prompt": "...",  # for idea type
@@ -481,14 +531,19 @@ def generate_outline(project_id):
     }
     """
     try:
+        current_user = get_current_user()
         project = Project.query.get(project_id)
-        
+
         if not project:
             return not_found('Project')
-        
+
+        # 检查访问权限
+        if not _check_project_access(project, current_user):
+            return error_response('FORBIDDEN', '无权访问此项目', 403)
+
         # Project-scoped AI service (supports per-project API overrides)
         ai_service = get_ai_service_for_project(project_id)
-        
+
         # Get request data and language parameter
         data = request.get_json() or {}
         language = data.get('language', current_app.config.get('OUTPUT_LANGUAGE', 'zh'))
@@ -598,32 +653,38 @@ def generate_outline(project_id):
 
 
 @project_bp.route('/<project_id>/generate/from-description', methods=['POST'])
+@login_required
 def generate_from_description(project_id):
     """
     POST /api/projects/{project_id}/generate/from-description - Generate outline and page descriptions from description text
-    
+
     This endpoint:
     1. Parses the description_text to extract outline structure
     2. Splits the description_text into individual page descriptions
     3. Creates pages with both outline and description content filled
     4. Sets project status to DESCRIPTIONS_GENERATED
-    
+
     Request body (optional):
     {
         "description_text": "...",  # if not provided, uses project.description_text
         "language": "zh"  # output language: zh, en, ja, auto
     }
     """
-    
+
     try:
+        current_user = get_current_user()
         project = Project.query.get(project_id)
-        
+
         if not project:
             return not_found('Project')
-        
+
+        # 检查访问权限
+        if not _check_project_access(project, current_user):
+            return error_response('FORBIDDEN', '无权访问此项目', 403)
+
         if project.creation_type != 'descriptions':
             return bad_request("This endpoint is only for descriptions type projects")
-        
+
         # Get description text and language
         data = request.get_json() or {}
         description_text = data.get('description_text') or project.description_text
@@ -715,10 +776,11 @@ def generate_from_description(project_id):
 
 
 @project_bp.route('/<project_id>/generate/descriptions', methods=['POST'])
+@login_required
 def generate_descriptions(project_id):
     """
     POST /api/projects/{project_id}/generate/descriptions - Generate descriptions
-    
+
     Request body:
     {
         "max_workers": 5,
@@ -726,11 +788,16 @@ def generate_descriptions(project_id):
     }
     """
     try:
+        current_user = get_current_user()
         project = Project.query.get(project_id)
-        
+
         if not project:
             return not_found('Project')
-        
+
+        # 检查访问权限
+        if not _check_project_access(project, current_user):
+            return error_response('FORBIDDEN', '无权访问此项目', 403)
+
         if project.status not in ['OUTLINE_GENERATED', 'DRAFT', 'DESCRIPTIONS_GENERATED']:
             return bad_request("Project must have outline generated first")
         
@@ -806,10 +873,11 @@ def generate_descriptions(project_id):
 
 
 @project_bp.route('/<project_id>/generate/images', methods=['POST'])
+@login_required
 def generate_images(project_id):
     """
     POST /api/projects/{project_id}/generate/images - Generate images
-    
+
     Request body:
     {
         "max_workers": 8,
@@ -818,14 +886,19 @@ def generate_images(project_id):
     }
     """
     try:
+        current_user = get_current_user()
         project = Project.query.get(project_id)
-        
+
         if not project:
             return not_found('Project')
-        
+
+        # 检查访问权限
+        if not _check_project_access(project, current_user):
+            return error_response('FORBIDDEN', '无权访问此项目', 403)
+
         # if project.status not in ['DESCRIPTIONS_GENERATED', 'OUTLINE_GENERATED']:
         #     return bad_request("Project must have descriptions generated first")
-        
+
         # IMPORTANT: Expire cached objects to ensure fresh data
         db.session.expire_all()
         
@@ -862,7 +935,7 @@ def generate_images(project_id):
         # Project-scoped AI service (supports per-project API overrides)
         ai_service = get_ai_service_for_project(project_id)
         
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
         
         # 合并额外要求和风格描述
         combined_requirements = project.extra_requirements or ""
@@ -926,10 +999,11 @@ def get_task_status(project_id, task_id):
 
 
 @project_bp.route('/<project_id>/refine/outline', methods=['POST'])
+@login_required
 def refine_outline(project_id):
     """
     POST /api/projects/{project_id}/refine/outline - Refine outline based on user requirements
-    
+
     Request body:
     {
         "user_requirement": "用户要求，例如：增加一页关于XXX的内容",
@@ -937,10 +1011,15 @@ def refine_outline(project_id):
     }
     """
     try:
+        current_user = get_current_user()
         project = Project.query.get(project_id)
-        
+
         if not project:
             return not_found('Project')
+
+        # 检查访问权限
+        if not _check_project_access(project, current_user):
+            return error_response('FORBIDDEN', '无权访问此项目', 403)
         
         data = request.get_json()
         
@@ -1080,10 +1159,11 @@ def refine_outline(project_id):
 
 
 @project_bp.route('/<project_id>/refine/descriptions', methods=['POST'])
+@login_required
 def refine_descriptions(project_id):
     """
     POST /api/projects/{project_id}/refine/descriptions - Refine page descriptions based on user requirements
-    
+
     Request body:
     {
         "user_requirement": "用户要求，例如：让描述更详细一些",
@@ -1091,11 +1171,16 @@ def refine_descriptions(project_id):
     }
     """
     try:
+        current_user = get_current_user()
         project = Project.query.get(project_id)
-        
+
         if not project:
             return not_found('Project')
-        
+
+        # 检查访问权限
+        if not _check_project_access(project, current_user):
+            return error_response('FORBIDDEN', '无权访问此项目', 403)
+
         data = request.get_json()
         
         if not data or not data.get('user_requirement'):

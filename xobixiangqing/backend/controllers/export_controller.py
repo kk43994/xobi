@@ -4,7 +4,7 @@ Export Controller - handles image export endpoints
 from flask import Blueprint, request, current_app
 from models import Project, Page
 from utils import error_response, not_found, bad_request, success_response
-from services import FileService
+from services import get_file_service
 import os
 import io
 import zipfile
@@ -29,7 +29,7 @@ def export_images_zip(project_id):
         if not pages:
             return bad_request("No pages found for project")
 
-        file_service = FileService(current_app.config['UPLOAD_FOLDER'])
+        file_service = get_file_service(current_app.config['UPLOAD_FOLDER'])
 
         # Determine export directory and filename
         exports_dir = file_service._get_exports_dir(project_id)

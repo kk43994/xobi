@@ -43,8 +43,15 @@ class User(db.Model):
         """Check if user account is active and not expired"""
         if self.status != 'active':
             return False
-        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
-            return False
+        if self.expires_at:
+            # 处理时区问题：确保两个时间都是可比较的
+            now = datetime.now(timezone.utc)
+            expires = self.expires_at
+            # 如果 expires_at 没有时区信息，假设它是 UTC
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if now > expires:
+                return False
         return True
 
     def is_admin(self):

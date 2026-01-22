@@ -47,8 +47,13 @@ def login():
 
     # 检查账号状态
     if not user.is_active():
-        logger.warning(f"Login failed: user '{username}' is inactive or expired")
-        return jsonify({'error': '账号已禁用或已过期'}), 403
+        # 提供更具体的错误信息
+        if user.status != 'active':
+            logger.warning(f"Login failed: user '{username}' is disabled")
+            return jsonify({'error': '账号已被禁用'}), 403
+        else:
+            logger.warning(f"Login failed: user '{username}' has expired (expires_at: {user.expires_at})")
+            return jsonify({'error': '账号已过期'}), 403
 
     # 更新最后登录时间
     user.last_login_at = datetime.now(timezone.utc)

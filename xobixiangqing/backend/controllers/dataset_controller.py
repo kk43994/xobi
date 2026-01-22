@@ -30,7 +30,7 @@ from flask import Blueprint, current_app, request, send_file
 from werkzeug.utils import secure_filename
 
 from models import Asset, Dataset, DatasetItem, Job, Material, Project, db
-from services import FileService
+from services import get_file_service
 from services.dataset_jobs import start_title_rewrite_job
 from services.job_sync import start_auto_sync_b_style_batch_job
 from services.legacy_b_client import create_style_batch_from_items
@@ -594,7 +594,7 @@ def create_project_from_dataset_item(dataset_id: str, item_id: str):
         if images:
             material_url = images[0]
 
-    file_service = FileService(current_app.config["UPLOAD_FOLDER"])
+    file_service = get_file_service(current_app.config["UPLOAD_FOLDER"])
 
     def _download_image_as_pil(url: str):
         if not url:
@@ -1040,7 +1040,7 @@ def create_projects_from_dataset(dataset_id: str):
     db.session.commit()
 
     job_id = job.id
-    file_service = FileService(current_app.config["UPLOAD_FOLDER"])
+    file_service = get_file_service(current_app.config["UPLOAD_FOLDER"])
 
     results: List[Dict[str, Any]] = []
     created = 0
