@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xobi 授权管理</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    header h1 { font-size: 28px; margin-bottom: 10px; }
+    header p { opacity: 0.9; }
+
+    .login-section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+      margin: 50px auto;
+    }
+    .login-section h2 { margin-bottom: 20px; color: #333; }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .card h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .stat-item {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-item .number {
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .stat-item .label {
+      color: #666;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #333;
+      font-weight: 500;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    .btn-warning {
+      background: #ffc107;
+      color: #333;
+    }
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+    }
+    tr:hover { background: #f8f9fa; }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-pending { background: #fff3cd; color: #856404; }
+    .badge-active { background: #d4edda; color: #155724; }
+    .badge-expired { background: #f8d7da; color: #721c24; }
+    .badge-revoked { background: #e2e3e5; color: #383d41; }
+
+    .license-keys {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-family: monospace;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .license-keys div {
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .hidden { display: none; }
+
+    .alert {
+      padding: 12px 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+    .alert-success { background: #d4edda; color: #155724; }
+    .alert-error { background: #f8d7da; color: #721c24; }
+
+    .actions { display: flex; gap: 5px; }
+
+    .copy-btn {
+      background: none;
+      border: 1px solid #ddd;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .copy-btn:hover { background: #f0f0f0; }
+
+    @media (max-width: 768px) {
+      .form-row { grid-template-columns: 1fr; }
+      table { font-size: 12px; }
+      th, td { padding: 8px 5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Xobi 授权管理</h1>
+      <p>授权码生成与管理控制台</p>
+    </header>
+
+    <!-- 登录区域 -->
+    <div id="loginSection" class="login-section">
+      <h2>管理员登录</h2>
+      <div class="form-group">
+        <label>服务器地址</label>
+        <input type="text" id="serverUrl" value="https://xobifuwu.vercel.app" placeholder="https://your-server.vercel.app">
+      </div>
+      <div class="form-group">
+        <label>管理员密钥</label>
+        <input type="password" id="adminSecret" placeholder="输入管理员密钥">
+      </div>
+      <button class="btn btn-primary" onclick="login()" style="width: 100%;">登录</button>
+    </div>
+
+    <!-- 主面板 -->
+    <div id="mainPanel" class="hidden">
+      <!-- 统计 -->
+      <div class="card">
+        <h2>授权统计</h2>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="number" id="statTotal">0</div>
+            <div class="label">总数</div>
+          </div>
+          <div class="stat-item">
+            <div class="number" id="statPending">0</div>
+            <div class="label">待激活</div>
+          </div>
+          <div class="stat-item">
+            <div class="number" id="statActive">0</div>
+            <div class="label">已激活</div>
+          </div>
+          <div class="stat-item">
+            <div class="number" id="statExpired">0</div>
+            <div class="label">已过期</div>
+          </div>
+          <div class="stat-item">
+            <div class="number" id="statRevoked">0</div>
+            <div class="label">已撤销</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 生成授权码 -->
+      <div class="card">
+        <h2>生成授权码</h2>
+        <div id="generateAlert"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>授权类型</label>
+            <select id="licenseType">
+              <option value="trial_1d">1天试用</option>
+              <option value="trial_7d" selected>7天试用</option>
+              <option value="monthly_30d">30天</option>
+              <option value="permanent">永久</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>生成数量</label>
+            <input type="number" id="generateCount" value="1" min="1" max="100">
+          </div>
+          <div class="form-group">
+            <label>备注</label>
+            <input type="text" id="generateNotes" placeholder="可选备注">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="generateLicenses()">生成授权码</button>
+        <div id="generatedKeys" class="license-keys hidden"></div>
+      </div>
+
+      <!-- 授权列表 -->
+      <div class="card">
+        <h2>授权列表</h2>
+        <div class="form-row" style="margin-bottom: 15px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <select id="filterStatus" onchange="loadLicenses()">
+              <option value="">全部状态</option>
+              <option value="pending">待激活</option>
+              <option value="active">已激活</option>
+              <option value="expired">已过期</option>
+              <option value="revoked">已撤销</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <select id="filterType" onchange="loadLicenses()">
+              <option value="">全部类型</option>
+              <option value="trial_1d">1天试用</option>
+              <option value="trial_7d">7天试用</option>
+              <option value="monthly_30d">30天</option>
+              <option value="permanent">永久</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="loadLicenses()">刷新</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>授权码</th>
+                <th>类型</th>
+                <th>状态</th>
+                <th>机器码</th>
+                <th>过期时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="licenseTable">
+              <tr><td colspan="6" style="text-align: center; color: #999;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let serverUrl = '';
+    let adminSecret = '';
+
+    function login() {
+      serverUrl = document.getElementById('serverUrl').value.trim();
+      adminSecret = document.getElementById('adminSecret').value.trim();
+
+      if (!serverUrl || !adminSecret) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      // 测试连接
+      fetch(`${serverUrl}/api/admin/list?limit=1`, {
+        headers: { 'Authorization': `Bearer ${adminSecret}` }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('loginSection').classList.add('hidden');
+          document.getElementById('mainPanel').classList.remove('hidden');
+          loadLicenses();
+        } else {
+          alert('登录失败：' + (data.error || '密钥错误'));
+        }
+      })
+      .catch(err => {
+        alert('连接失败：' + err.message);
+      });
+    }
+
+    function loadLicenses() {
+      const status = document.getElementById('filterStatus').value;
+      const type = document.getElementById('filterType').value;
+
+      let url = `${serverUrl}/api/admin/list?limit=100`;
+      if (status) url += `&status=${status}`;
+      if (type) url += `&license_type=${type}`;
+
+      fetch(url, {
+        headers: { 'Authorization': `Bearer ${adminSecret}` }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          // 更新统计
+          if (data.stats) {
+            document.getElementById('statTotal').textContent = data.stats.total || 0;
+            document.getElementById('statPending').textContent = data.stats.pending || 0;
+            document.getElementById('statActive').textContent = data.stats.active || 0;
+            document.getElementById('statExpired').textContent = data.stats.expired || 0;
+            document.getElementById('statRevoked').textContent = data.stats.revoked || 0;
+          }
+
+          // 更新表格
+          const tbody = document.getElementById('licenseTable');
+          if (!data.licenses || data.licenses.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">暂无数据</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = data.licenses.map(l => `
+            <tr>
+              <td>
+                <code>${l.license_key}</code>
+                <button class="copy-btn" onclick="copyText('${l.license_key}')">复制</button>
+              </td>
+              <td>${formatType(l.license_type)}</td>
+              <td><span class="badge badge-${l.status}">${formatStatus(l.status)}</span></td>
+              <td>${l.machine_code ? l.machine_code.substring(0, 20) + '...' : '-'}</td>
+              <td>${l.expires_at ? new Date(l.expires_at).toLocaleString('zh-CN') : '-'}</td>
+              <td class="actions">
+                ${l.status === 'active' ? `<button class="btn btn-warning btn-sm" onclick="revokeAction('${l.license_key}', 'unbind')">解绑</button>` : ''}
+                ${l.status !== 'revoked' ? `<button class="btn btn-danger btn-sm" onclick="revokeAction('${l.license_key}', 'revoke')">撤销</button>` : ''}
+                ${l.status === 'revoked' ? `<button class="btn btn-sm" onclick="revokeAction('${l.license_key}', 'reset')">重置</button>` : ''}
+              </td>
+            </tr>
+          `).join('');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+      });
+    }
+
+    function generateLicenses() {
+      const type = document.getElementById('licenseType').value;
+      const count = parseInt(document.getElementById('generateCount').value) || 1;
+      const notes = document.getElementById('generateNotes').value;
+
+      fetch(`${serverUrl}/api/admin/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminSecret}`
+        },
+        body: JSON.stringify({
+          license_type: type,
+          count: count,
+          notes: notes
+        })
+      })
+      .then(r => r.json())
+      .then(data => {
+        const alertDiv = document.getElementById('generateAlert');
+        const keysDiv = document.getElementById('generatedKeys');
+
+        if (data.success && data.licenses.length > 0) {
+          alertDiv.innerHTML = `<div class="alert alert-success">成功生成 ${data.licenses.length} 个授权码</div>`;
+          keysDiv.classList.remove('hidden');
+          keysDiv.innerHTML = data.licenses.map(l =>
+            `<div>${l.license_key} <button class="copy-btn" onclick="copyText('${l.license_key}')">复制</button></div>`
+          ).join('');
+          loadLicenses();
+        } else {
+          alertDiv.innerHTML = `<div class="alert alert-error">生成失败：${data.error || '未知错误'}</div>`;
+        }
+      })
+      .catch(err => {
+        document.getElementById('generateAlert').innerHTML = `<div class="alert alert-error">请求失败：${err.message}</div>`;
+      });
+    }
+
+    function revokeAction(key, action) {
+      const actionNames = { revoke: '撤销', unbind: '解绑', reset: '重置' };
+      if (!confirm(`确定要${actionNames[action]}授权码 ${key} 吗？`)) return;
+
+      fetch(`${serverUrl}/api/admin/revoke`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminSecret}`
+        },
+        body: JSON.stringify({ license_key: key, action: action })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          loadLicenses();
+        } else {
+          alert('操作失败：' + data.error);
+        }
+      })
+      .catch(err => {
+        alert('请求失败：' + err.message);
+      });
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        // 简单提示
+      });
+    }
+
+    function formatType(type) {
+      const types = {
+        'trial_1d': '1天试用',
+        'trial_7d': '7天试用',
+        'monthly_30d': '30天',
+        'permanent': '永久'
+      };
+      return types[type] || type;
+    }
+
+    function formatStatus(status) {
+      const statuses = {
+        'pending': '待激活',
+        'active': '已激活',
+        'expired': '已过期',
+        'revoked': '已撤销'
+      };
+      return statuses[status] || status;
+    }
+
+    // 回车登录
+    document.getElementById('adminSecret').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') login();
+    });
+  </script>
+</body>
+</html>
