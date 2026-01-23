@@ -49,30 +49,24 @@ class Config:
 
     # 数据库连接池配置
     # 根据数据库类型自动配置
-    @staticmethod
-    def get_engine_options():
-        """Get SQLAlchemy engine options based on database type"""
-        db_url = os.getenv('DATABASE_URL', '')
-        if db_url.startswith('postgresql'):
-            # PostgreSQL 配置
-            return {
-                'pool_pre_ping': True,
-                'pool_recycle': 300,
-                'pool_size': 5,
-                'max_overflow': 10,
-            }
-        else:
-            # SQLite 配置
-            return {
-                'connect_args': {
-                    'check_same_thread': False,
-                    'timeout': 30
-                },
-                'pool_pre_ping': True,
-                'pool_recycle': 3600,
-            }
-
-    SQLALCHEMY_ENGINE_OPTIONS = property(lambda self: Config.get_engine_options())
+    if DATABASE_URL.startswith('postgresql'):
+        # PostgreSQL 配置
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+            'pool_size': 5,
+            'max_overflow': 10,
+        }
+    else:
+        # SQLite 配置
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'connect_args': {
+                'check_same_thread': False,
+                'timeout': 30
+            },
+            'pool_pre_ping': True,
+            'pool_recycle': 3600,
+        }
 
     # Cloudflare R2 对象存储配置
     R2_ENABLED = os.getenv('R2_ENABLED', 'false').lower() in ('1', 'true', 'yes')
