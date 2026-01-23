@@ -1,0 +1,366 @@
+/**
+ * 移动端全局优化样式
+ * 适配所有页面的移动端体验
+ */
+
+/* ========== Hero Banner 移动端优化 ========== */
+@media (max-width: 768px) {
+  /* Hero Banner 缩小间距 */
+  .hero-banner {
+    padding: 24px 16px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .hero-banner h1 {
+    font-size: 24px !important;
+    line-height: 1.3 !important;
+  }
+
+  .hero-banner p {
+    font-size: 14px !important;
+  }
+
+  /* 按钮组自适应 */
+  .hero-buttons {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .hero-buttons button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Dashboard 卡片网格移动端 1列 */
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .dashboard-features-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .dashboard-projects-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* 卡片内边距缩小 */
+  .mobile-card {
+    padding: 16px !important;
+  }
+
+  .mobile-card-sm {
+    padding: 12px !important;
+  }
+}
+
+/* ========== 列表和表格移动端优化 ========== */
+@media (max-width: 768px) {
+  /* 列表项高度自适应 */
+  .ant-list-item {
+    padding: 12px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .ant-list-item-meta {
+    margin-bottom: 8px !important;
+    width: 100% !important;
+  }
+
+  .ant-list-item-action {
+    margin-top: 8px !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .ant-list-item-action li {
+    padding: 0 !important;
+  }
+
+  /* 表格操作栏优化 */
+  .table-actions {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* 状态标签换行 */
+  .tag-group {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+}
+
+/* ========== 表单移动端优化 ========== */
+@media (max-width: 768px) {
+  /* 表单项纵向排列 */
+  .form-row {
+    flex-direction: column !important;
+  }
+
+  .form-row .ant-col {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Upload组件移动端 */
+  .ant-upload-list-picture-card-container {
+    width: calc(33.33% - 8px) !important;
+  }
+
+  .ant-upload-select-picture-card {
+    width: calc(33.33% - 8px) !important;
+    height: 100px !important;
+    margin: 0 !important;
+  }
+
+  /* 步骤条移动端纵向 */
+  .ant-steps-horizontal.mobile-vertical {
+    flex-direction: column !important;
+  }
+}
+
+/* ========== 图片画廊移动端优化 ========== */
+@media (max-width: 768px) {
+  .image-gallery {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .image-gallery-item {
+    aspect-ratio: 1 !important;
+  }
+
+  /* 图片预览优化 */
+  .image-preview-modal .ant-image {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* ========== Space 组件移动端优化 ========== */
+@media (max-width: 768px) {
+  /* 自动换行 */
+  .ant-space {
+    flex-wrap: wrap !important;
+  }
+
+  /* 紧凑间距 */
+  .ant-space-compact {
+    width: 100% !important;
+  }
+
+  .ant-space-compact .ant-btn {
+    flex: 1 !important;
+  }
+}
+
+/* ========== 文本截断和换行 ========== */
+@media (max-width: 768px) {
+  /* 标题单行截断 */
+  .mobile-truncate {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* 多行截断 */
+  .mobile-clamp-2 {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  .mobile-clamp-3 {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+}
+
+/* ========== 固定底部操作栏 ========== */
+@media (max-width: 768px) {
+  .mobile-bottom-bar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding: 12px 16px !important;
+    padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    background: var(--background) !important;
+    border-top: 1px solid var(--border) !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08) !important;
+    z-index: 100 !important;
+  }
+
+  /* 为固定底部栏留出空间 */
+  .has-bottom-bar {
+    padding-bottom: 80px !important;
+  }
+}
+
+/* ========== 小屏手机 (<640px) 进一步优化 ========== */
+@media (max-width: 640px) {
+  /* Hero Banner 进一步缩小 */
+  .hero-banner {
+    padding: 20px 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .hero-banner h1 {
+    font-size: 20px !important;
+  }
+
+  .hero-banner .w-12 {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* 统计卡片改为1列 */
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 卡片圆角缩小 */
+  .rounded-2xl,
+  .rounded-3xl {
+    border-radius: 12px !important;
+  }
+
+  /* 图标尺寸缩小 */
+  .w-14,
+  .h-14 {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  /* 按钮padding缩小 */
+  button {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* 图片画廊单列 */
+  .image-gallery {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ========== 横屏模式优化 ========== */
+@media (max-width: 896px) and (orientation: landscape) {
+  /* Hero Banner 横屏模式高度压缩 */
+  .hero-banner {
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+  }
+
+  .hero-banner h1 {
+    font-size: 20px !important;
+  }
+
+  .hero-buttons {
+    flex-direction: row !important;
+  }
+
+  /* 统计卡片横屏4列 */
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  /* 功能卡片横屏2列 */
+  .dashboard-features-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ========== 触摸优化 ========== */
+@media (hover: none) and (pointer: coarse) {
+  /* 移除hover效果，避免点击后残留 */
+  .hover\:scale-\[1\.02\]:hover,
+  .group:hover {
+    transform: none !important;
+  }
+
+  /* 增加点击反馈 */
+  .hover\:scale-\[1\.02\]:active {
+    transform: scale(0.98) !important;
+  }
+
+  /* 卡片点击反馈 */
+  .clickable-card:active {
+    opacity: 0.8 !important;
+  }
+}
+
+/* ========== Skeleton 加载优化 ========== */
+@media (max-width: 768px) {
+  .ant-skeleton-title {
+    width: 60% !important;
+  }
+
+  .ant-skeleton-paragraph > li {
+    width: 100% !important;
+  }
+
+  .ant-skeleton-paragraph > li:nth-child(1) {
+    width: 95% !important;
+  }
+
+  .ant-skeleton-paragraph > li:nth-child(2) {
+    width: 85% !important;
+  }
+
+  .ant-skeleton-paragraph > li:last-child {
+    width: 70% !important;
+  }
+}
+
+/* ========== Empty 空状态优化 ========== */
+@media (max-width: 768px) {
+  .ant-empty {
+    margin: 24px 0 !important;
+  }
+
+  .ant-empty-image {
+    height: 80px !important;
+  }
+
+  .ant-empty-description {
+    font-size: 13px !important;
+  }
+}
+
+/* ========== 响应式隐藏/显示工具类 ========== */
+/* 移动端隐藏 */
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+/* PC端隐藏 */
+@media (min-width: 769px) {
+  .hide-on-desktop {
+    display: none !important;
+  }
+}
+
+/* 小屏手机隐藏 */
+@media (max-width: 640px) {
+  .hide-on-small-mobile {
+    display: none !important;
+  }
+}
+
+/* 平板隐藏 */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .hide-on-tablet {
+    display: none !important;
+  }
+}

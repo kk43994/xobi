@@ -1,6 +1,6 @@
 """Authentication controller - login, logout, current user"""
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from flask import Blueprint, request, jsonify, g
 from models import db, User
@@ -68,6 +68,74 @@ def login():
         'token': token,
         'user': user.to_dict(),
     })
+
+
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    """
+    用户注册
+    POST /api/auth/register
+    Body: { "username": "xxx", "password": "xxx" }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': '请求体不能为空'}), 400
+
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+
+    # 验证输入
+    if not username or not password:
+        return jsonify({'error': '用户名和密码不能为空'}), 400
+
+    if len(username) < 3:
+        return jsonify({'error': '用户名长度不能少于3位'}), 400
+
+    if len(password) < 6:
+        return jsonify({'error': '密码长度不能少于6位'}), 400
+
+    # 检查用户名格式（只允许字母、数字、下划线）
+    import re
+    if not re.match(r'^[a-zA-Z0-9_]+$', username):
+        return jsonify({'error': '用户名只能包含字母、数字和下划线'}), 400
+
+    # 检查用户名是否已存在
+    existing_user = User.query.filter_by(username=username).first()
+    if existing_user:
+        logger.warning(f"Registration failed: username '{username}' already exists")
+        return jsonify({'error': '用户名已存在'}), 409
+
+    # 创建新用户
+    try:
+        # 设置试用期：注册后1天过期
+        expires_at = datetime.now(timezone.utc) + timedelta(days=1)
+
+        new_user = User(
+            username=username,
+            password_hash=hash_password(password),
+            role='user',  # 默认为普通用户
+            status='active',  # 默认激活
+            quota=None,  # 默认无配额限制
+            expires_at=expires_at,  # 试用期1天
+        )
+        db.session.add(new_user)
+        db.session.commit()
+
+        logger.info(f"New user '{username}' registered successfully, expires at {expires_at}")
+
+        # 自动登录并返回 token
+        token = create_token(new_user.id, new_user.username, new_user.role)
+
+        return jsonify({
+            'message': '注册成功',
+            'token': token,
+            'user': new_user.to_dict(),
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Registration failed for user '{username}': {str(e)}")
+        return jsonify({'error': '注册失败，请稍后重试'}), 500
 
 
 @auth_bp.route('/me', methods=['GET'])

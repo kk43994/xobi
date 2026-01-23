@@ -6,11 +6,13 @@ import {
   AppstoreOutlined,
   ArrowLeftOutlined,
   BugOutlined,
+  BulbOutlined,
   DatabaseOutlined,
   EditOutlined,
   ExperimentOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
+  MenuOutlined,
   MenuUnfoldOutlined,
   MessageOutlined,
   MoonOutlined,
@@ -31,6 +33,7 @@ import { WorkbenchToolbarContext, type WorkbenchToolbarSlots } from './workbench
 import { AgentPanel } from '@/components/agent/AgentPanel';
 import { AgentBridgeContext, type AgentBridgeSlots } from './agentBridge';
 import { XobiLogo } from '@/components/shared';
+import { useResponsive } from '@/utils/responsive';
 
 const { Sider, Content } = Layout;
 
@@ -48,7 +51,8 @@ type MenuKey =
   | 'assets'
   | 'jobs'
   | 'settings'
-  | 'logs';
+  | 'logs'
+  | 'announcement';
 
 const menuKeyToPath: Record<MenuKey, string> = {
   dashboard: '/',
@@ -63,6 +67,7 @@ const menuKeyToPath: Record<MenuKey, string> = {
   jobs: '/jobs',
   settings: '/settings',
   logs: '/logs',
+  announcement: '/announcement',
 };
 
 interface NavItem {
@@ -73,6 +78,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { key: 'announcement', icon: <BulbOutlined />, label: '公告', group: '工作台' },
   { key: 'factory/single', icon: <ExperimentOutlined />, label: '主图工厂', group: '工作台' },
   { key: 'factory/detail', icon: <PictureOutlined />, label: '详情图工厂', group: '工作台' },
   { key: 'video', icon: <PlayCircleOutlined />, label: '视频工厂', group: '工作台' },
@@ -89,6 +95,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const resolveSelectedMenuKey = (pathname: string): MenuKey => {
   if (pathname === '/') return 'dashboard';
+  if (pathname.startsWith('/announcement')) return 'announcement';
   if (pathname.startsWith('/projects/new')) return 'factory/detail';
   if (pathname.startsWith('/projects')) return 'projects';
   if (pathname.startsWith('/excel')) return 'excel';
@@ -137,6 +144,7 @@ export function PortalLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin } = useAuthStore();
+  const { isMobile } = useResponsive();
 
   const {
     leftNavState,
@@ -156,6 +164,7 @@ export function PortalLayout() {
   const [aHealth, setAHealth] = useState<HealthStatus>('checking');
   const [bHealth, setBHealth] = useState<HealthStatus>('checking');
   const [debugMode, setDebugMode] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [jobsLoading, setJobsLoading] = useState(false);
@@ -273,13 +282,15 @@ export function PortalLayout() {
     resizingRef.current = null;
   };
 
-  const floatingLeft = Math.max(12, leftNavPixelWidth + 12);
+  // 移动端侧边栏不占用空间
+  const floatingLeft = isMobile ? 8 : Math.max(12, leftNavPixelWidth + 12);
 
   type PanelId = keyof typeof panels;
   const panelIds: PanelId[] = ['agent', 'assets', 'jobs'];
   const pinnedPanelId = panelIds.find((id) => panels[id].pinned);
-  const dockWidth = pinnedPanelId ? panels[pinnedPanelId].width : 0;
-  const floatingRight = pinnedPanelId ? dockWidth + 12 : 12;
+  // 移动端不显示固定面板
+  const dockWidth = (pinnedPanelId && !isMobile) ? panels[pinnedPanelId].width : 0;
+  const floatingRight = isMobile ? 8 : (pinnedPanelId ? dockWidth + 12 : 12);
 
   const pinExclusive = (id: PanelId) => {
     for (const other of panelIds) {
@@ -309,7 +320,7 @@ export function PortalLayout() {
     const items = navItems.filter((x) => x.group === group);
     return (
       <div style={{ marginTop: group === '管理' ? 14 : 0 }}>
-        {leftNavState === 'expanded' ? (
+        {(leftNavState === 'expanded' || isMobile) ? (
           <Typography.Text
             type="secondary"
             style={{
@@ -327,15 +338,21 @@ export function PortalLayout() {
         <Space direction="vertical" size={4} style={{ width: '100%' }}>
           {items.map((item) => {
             const active = selectedKey === item.key;
+            const handleClick = () => {
+              navigate(menuKeyToPath[item.key]);
+              if (isMobile) {
+                setMobileMenuOpen(false);
+              }
+            };
             const content = (
               <div
-                onClick={() => navigate(menuKeyToPath[item.key])}
+                onClick={handleClick}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: leftNavState === 'expanded' ? 'flex-start' : 'center',
+                  justifyContent: (leftNavState === 'expanded' || isMobile) ? 'flex-start' : 'center',
                   gap: 10,
-                  padding: leftNavState === 'expanded' ? '10px 12px' : '10px 0',
+                  padding: (leftNavState === 'expanded' || isMobile) ? '10px 12px' : '10px 0',
                   borderRadius: 12,
                   cursor: 'pointer',
                   userSelect: 'none',
@@ -355,13 +372,13 @@ export function PortalLayout() {
                 }}
               >
                 <span style={{ fontSize: 18, display: 'flex', alignItems: 'center' }}>{item.icon}</span>
-                {leftNavState === 'expanded' ? (
+                {(leftNavState === 'expanded' || isMobile) ? (
                   <span style={{ fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap' }}>{item.label}</span>
                 ) : null}
               </div>
             );
 
-            return leftNavState === 'expanded' ? (
+            return (leftNavState === 'expanded' || isMobile) ? (
               <div key={item.key}>{content}</div>
             ) : (
               <Tooltip key={item.key} title={item.label} placement="right">
@@ -374,107 +391,141 @@ export function PortalLayout() {
     );
   };
 
-  return (
-    <AgentBridgeContext.Provider value={{ slots: agentSlots, setSlots: setAgentSlots, clearSlots: clearAgentSlots }}>
-      <WorkbenchToolbarContext.Provider value={{ slots: toolbarSlots, setSlots: setToolbarSlots, clearSlots: clearToolbarSlots }}>
-        <Layout style={{ height: '100vh' }}>
-        <Sider
-        width={leftNavPixelWidth}
-        collapsedWidth={leftNavState === 'hidden' ? 0 : 64}
-        collapsed={leftNavState !== 'expanded'}
-        trigger={null}
+  // 渲染侧边栏内容（PC和移动端共用）
+  const renderSidebarContent = () => (
+    <>
+      <div
         style={{
-          background: theme === 'dark' ? '#000000' : '#FFFFFF',
-          borderRight: theme === 'dark' ? '1px solid rgba(167,139,250,0.12)' : '1px solid #EDE9FE',
-          overflow: 'hidden',
-          position: 'relative',
+          height: 56,
+          display: 'flex',
+          alignItems: 'center',
+          paddingInline: (leftNavState === 'expanded' || isMobile) ? 12 : 0,
+          justifyContent: (leftNavState === 'expanded' || isMobile) ? 'flex-start' : 'center',
+          gap: 10,
+          borderBottom: theme === 'dark' ? '1px solid rgba(167,139,250,0.1)' : '1px solid #EDE9FE',
         }}
       >
         <div
           style={{
-            height: 56,
+            width: 34,
+            height: 34,
+            borderRadius: 12,
             display: 'flex',
             alignItems: 'center',
-            paddingInline: leftNavState === 'expanded' ? 12 : 0,
-            justifyContent: leftNavState === 'expanded' ? 'flex-start' : 'center',
-            gap: 10,
-            borderBottom: theme === 'dark' ? '1px solid rgba(167,139,250,0.1)' : '1px solid #EDE9FE',
+            justifyContent: 'center',
+            background: theme === 'dark' ? 'rgba(139,92,246,0.18)' : 'rgba(139,92,246,0.12)',
+            color: theme === 'dark' ? '#c4b5fd' : '#7c3aed',
+            fontWeight: 800,
+            flex: '0 0 auto',
           }}
         >
-          <div
+          X
+        </div>
+        {(leftNavState === 'expanded' || isMobile) ? (
+          <Space direction="vertical" size={0} style={{ minWidth: 0 }}>
+            <Typography.Text style={{ color: theme === 'dark' ? '#fff' : '#111' }}>Xobi</Typography.Text>
+            <Space size={6}>
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: aHealth === 'ok' ? '#22c55e' : aHealth === 'down' ? '#ef4444' : '#a3a3a3',
+                  display: 'inline-block',
+                }}
+              />
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: bHealth === 'ok' ? '#a855f7' : bHealth === 'down' ? '#ef4444' : '#a3a3a3',
+                  display: 'inline-block',
+                }}
+              />
+              <Typography.Text
+                type="secondary"
+                style={{ fontSize: 12, color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined }}
+              >
+                核心 / 工具
+              </Typography.Text>
+            </Space>
+          </Space>
+        ) : null}
+      </div>
+
+      <div style={{ padding: (leftNavState === 'expanded' || isMobile) ? 12 : 8, height: 'calc(100% - 56px)', overflow: 'auto' }}>
+        {renderNavGroup('工作台')}
+        {renderNavGroup('管理')}
+      </div>
+    </>
+  );
+
+  return (
+    <AgentBridgeContext.Provider value={{ slots: agentSlots, setSlots: setAgentSlots, clearSlots: clearAgentSlots }}>
+      <WorkbenchToolbarContext.Provider value={{ slots: toolbarSlots, setSlots: setToolbarSlots, clearSlots: clearToolbarSlots }}>
+        <Layout style={{ height: '100vh' }}>
+        {/* 移动端：侧边栏使用 Drawer */}
+        {isMobile ? (
+          <Drawer
+            title={null}
+            placement="left"
+            closable={false}
+            onClose={() => setMobileMenuOpen(false)}
+            open={mobileMenuOpen}
+            width={280}
+            styles={{
+              body: { padding: 0 },
+              header: { display: 'none' },
+            }}
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: 12,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: theme === 'dark' ? 'rgba(139,92,246,0.18)' : 'rgba(139,92,246,0.12)',
-              color: theme === 'dark' ? '#c4b5fd' : '#7c3aed',
-              fontWeight: 800,
-              flex: '0 0 auto',
+              background: theme === 'dark' ? '#000000' : '#FFFFFF',
             }}
           >
-            X
-          </div>
-          {leftNavState === 'expanded' ? (
-            <Space direction="vertical" size={0} style={{ minWidth: 0 }}>
-              <Typography.Text style={{ color: theme === 'dark' ? '#fff' : '#111' }}>Xobi</Typography.Text>
-              <Space size={6}>
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 999,
-                    background: aHealth === 'ok' ? '#22c55e' : aHealth === 'down' ? '#ef4444' : '#a3a3a3',
-                    display: 'inline-block',
-                  }}
-                />
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 999,
-                    background: bHealth === 'ok' ? '#a855f7' : bHealth === 'down' ? '#ef4444' : '#a3a3a3',
-                    display: 'inline-block',
-                  }}
-                />
-                <Typography.Text
-                  type="secondary"
-                  style={{ fontSize: 12, color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : undefined }}
-                >
-                  核心 / 工具
-                </Typography.Text>
-              </Space>
-            </Space>
-          ) : null}
-        </div>
-
-        <div style={{ padding: leftNavState === 'expanded' ? 12 : 8, height: 'calc(100% - 56px)', overflow: 'auto' }}>
-          {renderNavGroup('工作台')}
-          {renderNavGroup('管理')}
-        </div>
-
-        {/* Resizer handle (仅 expanded) */}
-        {leftNavState === 'expanded' ? (
-          <div
-            onPointerDown={onResizeStart}
-            onPointerMove={onResizeMove}
-            onPointerUp={onResizeEnd}
-            onPointerCancel={onResizeEnd}
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: 6,
+            <div style={{
               height: '100%',
-              cursor: 'col-resize',
-              touchAction: 'none',
-              background: 'transparent',
-            }}
-          />
-        ) : null}
-      </Sider>
+              background: theme === 'dark' ? '#000000' : '#FFFFFF',
+            }}>
+              {renderSidebarContent()}
+            </div>
+          </Drawer>
+        ) : (
+          /* PC端：使用 Sider */
+          <Sider
+          width={leftNavPixelWidth}
+          collapsedWidth={leftNavState === 'hidden' ? 0 : 64}
+          collapsed={leftNavState !== 'expanded'}
+          trigger={null}
+          style={{
+            background: theme === 'dark' ? '#000000' : '#FFFFFF',
+            borderRight: theme === 'dark' ? '1px solid rgba(167,139,250,0.12)' : '1px solid #EDE9FE',
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          {renderSidebarContent()}
+
+          {/* Resizer handle (仅 expanded) */}
+          {leftNavState === 'expanded' ? (
+            <div
+              onPointerDown={onResizeStart}
+              onPointerMove={onResizeMove}
+              onPointerUp={onResizeEnd}
+              onPointerCancel={onResizeEnd}
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: 6,
+                height: '100%',
+                cursor: 'col-resize',
+                touchAction: 'none',
+                background: 'transparent',
+              }}
+            />
+          ) : null}
+        </Sider>
+        )}
 
       <Content style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
         {/* 顶部浮动工具条 */}
@@ -506,16 +557,24 @@ export function PortalLayout() {
             }}
           >
             <Space style={{ pointerEvents: 'auto', flexShrink: 0 }}>
-              <Tooltip title="返回">
-                <Button size="small" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} />
-              </Tooltip>
-              <Tooltip title="折叠/隐藏侧边栏">
-                <Button
-                  size="small"
-                  icon={leftNavState === 'expanded' ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
-                  onClick={toggleLeftNav}
-                />
-              </Tooltip>
+              {!isMobile && (
+                <Tooltip title="返回">
+                  <Button size="small" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} />
+                </Tooltip>
+              )}
+              {isMobile ? (
+                <Tooltip title="菜单">
+                  <Button size="small" icon={<MenuOutlined />} onClick={() => setMobileMenuOpen(true)} />
+                </Tooltip>
+              ) : (
+                <Tooltip title="折叠/隐藏侧边栏">
+                  <Button
+                    size="small"
+                    icon={leftNavState === 'expanded' ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
+                    onClick={toggleLeftNav}
+                  />
+                </Tooltip>
+              )}
               {toolbarSlots.left}
             </Space>
 
@@ -539,15 +598,19 @@ export function PortalLayout() {
 
             <Space style={{ pointerEvents: 'auto', flexShrink: 0 }}>
               {toolbarSlots.right}
-              <Tooltip title="Agent（主图/文案）">
-                <Button size="small" icon={<MessageOutlined />} onClick={() => openPanel('agent')} />
-              </Tooltip>
-              <Tooltip title="资源库">
-                <Button size="small" icon={<DatabaseOutlined />} onClick={() => openPanel('assets')} />
-              </Tooltip>
-              <Tooltip title="任务中心">
-                <Button size="small" icon={<UnorderedListOutlined />} onClick={() => openPanel('jobs')} />
-              </Tooltip>
+              {!isMobile && (
+                <>
+                  <Tooltip title="Agent（主图/文案）">
+                    <Button size="small" icon={<MessageOutlined />} onClick={() => openPanel('agent')} />
+                  </Tooltip>
+                  <Tooltip title="资源库">
+                    <Button size="small" icon={<DatabaseOutlined />} onClick={() => openPanel('assets')} />
+                  </Tooltip>
+                  <Tooltip title="任务中心">
+                    <Button size="small" icon={<UnorderedListOutlined />} onClick={() => openPanel('jobs')} />
+                  </Tooltip>
+                </>
+              )}
               <Tooltip title={theme === 'dark' ? '切换浅色主题' : '切换深色主题'}>
                 <Button size="small" icon={theme === 'dark' ? <SunOutlined /> : <MoonOutlined />} onClick={toggleTheme} />
               </Tooltip>
@@ -568,6 +631,28 @@ export function PortalLayout() {
                       label: '用户管理',
                       onClick: () => navigate('/admin/users'),
                     }] : []),
+                    ...(isMobile ? [
+                      { type: 'divider' as const },
+                      {
+                        key: 'agent',
+                        icon: <MessageOutlined />,
+                        label: 'Agent',
+                        onClick: () => openPanel('agent'),
+                      },
+                      {
+                        key: 'assets',
+                        icon: <DatabaseOutlined />,
+                        label: '资源库',
+                        onClick: () => openPanel('assets'),
+                      },
+                      {
+                        key: 'jobs',
+                        icon: <UnorderedListOutlined />,
+                        label: '任务中心',
+                        onClick: () => openPanel('jobs'),
+                      },
+                    ] : []),
+                    { type: 'divider' },
                     {
                       key: 'logout',
                       icon: <LogoutOutlined />,
@@ -592,7 +677,7 @@ export function PortalLayout() {
                     border: user?.role === 'admin' ? 'none' : undefined,
                   }}
                 >
-                  {user?.username}
+                  {!isMobile && user?.username}
                 </Button>
               </Dropdown>
             </Space>
@@ -759,8 +844,8 @@ export function PortalLayout() {
         </Drawer>
       </Content>
 
-      {/* Dock（右侧固定面板；一次只固定一个） */}
-      {pinnedPanelId ? (
+      {/* Dock（右侧固定面板；一次只固定一个；移动端不显示） */}
+      {pinnedPanelId && !isMobile ? (
         <Sider
           width={dockWidth}
           theme={theme === 'dark' ? 'dark' : 'light'}

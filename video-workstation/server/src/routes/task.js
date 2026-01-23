@@ -32,7 +32,7 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
- * 查询任务状态并同步云雾API状态
+ * 查询任务状态并同步酷可API状态
  */
 router.get('/:id/status', async (req, res) => {
   try {
@@ -46,7 +46,7 @@ router.get('/:id/status', async (req, res) => {
       return res.json({ success: true, task });
     }
 
-    // 如果有云雾任务ID，查询最新状态
+    // 如果有酷可任务ID，查询最新状态
     if (task.yunwu_task_id) {
       try {
         const yunwu = getYunwuService();
@@ -90,7 +90,7 @@ router.get('/:id/status', async (req, res) => {
           yunwu_status: yunwuStatus
         });
       } catch (error) {
-        console.error('查询云雾状态失败:', error);
+        console.error('查询酷可状态失败:', error);
       }
     }
 
@@ -119,7 +119,7 @@ router.post('/batch-status', async (req, res) => {
 
       let status = task;
 
-      // 如果任务正在处理中，查询云雾状态
+      // 如果任务正在处理中，查询酷可状态
       if (task.status === 'processing' && task.yunwu_task_id) {
         try {
           const yunwuStatus = await yunwu.getTaskStatus(task.yunwu_task_id);

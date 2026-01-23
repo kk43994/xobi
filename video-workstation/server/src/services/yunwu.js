@@ -2,13 +2,13 @@ import fetch from 'node-fetch';
 import { getSettings } from '../routes/settings.js';
 
 /**
- * 云雾API服务封装
+ * 酷可API服务封装
  */
 function normalizeYunwuBaseUrl(baseUrl) {
   const raw = String(baseUrl || '').trim();
   if (!raw) return 'https://api.kk666.online';
   const trimmed = raw.replace(/\/+$/, '');
-  // 云雾视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
+  // 酷可视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
   if (trimmed.endsWith('/v1')) return trimmed.slice(0, -3);
   return trimmed;
 }
@@ -58,7 +58,7 @@ export class YunwuService {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`云雾API错误: ${response.status} - ${error}`);
+      throw new Error(`酷可API错误: ${response.status} - ${error}`);
     }
 
     return response.json();

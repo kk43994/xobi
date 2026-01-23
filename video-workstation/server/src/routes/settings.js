@@ -13,14 +13,14 @@ function normalizeYunwuBaseUrl(baseUrl) {
   const raw = String(baseUrl || '').trim();
   if (!raw) return 'https://api.kk666.online';
   const trimmed = raw.replace(/\/+$/, '');
-  // 云雾视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
+  // 酷可视频接口路径本身带 /v1（例如 /v1/video/create），所以 base 不要以 /v1 结尾，避免拼出 /v1/v1。
   if (trimmed.endsWith('/v1')) return trimmed.slice(0, -3);
   return trimmed;
 }
 
 // 默认设置
 const defaultSettings = {
-  // 云雾API设置 (视频生成)
+  // 酷可API设置 (视频生成)
   yunwu: {
     apiKey: '',
     baseUrl: 'https://api.kk666.online',
@@ -147,13 +147,13 @@ router.post('/test', async (req, res) => {
 
   try {
     if (type === 'yunwu') {
-      // 测试云雾视频API
+      // 测试酷可视频API
       const baseUrl = normalizeYunwuBaseUrl(settings.yunwu.baseUrl);
       const response = await fetch(`${baseUrl}/v1/models`, {
         headers: { 'Authorization': `Bearer ${settings.yunwu.apiKey}` }
       });
       if (response.ok) {
-        res.json({ success: true, message: '云雾API连接成功' });
+        res.json({ success: true, message: '酷可API连接成功' });
       } else {
         res.json({ success: false, message: `连接失败: ${response.status}` });
       }

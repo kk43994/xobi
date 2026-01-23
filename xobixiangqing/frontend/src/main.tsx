@@ -6,6 +6,7 @@ import App from './App.tsx';
 import { usePortalUiStore } from './store/usePortalUiStore';
 import 'antd/dist/reset.css';
 import './index.css';
+import './styles/mobile.css';
 
 function AppThemeProvider(props: { children: React.ReactNode }) {
   const { children } = props;

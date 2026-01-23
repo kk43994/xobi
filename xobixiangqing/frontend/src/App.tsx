@@ -27,6 +27,7 @@ import { VideoFactoryPage } from './pages/VideoFactoryPage';
 import { LogsPage } from './pages/LogsPage';
 import { LoginPage } from './pages/LoginPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
+import { AnnouncementPage } from './pages/AnnouncementPage';
 import { useProjectStore } from './store/useProjectStore';
 import { useAuthStore } from './store/useAuthStore';
 import { useToast } from './components/shared';
@@ -123,6 +124,7 @@ function App() {
 
             <Route path="settings" element={<PortalSettingsPage />} />
             <Route path="logs" element={<LogsPage />} />
+            <Route path="announcement" element={<AnnouncementPage />} />
 
             {/* 管理员页面 */}
             <Route path="admin/users" element={<AdminUsersPage />} />

@@ -1,0 +1,81 @@
+/* PortalLayout 移动端适配样式 */
+
+/* 移动端侧边栏优化 */
+@media (max-width: 768px) {
+  .mobileSiderDrawer :global(.ant-drawer-content-wrapper) {
+    width: 280px !important;
+  }
+
+  .mobileSiderDrawer :global(.ant-drawer-body) {
+    padding: 0 !important;
+  }
+
+  /* 隐藏PC端侧边栏 */
+  .hiddenOnMobile {
+    display: none !important;
+  }
+
+  /* 顶部工具栏移动端优化 */
+  .mobileToolbar {
+    left: 8px !important;
+    right: 8px !important;
+    top: 8px !important;
+    padding: 8px !important;
+    min-height: 48px !important;
+  }
+
+  .mobileToolbar .toolbarButton {
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 8px !important;
+  }
+
+  .mobileToolbar .toolbarSpace {
+    gap: 6px !important;
+  }
+
+  /* 隐藏移动端不必要的按钮 */
+  .hideOnMobile {
+    display: none !important;
+  }
+
+  /* 内容区域移动端适配 */
+  .mobileContent {
+    padding: 8px !important;
+    padding-top: 64px !important;
+  }
+
+  /* 右侧Dock在移动端使用Drawer */
+  .mobileDock {
+    display: none !important;
+  }
+}
+
+/* 小屏手机进一步优化 */
+@media (max-width: 640px) {
+  .mobileToolbar {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+
+  .mobileToolbar .centerSlot {
+    display: none !important;
+  }
+
+  .mobileSiderDrawer :global(.ant-drawer-content-wrapper) {
+    width: 85vw !important;
+    max-width: 280px !important;
+  }
+}
+
+/* 平板设备优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tabletSider {
+    width: 200px !important;
+  }
+
+  .tabletCollapsedSider {
+    width: 64px !important;
+  }
+}

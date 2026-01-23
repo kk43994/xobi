@@ -24,6 +24,7 @@ interface AuthState {
 
   // Actions
   login: (username: string, password: string) => Promise<boolean>;
+  register: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   fetchMe: () => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
@@ -54,6 +55,23 @@ export const useAuthStore = create<AuthState>()(
           return true;
         } catch (error: any) {
           const message = error.response?.data?.error || '登录失败';
+          set({ error: message, isLoading: false });
+          return false;
+        }
+      },
+
+      register: async (username: string, password: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await apiClient.post('/api/auth/register', {
+            username,
+            password,
+          });
+          const { token, user } = response.data;
+          set({ token, user, isLoading: false });
+          return true;
+        } catch (error: any) {
+          const message = error.response?.data?.error || '注册失败';
           set({ error: message, isLoading: false });
           return false;
         }

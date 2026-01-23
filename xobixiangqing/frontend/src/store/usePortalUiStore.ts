@@ -148,7 +148,7 @@ export const usePortalUiStore = create<PortalUiState>()(
         }),
 
       // === 主题 ===
-      theme: 'dark' as 'light' | 'dark',
+      theme: 'light' as 'light' | 'dark',
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
 

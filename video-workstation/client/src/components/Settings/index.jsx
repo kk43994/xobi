@@ -119,7 +119,7 @@ function Settings({ open, onClose }) {
       children: (
         <div className="settings-section">
           <Alert
-            message="云雾API用于调用Sora-2-pro生成视频"
+            message="酷可API用于调用Sora-2-pro生成视频"
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
@@ -130,7 +130,7 @@ function Settings({ open, onClose }) {
             label="API Key"
             rules={[{ required: true, message: '请输入API Key' }]}
           >
-            <Input.Password placeholder="输入云雾API Key" />
+            <Input.Password placeholder="输入酷可API Key" />
           </Form.Item>
 
           <Form.Item name={['yunwu', 'baseUrl']} label="API Base URL">

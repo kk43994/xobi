@@ -25,7 +25,7 @@ router.post('/generate', async (req, res) => {
 
     const yunwu = getYunwuService();
 
-    // 调用云雾API
+    // 调用酷可API
     const result = await yunwu.createVideo({
       prompt,
       images: images || [],

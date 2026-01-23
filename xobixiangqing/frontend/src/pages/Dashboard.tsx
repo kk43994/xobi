@@ -133,124 +133,124 @@ export function Dashboard() {
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-[#0a0a0f]' : 'bg-gray-50'}`} style={{ paddingTop: 'var(--xobi-toolbar-safe-top)' }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         {/* Hero Banner */}
-        <div className="relative overflow-hidden rounded-3xl mb-8">
+        <div className="hero-banner relative overflow-hidden rounded-2xl md:rounded-3xl mb-4 md:mb-8">
           {/* 背景渐变 */}
           <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600"></div>
           {/* 装饰元素 */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-400/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+          <div className="absolute top-0 right-0 w-64 md:w-96 h-64 md:h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-48 md:w-64 h-48 md:h-64 bg-cyan-400/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
 
-          <div className="relative px-8 py-10 sm:px-12 sm:py-14">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
+          <div className="relative px-4 py-6 sm:px-8 sm:py-10 md:px-12 md:py-14">
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+                <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-white">Xobi 工作台</h1>
-                <p className="text-white/70 text-sm">AI 电商图片生成平台</p>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">Xobi 工作台</h1>
+                <p className="text-white/70 text-xs md:text-sm">AI 电商图片生成平台</p>
               </div>
             </div>
 
-            <p className="text-white/80 text-lg max-w-2xl mb-6">
+            <p className="text-white/80 text-sm md:text-lg max-w-2xl mb-4 md:mb-6">
               一站式电商视觉解决方案，从商品图到详情页，让 AI 为你的店铺创造专业级视觉内容
             </p>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="hero-buttons flex flex-col sm:flex-row flex-wrap gap-2 md:gap-3">
               <button
                 onClick={() => navigate('/factory/single')}
-                className="px-6 py-3 bg-white text-purple-700 font-semibold rounded-xl hover:bg-white/90 transition-all shadow-lg shadow-purple-900/30 flex items-center gap-2"
+                className="px-4 md:px-6 py-2.5 md:py-3 bg-white text-purple-700 font-semibold rounded-lg md:rounded-xl hover:bg-white/90 transition-all shadow-lg shadow-purple-900/30 flex items-center justify-center gap-2"
               >
-                <Zap className="w-5 h-5" />
+                <Zap className="w-4 h-4 md:w-5 md:h-5" />
                 快速开始
               </button>
               <button
                 onClick={() => navigate('/factory/detail')}
-                className="px-6 py-3 bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition-all backdrop-blur flex items-center gap-2"
+                className="px-4 md:px-6 py-2.5 md:py-3 bg-white/20 text-white font-semibold rounded-lg md:rounded-xl hover:bg-white/30 transition-all backdrop-blur flex items-center justify-center gap-2"
               >
-                <LayoutGrid className="w-5 h-5" />
+                <LayoutGrid className="w-4 h-4 md:w-5 md:h-5" />
                 新建项目
               </button>
             </div>
           </div>
         </div>
 
-        {/* 用量监控卡片 - 待开发 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* 用量监控卡片 */}
+        <div className="dashboard-stats-grid grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-8">
           {/* 图片生成量 */}
-          <div className={`p-5 rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-            <div className="flex items-center justify-between mb-3">
+          <div className={`mobile-card p-4 md:p-5 rounded-xl md:rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+            <div className="flex items-center justify-between mb-2 md:mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                  <Image className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                  <Image className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 </div>
-                <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>图片生成</span>
+                <span className={`text-sm md:font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>图片生成</span>
               </div>
             </div>
             <div className="mb-2">
-              <span className={`text-lg ${isDark ? 'text-white/40' : 'text-gray-400'}`}>待开发</span>
+              <span className={`text-base md:text-lg ${isDark ? 'text-white/40' : 'text-gray-400'}`}>待开发</span>
             </div>
           </div>
 
           {/* Token 使用量 */}
-          <div className={`p-5 rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-            <div className="flex items-center justify-between mb-3">
+          <div className={`mobile-card p-4 md:p-5 rounded-xl md:rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+            <div className="flex items-center justify-between mb-2 md:mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                  <Zap className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 </div>
-                <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Token 用量</span>
+                <span className={`text-sm md:font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Token 用量</span>
               </div>
             </div>
             <div className="mb-2">
-              <span className={`text-lg ${isDark ? 'text-white/40' : 'text-gray-400'}`}>待开发</span>
+              <span className={`text-base md:text-lg ${isDark ? 'text-white/40' : 'text-gray-400'}`}>待开发</span>
             </div>
           </div>
 
           {/* 项目数量 */}
-          <div className={`p-5 rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-            <div className="flex items-center justify-between mb-3">
+          <div className={`mobile-card p-4 md:p-5 rounded-xl md:rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+            <div className="flex items-center justify-between mb-2 md:mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                  <FolderOpen className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                  <FolderOpen className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 </div>
-                <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>项目总数</span>
+                <span className={`text-sm md:font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>项目总数</span>
               </div>
             </div>
             <div>
-              <span className={`text-lg ${isDark ? 'text-white/40' : 'text-gray-400'}`}>待开发</span>
+              <span className={`text-base md:text-lg ${isDark ? 'text-white/40' : 'text-gray-400'}`}>待开发</span>
             </div>
           </div>
 
           {/* 任务完成 */}
-          <div className={`p-5 rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-            <div className="flex items-center justify-between mb-3">
+          <div className={`mobile-card p-4 md:p-5 rounded-xl md:rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+            <div className="flex items-center justify-between mb-2 md:mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                  <Clock className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 </div>
-                <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>任务完成</span>
+                <span className={`text-sm md:font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>任务完成</span>
               </div>
             </div>
             <div>
-              <span className={`text-lg ${isDark ? 'text-white/40' : 'text-gray-400'}`}>待开发</span>
+              <span className={`text-base md:text-lg ${isDark ? 'text-white/40' : 'text-gray-400'}`}>待开发</span>
             </div>
           </div>
         </div>
 
         {/* 功能卡片网格 */}
-        <div className="mb-8">
-          <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <div className="mb-4 md:mb-8">
+          <h2 className={`text-lg md:text-xl font-bold mb-3 md:mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             快捷入口
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="dashboard-features-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {featureCards.map((card) => {
               const IconComponent = card.icon;
               return (
                 <div
                   key={card.key}
-                  className={`group relative p-6 rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
+                  className={`mobile-card group relative p-4 md:p-6 rounded-xl md:rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
                     isDark
                       ? 'bg-[#13131a] border border-white/5 hover:border-white/10'
                       : 'bg-white border border-gray-100 hover:shadow-lg'
@@ -258,21 +258,21 @@ export function Dashboard() {
                 >
                   {/* 待开发标签 */}
                   {'comingSoon' in card && card.comingSoon && (
-                    <div className="absolute top-3 right-3 px-2 py-1 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full">
+                    <div className="absolute top-2 right-2 md:top-3 md:right-3 px-2 py-1 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full">
                       待开发
                     </div>
                   )}
 
                   {/* 图标 */}
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${card.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ${'comingSoon' in card && card.comingSoon ? 'opacity-50' : ''}`}>
-                    <IconComponent className="w-7 h-7 text-white" />
+                  <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br ${card.color} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform ${'comingSoon' in card && card.comingSoon ? 'opacity-50' : ''}`}>
+                    <IconComponent className="w-6 h-6 md:w-7 md:h-7 text-white" />
                   </div>
 
                   {/* 标题和描述 */}
-                  <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <h3 className={`text-base md:text-lg font-bold mb-1 md:mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     {card.title}
                   </h3>
-                  <p className={`text-sm mb-4 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
+                  <p className={`text-xs md:text-sm mb-3 md:mb-4 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
                     {card.description}
                   </p>
 
@@ -287,7 +287,7 @@ export function Dashboard() {
                         <button
                           key={idx}
                           onClick={() => navigate(action.path)}
-                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-1 ${
+                          className={`px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg transition-all flex items-center gap-1 ${
                             action.primary
                               ? `bg-gradient-to-r ${card.color} text-white hover:opacity-90 shadow-sm`
                               : isDark
@@ -296,7 +296,7 @@ export function Dashboard() {
                           }`}
                         >
                           {action.label}
-                          {action.primary && <ArrowRight className="w-4 h-4" />}
+                          {action.primary && <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />}
                         </button>
                       ))
                     )}
@@ -308,18 +308,18 @@ export function Dashboard() {
         </div>
 
         {/* 最近项目 */}
-        <div className={`rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} overflow-hidden`}>
-          <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+        <div className={`rounded-xl md:rounded-2xl ${isDark ? 'bg-[#13131a] border border-white/5' : 'bg-white border border-gray-100'} overflow-hidden`}>
+          <div className="px-4 md:px-6 py-3 md:py-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FileImageOutlined className={isDark ? 'text-white' : 'text-gray-900'} />
-              <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>最近项目</span>
+              <span className={`text-sm md:text-base font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>最近项目</span>
             </div>
-            <Button type="link" onClick={() => navigate('/projects')} className="!text-purple-500">
-              查看全部 <ArrowRight className="w-4 h-4 inline ml-1" />
+            <Button type="link" onClick={() => navigate('/projects')} className="!text-purple-500 !text-xs md:!text-sm !p-0">
+              查看全部 <ArrowRight className="w-3 h-3 md:w-4 md:h-4 inline ml-1" />
             </Button>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {recentLoading ? (
               <Skeleton active paragraph={{ rows: 4 }} />
             ) : recentError ? (
@@ -330,7 +330,7 @@ export function Dashboard() {
             ) : !hasRecentProjects ? (
               <Empty description="暂无项目，先新建一个试试" />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="dashboard-projects-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {recentProjects.map((project) => {
                   const title = getProjectTitle(project);
                   const statusText = getStatusText(project);
@@ -340,7 +340,7 @@ export function Dashboard() {
                     <div
                       key={project.id}
                       onClick={() => navigate(getProjectRoute(project))}
-                      className={`group cursor-pointer rounded-xl overflow-hidden transition-all hover:scale-[1.02] ${
+                      className={`clickable-card mobile-card group cursor-pointer rounded-lg md:rounded-xl overflow-hidden transition-all hover:scale-[1.02] ${
                         isDark
                           ? 'bg-white/5 hover:bg-white/10 border border-white/5'
                           : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'
@@ -351,17 +351,17 @@ export function Dashboard() {
                         {cover ? (
                           <img src={cover} alt={title} className="w-full h-full object-cover" />
                         ) : (
-                          <Palette className={`w-12 h-12 ${isDark ? 'text-white/20' : 'text-gray-300'}`} />
+                          <Palette className={`w-10 h-10 md:w-12 md:h-12 ${isDark ? 'text-white/20' : 'text-gray-300'}`} />
                         )}
                       </div>
 
                       {/* 信息 */}
-                      <div className="p-4">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h4 className={`font-medium truncate flex-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      <div className="p-3 md:p-4">
+                        <div className="flex items-start justify-between gap-2 mb-1 md:mb-2">
+                          <h4 className={`text-sm md:text-base font-medium truncate flex-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                             {title}
                           </h4>
-                          <Tag color={statusToTagColor(statusText)} className="flex-shrink-0">
+                          <Tag color={statusToTagColor(statusText)} className="flex-shrink-0 !text-xs">
                             {statusText}
                           </Tag>
                         </div>
